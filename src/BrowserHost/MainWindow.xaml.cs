@@ -19,9 +19,12 @@ public partial class MainWindow : Window
         WebContent.BrowserSettings.WebGl = CefState.Enabled;
         ChromeUI.BrowserSettings.WindowlessFrameRate = 120;
         ChromeUI.BrowserSettings.WebGl = CefState.Enabled;
+        ChromeUI.Address = ContentServer.GetUiAddress("/");
 
         _browserApi = new BrowserApi(this);
         ChromeUI.JavascriptObjectRepository.Register("api", _browserApi);
+
+        ContentServer.Run();
     }
 
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)

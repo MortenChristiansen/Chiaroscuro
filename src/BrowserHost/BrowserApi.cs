@@ -7,6 +7,7 @@ namespace BrowserHost;
 
 internal class BrowserApi
 {
+    private static readonly string _actionDialogUrl = ContentServer.GetUiAddress("/action-dialog");
     private readonly MainWindow _window;
 
     public BrowserApi(MainWindow window)
@@ -55,7 +56,7 @@ internal class BrowserApi
         Debug.WriteLine($"Showing action dialog");
         var dialogBrowser = new ChromiumWebBrowser
         {
-            Address = "http://localhost:4200/action-dialog",
+            Address = _actionDialogUrl,
         };
         dialogBrowser.ConsoleMessage += (sender, e) =>
         {
@@ -71,7 +72,7 @@ internal class BrowserApi
         Debug.WriteLine($"Hiding action dialog");
         _window.Dispatcher.Invoke(() =>
         {
-            var dialog = _window.RootGrid.Children.OfType<ChromiumWebBrowser>().FirstOrDefault(browser => browser.Address == "http://localhost:4200/action-dialog");
+            var dialog = _window.RootGrid.Children.OfType<ChromiumWebBrowser>().FirstOrDefault(browser => browser.Address == _actionDialogUrl);
 
             if (dialog != null)
             {

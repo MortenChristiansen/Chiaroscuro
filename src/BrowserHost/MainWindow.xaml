@@ -4,7 +4,7 @@
         xmlns:wpf="clr-namespace:CefSharp.Wpf;assembly=CefSharp.Wpf"
         WindowState="Normal">
     <Grid x:Name="RootGrid">
-        <wpf:ChromiumWebBrowser x:Name="ChromeUI" Address="localhost:4200" />
+        <wpf:ChromiumWebBrowser x:Name="ChromeUI" />
         <wpf:ChromiumWebBrowser x:Name="WebContent" Address="https://www.google.com" Margin="0,30,0,0" />
     </Grid>
 </Window>
