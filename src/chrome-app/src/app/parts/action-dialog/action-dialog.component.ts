@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit, viewChild } from '@angular/core';
 import { Api } from '../interfaces/api';
 
 @Component({
@@ -9,7 +9,6 @@ import { Api } from '../interfaces/api';
     <div class="centered-dialog" (keydown.esc)="api.dismissActionDialog()">
       <input
         class="action-dialog"
-        autofocus="true"
         placeholder="Where to?"
         type="text"
         (keydown.enter)="execute(dialog.value)"
@@ -32,17 +31,18 @@ import { Api } from '../interfaces/api';
   `,
 })
 export default class ActionDialogComponent implements OnInit {
+  dialog = viewChild<ElementRef<HTMLInputElement>>('dialog');
+
   async ngOnInit() {
-    console.log('ActionDialogComponent initializing');
     await (window as any).CefSharp.BindObjectAsync('api');
     this.api = (window as any).api;
-    console.log('ActionDialogComponent initialized');
+
+    this.dialog()!.nativeElement.focus();
   }
 
   api!: Api;
 
   async execute(value: string) {
-    console.log(`Navigating to: "${value}"`);
     await this.api.navigate(value);
     await this.api.dismissActionDialog();
   }
