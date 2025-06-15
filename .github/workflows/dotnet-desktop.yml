@@ -47,8 +47,8 @@ jobs:
       #  run: dotnet test
 
       - name: Build .NET application
-        working-directory: ./src
-        run: dotnet publish -c Release -f net9.0-windows -r win-x64 -o ./publish
+        working-directory: ./src/BrowserHost
+        run: dotnet publish -c Release -f net9.0-windows -r win-x64 -o ../publish
 
       - name: Copy Angular build output to .NET publish folder
         working-directory: ./src
