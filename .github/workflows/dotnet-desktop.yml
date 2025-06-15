@@ -21,6 +21,14 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Cache Angular dependencies
+        uses: actions/cache@v4
+        with:
+          path: ./src/chrome-app/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('./src/chrome-app/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Install Angular dependencies
         working-directory: ./src/chrome-app
         run: npm ci
@@ -39,13 +47,14 @@ jobs:
       #  run: dotnet test
 
       - name: Build .NET application
-        working-directory: ./src/
+        working-directory: ./src
         run: dotnet publish -c Release -f net9.0-windows -r win-x64 -o ./publish
 
       - name: Copy Angular build output to .NET publish folder
+        working-directory: ./src
         run: |
           mkdir ./publish/chrome-app
-          xcopy /E /I /Y ./chrome-app/dist/chrome-app/browser ./publish/chrome-app
+          xcopy /E /I /Y "chrome-app\dist\chrome-app\browser\*" "publish\chrome-app\"
 
       - name: Upload published artifacts
         uses: actions/upload-artifact@v4
