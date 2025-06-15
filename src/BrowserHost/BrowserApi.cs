@@ -1,84 +1,46 @@
 ﻿using CefSharp;
-using CefSharp.Wpf;
-using System.Diagnostics;
-using System.Linq;
+using System.Windows;
 
 namespace BrowserHost;
 
-internal class BrowserApi
+internal class BrowserApi(MainWindow window)
 {
-    private static readonly string _actionDialogUrl = ContentServer.GetUiAddress("/action-dialog");
-    private readonly MainWindow _window;
+    public void ChangeAddress(string address) =>
+        window.ChromeUI.ExecuteScriptAsync($"window.angularApi.changeAddress('{address}')");
 
-    public BrowserApi(MainWindow window)
-    {
-        _window = window;
-        _window.CurrentTab.AddressChanged += CurrentTab_AddressChanged;
-        _window.ChromeUI.ConsoleMessage += (sender, e) =>
-        {
-            Debug.WriteLine($"Console message from ChromeUI: {e.Message} (line {e.Line})");
-        };
-    }
+    public bool CanGoForward() =>
+        window.Dispatcher.Invoke(() => window.CurrentTab.CanGoForward);
 
-    private void CurrentTab_AddressChanged(object sender, System.Windows.DependencyPropertyChangedEventArgs e)
-    {
-        _window.ChromeUI.ExecuteScriptAsync($"window.angularApi.changeAddress('{e.NewValue}')");
-    }
+    public void Forward() =>
+        window.CurrentTab.Forward();
 
-    public bool CanGoForward()
-    {
-        return _window.Dispatcher.Invoke(() => _window.CurrentTab.CanGoForward);
-    }
+    public bool CanGoBack() =>
+        window.Dispatcher.Invoke(() => window.CurrentTab.CanGoBack);
 
-    public void Forward()
-    {
-        _window.CurrentTab.Forward();
-    }
+    public void Back() =>
+        window.CurrentTab.Back();
 
-    public bool CanGoBack()
-    {
-        return _window.Dispatcher.Invoke(() => _window.CurrentTab.CanGoBack);
-    }
-
-    public void Back()
-    {
-        _window.CurrentTab.Back();
-    }
-
-    public void Navigate(string url)
-    {
-        Debug.WriteLine($"Visiting url: {url}");
-        _window.CurrentTab.LoadUrl(url);
-    }
+    public void Navigate(string url) =>
+        window.CurrentTab.LoadUrl(url);
 
     public void ShowActionDialog()
     {
-        Debug.WriteLine($"Showing action dialog");
-        var dialogBrowser = new ChromiumWebBrowser
-        {
-            Address = _actionDialogUrl,
-        };
-        dialogBrowser.ConsoleMessage += (sender, e) =>
-        {
-            Debug.WriteLine($"Console message from ActionDialog: {e.Message} (line {e.Line})");
-        };
-        dialogBrowser.JavascriptObjectRepository.Register("api", this);
-        _window.RootGrid.Children.Add(dialogBrowser);
-        dialogBrowser.Focus();
+        if (window.ActionDialog.Visibility == Visibility.Visible)
+            return;
+
+        window.ActionDialog.Visibility = Visibility.Visible;
+        window.ActionDialog.Focus();
+        window.ActionDialog.ExecuteScriptAsync("window.angularApi.showDialog()");
     }
 
     public void DismissActionDialog()
     {
-        Debug.WriteLine($"Hiding action dialog");
-        _window.Dispatcher.Invoke(() =>
-        {
-            var dialog = _window.RootGrid.Children.OfType<ChromiumWebBrowser>().FirstOrDefault(browser => browser.Address == _actionDialogUrl);
+        if (window.ActionDialog.Visibility == Visibility.Hidden)
+            return;
 
-            if (dialog != null)
-            {
-                _window.RootGrid.Children.Remove(dialog);
-                dialog.Dispose();
-            }
+        window.Dispatcher.Invoke(() =>
+        {
+            window.ActionDialog.Visibility = Visibility.Hidden;
         });
     }
 }

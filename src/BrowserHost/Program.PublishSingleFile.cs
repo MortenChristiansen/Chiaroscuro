@@ -30,7 +30,7 @@ public class ProgramPublishSingleFile
         {
             //By default CefSharp will use an in-memory cache, you need to specify a Cache Folder to persist data
             CachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CefSharp\\Cache"),
-            BrowserSubprocessPath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName
+            BrowserSubprocessPath = System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName
         };
 
         //Example of setting a command line argument

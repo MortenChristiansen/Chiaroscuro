@@ -1,5 +1,6 @@
 ﻿using CefSharp;
 using CefSharp.Wpf;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -14,16 +15,31 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        _browserApi = new BrowserApi(this);
+
         // Not sure if this does anything
         WebContent.BrowserSettings.WindowlessFrameRate = 120;
         WebContent.BrowserSettings.WebGl = CefState.Enabled;
         ChromeUI.BrowserSettings.WindowlessFrameRate = 120;
         ChromeUI.BrowserSettings.WebGl = CefState.Enabled;
+        ActionDialog.BrowserSettings.WindowlessFrameRate = 120;
+        ActionDialog.BrowserSettings.WebGl = CefState.Enabled;
 
         ChromeUI.Address = ContentServer.GetUiAddress("/");
-
-        _browserApi = new BrowserApi(this);
         ChromeUI.JavascriptObjectRepository.Register("api", _browserApi);
+        ChromeUI.ConsoleMessage += (sender, e) =>
+        {
+            Debug.WriteLine($"ChromeUI: {e.Message}");
+        };
+
+        ActionDialog.Address = ContentServer.GetUiAddress("/action-dialog");
+        ActionDialog.ConsoleMessage += (sender, e) =>
+        {
+            Debug.WriteLine($"ActionDialog: {e.Message}");
+        };
+        ActionDialog.JavascriptObjectRepository.Register("api", _browserApi);
+
+        CurrentTab.AddressChanged += CurrentTab_AddressChanged;
 
         ContentServer.Run();
     }
@@ -52,6 +68,11 @@ public partial class MainWindow : Window
             var ignoreCache = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
             WebContent.Reload(ignoreCache);
         }
+    }
+
+    private void CurrentTab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        _browserApi.ChangeAddress($"{e.NewValue}");
     }
 
     public ChromiumWebBrowser Chrome => ChromeUI;

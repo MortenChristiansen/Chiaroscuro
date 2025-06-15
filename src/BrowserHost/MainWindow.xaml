@@ -6,5 +6,6 @@
     <Grid x:Name="RootGrid">
         <wpf:ChromiumWebBrowser x:Name="ChromeUI" />
         <wpf:ChromiumWebBrowser x:Name="WebContent" Address="https://www.google.com" Margin="0,30,0,0" />
+        <wpf:ChromiumWebBrowser x:Name="ActionDialog" Visibility="Hidden" />
     </Grid>
 </Window>

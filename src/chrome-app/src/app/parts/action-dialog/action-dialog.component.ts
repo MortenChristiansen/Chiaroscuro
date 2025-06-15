@@ -37,7 +37,12 @@ export default class ActionDialogComponent implements OnInit {
     await (window as any).CefSharp.BindObjectAsync('api');
     this.api = (window as any).api;
 
-    this.dialog()!.nativeElement.focus();
+    (window as any).angularApi = {
+      showDialog: () => {
+        this.dialog()!.nativeElement.value = '';
+        this.dialog()!.nativeElement.focus();
+      },
+    };
   }
 
   api!: Api;
