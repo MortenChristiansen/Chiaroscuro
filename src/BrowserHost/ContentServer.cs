@@ -1,5 +1,7 @@
 ﻿using EmbedIO;
 using EmbedIO.Files;
+using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace BrowserHost;
@@ -22,12 +24,19 @@ static class ContentServer
 
     private static WebServer CreateWebServer()
     {
+        // Determine the path to the chrome-app folder in the output directory
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        var chromeAppRoot = Path.Combine(baseDir, "chrome-app");
+        var chromeAppActionDialog = Path.Combine(baseDir, "chrome-app", "action-dialog");
+
         return new WebServer(o => o
             .WithUrlPrefix(_host)
             .WithMode(HttpListenerMode.EmbedIO)
         )
-        .WithStaticFolder("/", "C:/Users/morten/Documents/Code/Chiaroscuro/src/chrome-app/dist/chrome-app/browser/", true, m => m.WithContentCaching())
-        .WithStaticFolder("/action-dialog", "C:/Users/morten/Documents/Code/Chiaroscuro/src/chrome-app/dist/chrome-app/browser/action-dialog/", true, m => m.WithContentCaching())
+        .WithStaticFolder("/", chromeAppRoot, true, m => m.WithContentCaching())
+        .WithStaticFolder("/action-dialog", chromeAppActionDialog, true, m => m.WithContentCaching())
         ;
     }
+
+
 }
