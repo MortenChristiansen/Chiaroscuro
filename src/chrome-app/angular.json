@@ -57,10 +57,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "static-app:build:production"
+              "buildTarget": "chrome-app:build:production"
             },
             "development": {
-              "buildTarget": "static-app:build:development"
+              "buildTarget": "chrome-app:build:development"
             }
           },
           "defaultConfiguration": "development"

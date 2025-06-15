@@ -8,20 +8,27 @@ namespace BrowserHost;
 
 static class ContentServer
 {
+#if DEBUG
+    private const string _host = "http://localhost:4200";
+#else
     private const string _host = "http://localhost:9696";
+#endif
 
     public static void Run()
     {
+#if !DEBUG
         var server = CreateWebServer();
         Task.Run(async () =>
         {
             await server.RunAsync();
         });
+#endif
     }
 
     public static string GetUiAddress(string path) =>
         _host + path;
 
+#if !DEBUG
     private static WebServer CreateWebServer()
     {
         // Determine the path to the chrome-app folder in the output directory
@@ -37,6 +44,6 @@ static class ContentServer
         .WithStaticFolder("/action-dialog", chromeAppActionDialog, true, m => m.WithContentCaching())
         ;
     }
-
+#endif
 
 }
