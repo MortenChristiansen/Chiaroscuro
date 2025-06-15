@@ -1,8 +1,8 @@
 export interface Api {
-  back: () => void;
-  canGoBack: () => boolean;
-  forward: () => void;
-  canGoForward: () => boolean;
-  navigate: (url: string) => void;
-  dismissActionDialog: () => void;
+  back: () => Promise<void>;
+  canGoBack: () => Promise<boolean>;
+  forward: () => Promise<void>;
+  canGoForward: () => Promise<boolean>;
+  navigate: (url: string) => Promise<void>;
+  dismissActionDialog: () => Promise<void>;
 }
