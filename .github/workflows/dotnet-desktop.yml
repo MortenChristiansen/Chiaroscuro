@@ -21,13 +21,13 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Cache Angular dependencies
-        uses: actions/cache@v4
-        with:
-          path: ./src/chrome-app/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('./src/chrome-app/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+      #- name: Cache Angular dependencies
+      #  uses: actions/cache@v4
+      #  with:
+      #    path: ./src/chrome-app/node_modules
+      #    key: ${{ runner.os }}-node-${{ hashFiles('./src/chrome-app/package-lock.json') }}
+      #    restore-keys: |
+      #      ${{ runner.os }}-node-
 
       - name: Install Angular dependencies
         working-directory: ./src/chrome-app
@@ -60,4 +60,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: published-app
-          path: ./publish
+          path: ./src/publish
