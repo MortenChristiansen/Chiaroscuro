@@ -57,7 +57,7 @@ jobs:
 
       - name: Build .NET application
         working-directory: ./src/BrowserHost
-        run: dotnet publish BrowserHost.csproj -f net9.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true
+        run: dotnet publish BrowserHost.csproj -f net9.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true -o ../publish
 
       - name: Upload published artifacts
         uses: actions/upload-artifact@v4
