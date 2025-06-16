@@ -13,19 +13,20 @@
     <OutputType>WinExe</OutputType>
     <TargetFrameworks>net9.0-windows</TargetFrameworks>
     <UseWPF>true</UseWPF>
-    <RootNamespace>BrowserHost</RootNamespace>
-    <ApplicationIcon>chromium-256.ico</ApplicationIcon>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <Platforms>x64</Platforms>
-	<Nullable>enable</Nullable>
-	<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <!--
+	  <RootNamespace>BrowserHost</RootNamespace>
+	  <ApplicationIcon>chromium-256.ico</ApplicationIcon>
+	  <ApplicationManifest>app.manifest</ApplicationManifest>
+	  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+	  <Platforms>x64</Platforms>
+	  <Nullable>enable</Nullable>
+	  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+	  <!--
         Run on a newer version of .Net if the specified version (.Net Core 3.1) is not installed
         https://github.com/dotnet/docs/issues/12237
         -->
-    <RollForward>Major</RollForward>
-    <StartupObject>BrowserHost.App</StartupObject>
+	  <RollForward>Major</RollForward>
+	  <StartupObject>BrowserHost.ProgramPublishSingleFile</StartupObject>
+	  <AssemblyName>Chiaroscuro</AssemblyName>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -34,29 +35,18 @@
   </PropertyGroup>
 	
   <!--
-  .Net 5.0+ Publish Settings for PublishSingleFile
   https://docs.microsoft.com/en-us/dotnet/core/deploying/single-file
-  Defaults differ compared to .Net Core 3.1
   -->
-  <PropertyGroup Condition="'$(TargetFramework)' != 'netcoreapp3.1' AND '$(PublishSingleFile)' == 'true'">
+  <PropertyGroup Condition="'$(PublishSingleFile)' == 'true'">
     <!-- Extract all files to disk at runtime -->
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <!-- Include our native files in the resulting exe -->
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <!-- .Net 6.0+ supports compression -->
-    <!--<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>-->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <StartupObject>BrowserHost.ProgramPublishSingleFile</StartupObject>
+	<CefSharpExcludeSubProcessExe>true</CefSharpExcludeSubProcessExe>
   </PropertyGroup>
-
-  <!--
-  For SelfContained we'll self host the BrowserSubprocess (use the applications own exe)
-  Instead of the provdied CefSharp.BrowserSubprocess.exe
-  -->
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0-windows' AND '$(SelfContained)' == 'true'">
-    <StartupObject>BrowserHost.ProgramPublishSingleFile</StartupObject>
-    <CefSharpExcludeSubProcessExe>true</CefSharpExcludeSubProcessExe>
-  </PropertyGroup>
-  
+	
   <ItemGroup>
     <Compile Remove="bin\**" />
     <Compile Remove="obj\**" />
@@ -76,6 +66,14 @@
     <PackageReference Include="CefSharp.Wpf.NetCore" Version="137.0.100" />
     <PackageReference Include="EmbedIO" Version="3.5.2" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Include all files from chrome-app as content to be published -->
+    <Content Include="chrome-app\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <Target Name="CefSharpAfterBuildDebug" AfterTargets="AfterBuild">

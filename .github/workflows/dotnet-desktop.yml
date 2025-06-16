@@ -46,15 +46,18 @@ jobs:
       #- name: Execute unit tests
       #  run: dotnet test
 
+      - name: Copy Angular build output to .NET publish folder
+        working-directory: ./src/BrowserHost
+        shell: pwsh
+        run: |
+          $chromeAppDist = "..\chrome-app\dist\chrome-app\browser"
+          $targetDir = "chrome-app"
+          if (Test-Path $targetDir) { Remove-Item $targetDir -Recurse -Force }
+          Copy-Item $chromeAppDist $targetDir -Recurse
+
       - name: Build .NET application
         working-directory: ./src/BrowserHost
-        run: dotnet publish -c Release -f net9.0-windows -r win-x64 -o ../publish
-
-      - name: Copy Angular build output to .NET publish folder
-        working-directory: ./src
-        run: |
-          mkdir ./publish/chrome-app
-          xcopy /E /I /Y "chrome-app\dist\chrome-app\browser\*" "publish\chrome-app\"
+        run: dotnet publish BrowserHost.csproj -f net9.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true
 
       - name: Upload published artifacts
         uses: actions/upload-artifact@v4

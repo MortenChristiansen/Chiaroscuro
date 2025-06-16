@@ -351,3 +351,6 @@ MigrationBackup/
 # CefSharp
 **/obj.netcore/*
 **/bin.netcore/*
+
+# Angular build output
+src/BrowserHost/chrome-app/**

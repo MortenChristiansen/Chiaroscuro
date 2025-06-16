@@ -32,7 +32,7 @@ static class ContentServer
     private static WebServer CreateWebServer()
     {
         // Determine the path to the chrome-app folder in the output directory
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        var baseDir = AppContext.BaseDirectory;
         var chromeAppRoot = Path.Combine(baseDir, "chrome-app");
         var chromeAppActionDialog = Path.Combine(baseDir, "chrome-app", "action-dialog");
 
