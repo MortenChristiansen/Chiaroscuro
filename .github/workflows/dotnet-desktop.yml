@@ -1,4 +1,4 @@
-name: .NET Core Desktop
+name: Build and release browser
 
 on:
   push:
@@ -10,12 +10,38 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set version from tag (if building a tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: echo "APP_VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Install .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      # Execute all unit tests in the solution
+      #- name: Execute unit tests
+      #  run: dotnet test
+
+      - name: Build .NET application (non-release)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        working-directory: ./src/BrowserHost
+        run: dotnet publish BrowserHost.csproj -f net9.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true -o ../publish
+
+      - name: Build .NET application (release)
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: ./src/BrowserHost
+        run: dotnet publish BrowserHost.csproj -f net9.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true -o ../publish /p:Version=$Env:APP_VERSION /p:AssemblyVersion=$Env:APP_VERSION
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,15 +64,6 @@ jobs:
         working-directory: ./src/chrome-app
         run: npm run build
 
-      - name: Install .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
-
-      # Execute all unit tests in the solution
-      #- name: Execute unit tests
-      #  run: dotnet test
-
       - name: Copy Angular build output to .NET publish folder
         working-directory: ./src/BrowserHost
         shell: pwsh
@@ -56,74 +73,10 @@ jobs:
           if (Test-Path $targetDir) { Remove-Item $targetDir -Recurse -Force }
           Copy-Item $chromeAppDist $targetDir -Recurse
 
-      - name: Set version from tag (if building a tag)
+      - name: Create Velopack Release
         if: startsWith(github.ref, 'refs/tags/v')
-        run: echo "APP_VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
-
-      - name: Build .NET application
-        working-directory: ./src/BrowserHost
         run: |
-          VERSION_ARG=""
-          if [ ! -z "${APP_VERSION}" ]; then
-            VERSION_ARG="/p:Version=${APP_VERSION}"
-          fi
-          dotnet publish BrowserHost.csproj -f net9.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true -o ../publish $VERSION_ARG
-        shell: bash
-
-      - name: Install Velopack CLI
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: dotnet tool install --global vpk
-
-      - name: Create Velopack release
-        if: startsWith(github.ref, 'refs/tags/v')
-        working-directory: ./src/publish
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          vpk pack -o ../velopack-release --packId WithoutPrecedence.Chiaroscuro -v $VERSION -e Chiaroscuro.exe --packTitle "Chiroscuro Browser" --packAuthors "Morten Christiansen" -p ./
-
-      - name: Upload Velopack release artifacts
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
-        with:
-          name: velopack-release
-          path: |
-            ./src/velopack-release/RELEASES*
-            ./src/velopack-release/*full.nupkg
-            ./src/velopack-release/*delta.nupkg
-
-      - name: Upload published artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: published-app
-          path: ./src/publish
-
-  release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: published-app
-          path: ./published-app
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ./published-app/Chiaroscuro.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          dotnet tool install -g vpk
+          vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
+          vpk pack -u WithoutPrecedence.Chiaroscuro -v $env:APP_VERSION -p ./src/publish -e Chiaroscuro.exe --packTitle "Chiroscuro Browser" --packAuthors "Morten Christiansen"
+          vpk upload github --repoUrl https://github.com/${{ github.repository }} --publish --releaseName "Chiroscuro Browser v$env:APP_VERSION" --tag $Env:GITHUB_REF_NAME --token ${{ secrets.GITHUB_TOKEN }}
