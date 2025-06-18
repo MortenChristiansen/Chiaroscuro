@@ -1,9 +1,12 @@
 ﻿using CefSharp;
 using CefSharp.Wpf;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using Velopack;
+using Velopack.Sources;
 
 namespace BrowserHost;
 
@@ -14,6 +17,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        CheckForUpdates();
 
         _browserApi = new BrowserApi(this);
 
@@ -42,6 +47,34 @@ public partial class MainWindow : Window
         CurrentTab.AddressChanged += CurrentTab_AddressChanged;
 
         ContentServer.Run();
+    }
+
+    private static async void CheckForUpdates()
+    {
+        try
+        {
+            var mgr = new UpdateManager(new GithubSource("https://github.com/MortenChristiansen/Chiaroscuro", accessToken: null, prerelease: false, downloader: null));
+            var updateInfo = await mgr.CheckForUpdatesAsync();
+            if (updateInfo != null)
+            {
+                var result = MessageBox.Show(
+                    "A new version is available. Would you like to update now?",
+                    "Update Available",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information
+                );
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    await mgr.DownloadUpdatesAsync(updateInfo);
+                    mgr.ApplyUpdatesAndRestart(updateInfo);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Update check failed: {ex.Message}");
+        }
     }
 
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)

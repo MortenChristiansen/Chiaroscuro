@@ -56,9 +56,40 @@ jobs:
           if (Test-Path $targetDir) { Remove-Item $targetDir -Recurse -Force }
           Copy-Item $chromeAppDist $targetDir -Recurse
 
+      - name: Set version from tag (if building a tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: echo "APP_VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
       - name: Build .NET application
         working-directory: ./src/BrowserHost
-        run: dotnet publish BrowserHost.csproj -f net9.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true -o ../publish
+        run: |
+          VERSION_ARG=""
+          if [ ! -z "${APP_VERSION}" ]; then
+            VERSION_ARG="/p:Version=${APP_VERSION}"
+          fi
+          dotnet publish BrowserHost.csproj -f net9.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true -o ../publish $VERSION_ARG
+        shell: bash
+
+      - name: Install Velopack CLI
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: dotnet tool install --global vpk
+
+      - name: Create Velopack release
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: ./src/publish
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          vpk pack -o ../velopack-release --packId WithoutPrecedence.Chiaroscuro -v $VERSION -e Chiaroscuro.exe --packTitle "Chiroscuro Browser" --packAuthors "Morten Christiansen" -p ./
+
+      - name: Upload Velopack release artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: velopack-release
+          path: |
+            ./src/velopack-release/RELEASES*
+            ./src/velopack-release/*full.nupkg
+            ./src/velopack-release/*delta.nupkg
 
       - name: Upload published artifacts
         uses: actions/upload-artifact@v4

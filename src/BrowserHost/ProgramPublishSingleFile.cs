@@ -2,6 +2,7 @@
 using CefSharp.Wpf;
 using System;
 using System.IO;
+using Velopack;
 
 namespace BrowserHost;
 
@@ -15,12 +16,11 @@ public class ProgramPublishSingleFile
     [STAThread]
     public static int Main(string[] args)
     {
-        var exitCode = CefSharp.BrowserSubprocess.SelfHost.Main(args);
+        VelopackApp.Build().Run();
 
+        var exitCode = CefSharp.BrowserSubprocess.SelfHost.Main(args);
         if (exitCode >= 0)
-        {
             return exitCode;
-        }
 
         var settings = new CefSettings()
         {
