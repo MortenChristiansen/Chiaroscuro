@@ -21,6 +21,9 @@ import { Api } from '../interfaces/api';
         (keydown.enter)="navigate()"
         #addressBar
       />
+      <button (click)="min()">Minimize</button>
+      <button (click)="max()">Maximize</button>
+      <button (click)="close()">Close</button>
     </div>
   `,
   styles: `
@@ -63,5 +66,17 @@ export default class AddressBarComponent implements OnInit {
 
   navigate() {
     this.api.navigate(this.addressBar()!.nativeElement.value);
+  }
+
+  min() {
+    this.api.minimize();
+  }
+
+  max() {
+    this.api.maximize();
+  }
+
+  close() {
+    this.api.close();
   }
 }

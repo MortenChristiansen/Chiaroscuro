@@ -5,4 +5,7 @@ export interface Api {
   canGoForward: () => Promise<boolean>;
   navigate: (url: string) => Promise<void>;
   dismissActionDialog: () => Promise<void>;
+  minimize: () => Promise<void>;
+  maximize: () => Promise<void>;
+  close: () => Promise<void>;
 }

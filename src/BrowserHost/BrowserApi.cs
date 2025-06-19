@@ -43,4 +43,31 @@ internal class BrowserApi(MainWindow window)
             window.ActionDialog.Visibility = Visibility.Hidden;
         });
     }
+
+    public void Minimize()
+    {
+        window.Dispatcher.Invoke(() =>
+        {
+            if (window.WindowState == WindowState.Minimized)
+                return;
+
+            window.WindowState = WindowState.Minimized;
+        });
+    }
+
+    public void Maximize()
+    {
+        window.Dispatcher.Invoke(() =>
+        {
+            if (window.WindowState == WindowState.Maximized)
+                return;
+
+            window.WindowState = WindowState.Maximized;
+        });
+    }
+
+    public void Close()
+    {
+        window.Dispatcher.Invoke(window.Close);
+    }
 }
