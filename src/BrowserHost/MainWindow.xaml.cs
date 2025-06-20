@@ -1,4 +1,5 @@
-﻿using CefSharp;
+﻿using BrowserHost.Features;
+using CefSharp;
 using CefSharp.Wpf;
 using System.Diagnostics;
 using System.Linq;
@@ -11,11 +12,16 @@ public partial class MainWindow : Window
 {
     private BrowserApi _browserApi;
 
+    CustomWindowChromeFeature _customWindowChromeFeature;
+
     public MainWindow()
     {
         InitializeComponent();
 
         _browserApi = new BrowserApi(this);
+
+        _customWindowChromeFeature = new(this);
+        _customWindowChromeFeature.Register();
 
         // Not sure if this does anything
         WebContent.BrowserSettings.WindowlessFrameRate = 120;
