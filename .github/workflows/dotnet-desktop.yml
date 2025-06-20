@@ -1,20 +1,47 @@
-name: .NET Core Desktop
+name: Build and release browser
 
 on:
   push:
     branches: ["main"]
+    tags: ["v*"] # Trigger on version tags
   pull_request:
     branches: ["main"]
 
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set version from tag (if building a tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: echo "APP_VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Install .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      # Execute all unit tests in the solution
+      #- name: Execute unit tests
+      #  run: dotnet test
+
+      - name: Build .NET application (non-release)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        working-directory: ./src/BrowserHost
+        run: dotnet publish BrowserHost.csproj -f net9.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true -o ../publish
+
+      - name: Build .NET application (release)
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: ./src/BrowserHost
+        run: dotnet publish BrowserHost.csproj -f net9.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true -o ../publish /p:Version=$Env:APP_VERSION /p:AssemblyVersion=$Env:APP_VERSION
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -37,15 +64,6 @@ jobs:
         working-directory: ./src/chrome-app
         run: npm run build
 
-      - name: Install .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
-
-      # Execute all unit tests in the solution
-      #- name: Execute unit tests
-      #  run: dotnet test
-
       - name: Copy Angular build output to .NET publish folder
         working-directory: ./src/BrowserHost
         shell: pwsh
@@ -55,12 +73,10 @@ jobs:
           if (Test-Path $targetDir) { Remove-Item $targetDir -Recurse -Force }
           Copy-Item $chromeAppDist $targetDir -Recurse
 
-      - name: Build .NET application
-        working-directory: ./src/BrowserHost
-        run: dotnet publish BrowserHost.csproj -f net9.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true
-
-      - name: Upload published artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: published-app
-          path: ./src/publish
+      - name: Create Velopack Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          dotnet tool install -g vpk
+          vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
+          vpk pack -u WithoutPrecedence.Chiaroscuro -v $env:APP_VERSION -p ./src/publish -e Chiaroscuro.exe --packTitle "Chiroscuro Browser" --packAuthors "Morten Christiansen"
+          vpk upload github --repoUrl https://github.com/${{ github.repository }} --publish --releaseName "Chiroscuro Browser v$env:APP_VERSION" --tag $Env:GITHUB_REF_NAME --token ${{ secrets.GITHUB_TOKEN }}
