@@ -2,7 +2,6 @@
 using CefSharp;
 using CefSharp.Wpf;
 using System.Diagnostics;
-using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 
@@ -23,14 +22,6 @@ public partial class MainWindow : Window
         _customWindowChromeFeature = new(this);
         _customWindowChromeFeature.Register();
 
-        // Not sure if this does anything
-        WebContent.BrowserSettings.WindowlessFrameRate = 120;
-        WebContent.BrowserSettings.WebGl = CefState.Enabled;
-        ChromeUI.BrowserSettings.WindowlessFrameRate = 120;
-        ChromeUI.BrowserSettings.WebGl = CefState.Enabled;
-        ActionDialog.BrowserSettings.WindowlessFrameRate = 120;
-        ActionDialog.BrowserSettings.WebGl = CefState.Enabled;
-
         ChromeUI.Address = ContentServer.GetUiAddress("/");
         ChromeUI.JavascriptObjectRepository.Register("api", _browserApi);
         ChromeUI.ConsoleMessage += (sender, e) =>
@@ -48,16 +39,6 @@ public partial class MainWindow : Window
         CurrentTab.AddressChanged += CurrentTab_AddressChanged;
 
         ContentServer.Run();
-    }
-
-    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
-    {
-        base.OnRenderSizeChanged(sizeInfo);
-
-        // Improves issue with rendering stopping on resize
-        RootGrid.Children.OfType<ChromiumWebBrowser>()
-            .ToList()
-            .ForEach(browser => browser.GetBrowserHost()?.Invalidate(PaintElementType.View));
     }
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)

@@ -1,5 +1,7 @@
 ﻿using CefSharp;
+using CefSharp.Wpf;
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,6 +12,8 @@ namespace BrowserHost.Features;
 
 internal class CustomWindowChromeFeature(MainWindow window)
 {
+    private readonly List<ChromiumWebBrowser> _browsers = [window.WebContent, window.ChromeUI, window.ActionDialog];
+
     public void Register()
     {
         window.WindowStyle = WindowStyle.None;
@@ -20,6 +24,15 @@ internal class CustomWindowChromeFeature(MainWindow window)
 
         window.ResizeBorder.PreviewMouseMove += ResizeBorder_PreviewMouseMove;
         window.ResizeBorder.PreviewMouseLeftButtonDown += ResizeBorder_PreviewMouseLeftButtonDown;
+
+        // Force WebContent to repaint on size change
+        var webContent = new List<ChromiumWebBrowser> { window.WebContent, window.ChromeUI, window.ActionDialog };
+        window.SizeChanged += (s, e) => RedrawBrowsers();
+    }
+
+    private void RedrawBrowsers()
+    {
+        _browsers.ForEach(b => b.GetBrowserHost()?.Invalidate(PaintElementType.View));
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -61,6 +74,8 @@ internal class CustomWindowChromeFeature(MainWindow window)
             window.WindowState = WindowState.Normal;
         else
             window.WindowState = WindowState.Maximized;
+
+        RedrawBrowsers();
         e.Handled = true;
     }
 
