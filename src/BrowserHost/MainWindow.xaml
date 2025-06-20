@@ -9,7 +9,7 @@
         <conv:BorderClipConverter x:Key="BorderClipConverter" />
     </Window.Resources>
     <Border x:Name="ResizeBorder"  CornerRadius="8" Background="#01000000" SnapsToDevicePixels="True" Padding="4">
-        <Border CornerRadius="8" Background="#202634" BorderThickness="1" BorderBrush="#404654">
+        <Border x:Name="WindowBorder" CornerRadius="8" Background="#202634" BorderThickness="1" BorderBrush="#404654">
             <Grid x:Name="RootGrid">
                 <Grid.OpacityMask>
                     <VisualBrush Visual="{Binding ElementName=WebContentBorder}" />

@@ -28,6 +28,21 @@ internal class CustomWindowChromeFeature(MainWindow window)
         // Force WebContent to repaint on size change
         var webContent = new List<ChromiumWebBrowser> { window.WebContent, window.ChromeUI, window.ActionDialog };
         window.SizeChanged += (s, e) => RedrawBrowsers();
+
+        // Prevent maximizing over the taskbar
+        window.StateChanged += (s, e) =>
+        {
+            if (window.WindowState == WindowState.Maximized)
+            {
+                var wa = SystemParameters.WorkArea;
+                var bottomMargin = window.Height - wa.Height - 10;
+                window.WindowBorder.Margin = new Thickness(0, 0, 0, bottomMargin);
+            }
+            else if (window.WindowState == WindowState.Normal)
+            {
+                window.WindowBorder.Margin = new Thickness(0);
+            }
+        };
     }
 
     private void RedrawBrowsers()
