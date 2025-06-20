@@ -1,4 +1,6 @@
 ﻿using CefSharp;
+using System;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -15,6 +17,9 @@ internal class CustomWindowChromeFeature(MainWindow window)
         window.ChromeUI.PreviewMouseLeftButtonDown += ChromeUI_PreviewMouseLeftButtonDown;
         window.PreviewMouseLeftButtonUp += MainWindow_PreviewMouseLeftButtonUp;
         window.PreviewMouseMove += MainWindow_PreviewMouseMove;
+
+        window.ResizeBorder.PreviewMouseMove += ResizeBorder_PreviewMouseMove;
+        window.ResizeBorder.PreviewMouseLeftButtonDown += ResizeBorder_PreviewMouseLeftButtonDown;
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -152,4 +157,89 @@ internal class CustomWindowChromeFeature(MainWindow window)
         }
         return false;
     }
+
+    #region Resize Border Handling
+
+    private void ResizeBorder_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (window.WindowState == WindowState.Normal)
+        {
+            var pos = e.GetPosition(window.ResizeBorder);
+            var hit = GetResizeDirection(pos, window.ResizeBorder.ActualWidth, window.ResizeBorder.ActualHeight);
+            window.Cursor = GetCursorForResizeDirection(hit);
+        }
+    }
+
+    private void ResizeBorder_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (window.WindowState == WindowState.Normal && e.LeftButton == MouseButtonState.Pressed)
+        {
+            var pos = e.GetPosition(window.ResizeBorder);
+            var hit = GetResizeDirection(pos, window.ResizeBorder.ActualWidth, window.ResizeBorder.ActualHeight);
+            if (hit != HitTest.HTNOWHERE)
+            {
+                ResizeWindow(hit);
+            }
+        }
+    }
+
+    private enum HitTest
+    {
+        HTNOWHERE = 0,
+        HTLEFT = 10,
+        HTRIGHT = 11,
+        HTTOP = 12,
+        HTTOPLEFT = 13,
+        HTTOPRIGHT = 14,
+        HTBOTTOM = 15,
+        HTBOTTOMLEFT = 16,
+        HTBOTTOMRIGHT = 17
+    }
+
+    private static HitTest GetResizeDirection(Point pos, double width, double height)
+    {
+        const int edge = 8;
+        bool left = pos.X >= 0 && pos.X < edge;
+        bool right = pos.X <= width && pos.X > width - edge;
+        bool top = pos.Y >= 0 && pos.Y < edge;
+        bool bottom = pos.Y <= height && pos.Y > height - edge;
+
+        if (left && top) return HitTest.HTTOPLEFT;
+        if (right && top) return HitTest.HTTOPRIGHT;
+        if (left && bottom) return HitTest.HTBOTTOMLEFT;
+        if (right && bottom) return HitTest.HTBOTTOMRIGHT;
+        if (left) return HitTest.HTLEFT;
+        if (right) return HitTest.HTRIGHT;
+        if (top) return HitTest.HTTOP;
+        if (bottom) return HitTest.HTBOTTOM;
+        return HitTest.HTNOWHERE;
+    }
+
+    private static Cursor GetCursorForResizeDirection(HitTest hit)
+    {
+        return hit switch
+        {
+            HitTest.HTLEFT => Cursors.SizeWE,
+            HitTest.HTRIGHT => Cursors.SizeWE,
+            HitTest.HTTOP => Cursors.SizeNS,
+            HitTest.HTBOTTOM => Cursors.SizeNS,
+            HitTest.HTTOPLEFT => Cursors.SizeNWSE,
+            HitTest.HTTOPRIGHT => Cursors.SizeNESW,
+            HitTest.HTBOTTOMLEFT => Cursors.SizeNESW,
+            HitTest.HTBOTTOMRIGHT => Cursors.SizeNWSE,
+            _ => Cursors.Arrow
+        };
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    private const int WM_NCLBUTTONDOWN = 0x00A1;
+
+    private void ResizeWindow(HitTest hit)
+    {
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+        SendMessage(hwnd, WM_NCLBUTTONDOWN, (IntPtr)hit, IntPtr.Zero);
+    }
+
+    #endregion
 }
