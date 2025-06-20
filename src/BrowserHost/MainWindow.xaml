@@ -3,28 +3,33 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wpf="clr-namespace:CefSharp.Wpf;assembly=CefSharp.Wpf"
         xmlns:conv="clr-namespace:BrowserHost.Converter"
+        Background="Transparent"
         WindowState="Normal">
     <Window.Resources>
         <conv:BorderClipConverter x:Key="BorderClipConverter" />
     </Window.Resources>
-    <Grid x:Name="RootGrid">
-        <Grid.OpacityMask>
-            <VisualBrush Visual="{Binding ElementName=Border1}" />
-        </Grid.OpacityMask>
-        <wpf:ChromiumWebBrowser x:Name="ChromeUI" />
-        <Border x:Name="Border1" CornerRadius="5" Margin="5,35,5,5">
-            <Border.Clip>
-                <MultiBinding Converter="{StaticResource BorderClipConverter}">
-                    <Binding Path="ActualWidth"
-                        RelativeSource="{RelativeSource Self}"/>
-                    <Binding Path="ActualHeight"
-                        RelativeSource="{RelativeSource Self}"/>
-                    <Binding Path="CornerRadius"
-                        RelativeSource="{RelativeSource Self}"/>
-                </MultiBinding>
-            </Border.Clip>
-            <wpf:ChromiumWebBrowser x:Name="WebContent" Address="https://www.google.com" />
+    <Border x:Name="ResizeBorder" BorderThickness="4">
+        <Border CornerRadius="8" Background="#202634" BorderThickness="1" BorderBrush="#404654">
+            <Grid x:Name="RootGrid">
+                <Grid.OpacityMask>
+                    <VisualBrush Visual="{Binding ElementName=WebContentBorder}" />
+                </Grid.OpacityMask>
+                <wpf:ChromiumWebBrowser x:Name="ChromeUI" />
+                <Border x:Name="WebContentBorder" CornerRadius="8" Margin="8,40,8,8">
+                    <Border.Clip>
+                        <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                            <Binding Path="ActualWidth"
+                                RelativeSource="{RelativeSource Self}"/>
+                            <Binding Path="ActualHeight"
+                                RelativeSource="{RelativeSource Self}"/>
+                            <Binding Path="CornerRadius"
+                                RelativeSource="{RelativeSource Self}"/>
+                        </MultiBinding>
+                    </Border.Clip>
+                    <wpf:ChromiumWebBrowser x:Name="WebContent" Address="https://www.google.com" />
+                </Border>
+                <wpf:ChromiumWebBrowser x:Name="ActionDialog" Visibility="Hidden" />
+            </Grid>
         </Border>
-        <wpf:ChromiumWebBrowser x:Name="ActionDialog" Visibility="Hidden" />
-    </Grid>
+    </Border>
 </Window>
