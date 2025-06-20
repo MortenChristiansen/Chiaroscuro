@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { Api } from '../interfaces/api';
 
 @Component({
-  selector: 'address-bar',
+  selector: 'window-chrome',
   imports: [],
   template: `
     <div class="menu">
@@ -78,7 +78,7 @@ import { Api } from '../interfaces/api';
     }
   `,
 })
-export default class AddressBarComponent implements OnInit {
+export default class WindowChromeComponent implements OnInit {
   async ngOnInit() {
     await (window as any).CefSharp.BindObjectAsync('api');
     this.api = (window as any).api;
