@@ -87,7 +87,6 @@ internal class CustomWindowChromeFeature(MainWindow window)
 
         // Set to normal state
         window.WindowState = WindowState.Normal;
-        window.UpdateLayout();
 
         // Get mouse position in screen coordinates
         var mouseScreen = Mouse.GetPosition(null);
@@ -99,10 +98,18 @@ internal class CustomWindowChromeFeature(MainWindow window)
             var screenY = mouseScreen.Y * transform.M22;
             var newLeft = screenX - window.ActualWidth * percentX;
             var newTop = screenY - window.ActualHeight * percentY;
+
+            // Clamp newLeft to the primary screen's working area
+            double minLeft = 0;
+            double maxLeft = SystemParameters.WorkArea.Width - window.ActualWidth;
+            if (newLeft < minLeft) newLeft = minLeft;
+            if (newLeft > maxLeft) newLeft = maxLeft;
+
             window.Left = newLeft;
             window.Top = newTop;
         }
 
+        window.UpdateLayout();
         e.Handled = true;
         ResetDetachDrag();
         window.ChromeUI.ReleaseMouseCapture();
