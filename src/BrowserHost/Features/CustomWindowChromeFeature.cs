@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using CefSharp;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
@@ -12,6 +13,8 @@ internal class CustomWindowChromeFeature(MainWindow window)
         window.WindowStyle = WindowStyle.None;
         window.AllowsTransparency = true;
         window.ChromeUI.PreviewMouseLeftButtonDown += ChromeUI_PreviewMouseLeftButtonDown;
+        window.PreviewMouseLeftButtonUp += MainWindow_PreviewMouseLeftButtonUp;
+        window.PreviewMouseMove += MainWindow_PreviewMouseMove;
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -24,7 +27,26 @@ internal class CustomWindowChromeFeature(MainWindow window)
 
         if (e.ButtonState == MouseButtonState.Pressed && IsMouseOverTransparentPixel(e))
         {
+            if (window.WindowState == WindowState.Maximized)
+                HandleDragToDetachFromMaximizedState(e);
+
             window.DragMove();
+        }
+    }
+
+    private void MainWindow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ButtonState == MouseButtonState.Released && _isDraggingToDetach)
+        {
+            ResetDetachDrag();
+        }
+    }
+
+    private void MainWindow_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed && _isDraggingToDetach)
+        {
+            HandleDragToDetachFromMaximizedState(e);
         }
     }
 
@@ -37,7 +59,75 @@ internal class CustomWindowChromeFeature(MainWindow window)
         e.Handled = true;
     }
 
-    private bool IsMouseOverTransparentPixel(MouseButtonEventArgs e)
+    private bool _isDraggingToDetach = false;
+    private Point? _dragStartPoint;
+    private void HandleDragToDetachFromMaximizedState(MouseEventArgs e)
+    {
+        if (_isDraggingToDetach && _dragStartPoint.HasValue)
+        {
+            // If already dragging, calculate the distance moved
+            var currentPoint = e.GetPosition(window);
+            var distance = (currentPoint - _dragStartPoint.Value).Length;
+            // If the mouse has moved significantly, allow detaching
+            if (distance < 20)
+                return; // Not enough movement to detach
+        }
+
+        if (!_isDraggingToDetach)
+        {
+            StartDetachDrag(e);
+            return;
+        }
+
+        // Calculate mouse position relative to window
+        var mouseX = e.GetPosition(window).X;
+        var percentX = mouseX / window.ActualWidth;
+        var mouseY = e.GetPosition(window).Y;
+        var percentY = mouseY / window.ActualHeight;
+
+        // Set to normal state
+        window.WindowState = WindowState.Normal;
+        window.UpdateLayout();
+
+        // Get mouse position in screen coordinates
+        var mouseScreen = Mouse.GetPosition(null);
+        var presentationSource = PresentationSource.FromVisual(window);
+        if (presentationSource != null)
+        {
+            var transform = presentationSource.CompositionTarget.TransformToDevice;
+            var screenX = mouseScreen.X * transform.M11;
+            var screenY = mouseScreen.Y * transform.M22;
+            var newLeft = screenX - window.ActualWidth * percentX;
+            var newTop = screenY - window.ActualHeight * percentY;
+            window.Left = newLeft;
+            window.Top = newTop;
+        }
+
+        e.Handled = true;
+        ResetDetachDrag();
+        window.ChromeUI.ReleaseMouseCapture();
+        window.DragMove();
+    }
+
+    private void StartDetachDrag(MouseEventArgs e)
+    {
+        _dragStartPoint = e.GetPosition(window);
+        _isDraggingToDetach = true;
+        window.Cursor = Cursors.SizeAll;
+        // Prevents selecting elements as we complete the operation
+        window.ChromeUI.EvaluateScriptAsync("document.body.setAttribute('inert', '');").GetAwaiter().GetResult();
+    }
+
+    private void ResetDetachDrag()
+    {
+        _dragStartPoint = null;
+        _isDraggingToDetach = false;
+        window.Cursor = Cursors.Arrow;
+        window.ChromeUI.EvaluateScriptAsync("document.body.removeAttribute('inert');").GetAwaiter().GetResult();
+
+    }
+
+    private static bool IsMouseOverTransparentPixel(MouseEventArgs e)
     {
         if (e.OriginalSource is Image source && source.Source is BitmapSource bitmap)
         {
