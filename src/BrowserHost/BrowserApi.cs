@@ -23,6 +23,11 @@ internal class BrowserApi(MainWindow window)
     public void Navigate(string url) =>
         window.CurrentTab.LoadUrl(url);
 
+    public void Reload()
+    {
+        window.WebContent.Reload();
+    }
+
     public void ShowActionDialog()
     {
         if (window.ActionDialog.Visibility == Visibility.Visible)
@@ -57,13 +62,7 @@ internal class BrowserApi(MainWindow window)
 
     public void Maximize()
     {
-        window.Dispatcher.Invoke(() =>
-        {
-            if (window.WindowState == WindowState.Maximized)
-                return;
-
-            window.WindowState = WindowState.Maximized;
-        });
+        window.Dispatcher.Invoke(window.CustomWindowChromeFeature.ToggleMaximizedState);
     }
 
     public void Close()

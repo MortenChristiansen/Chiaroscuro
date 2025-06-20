@@ -15,7 +15,7 @@
                     <VisualBrush Visual="{Binding ElementName=WebContentBorder}" />
                 </Grid.OpacityMask>
                 <wpf:ChromiumWebBrowser x:Name="ChromeUI" />
-                <Border x:Name="WebContentBorder" CornerRadius="8" Margin="8,40,8,8">
+                <Border x:Name="WebContentBorder" CornerRadius="8" Margin="8,45,8,8">
                     <Border.Clip>
                         <MultiBinding Converter="{StaticResource BorderClipConverter}">
                             <Binding Path="ActualWidth"

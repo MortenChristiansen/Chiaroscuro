@@ -11,7 +11,7 @@ public partial class MainWindow : Window
 {
     private BrowserApi _browserApi;
 
-    CustomWindowChromeFeature _customWindowChromeFeature;
+    public CustomWindowChromeFeature CustomWindowChromeFeature { get; }
 
     public MainWindow()
     {
@@ -19,8 +19,8 @@ public partial class MainWindow : Window
 
         _browserApi = new BrowserApi(this);
 
-        _customWindowChromeFeature = new(this);
-        _customWindowChromeFeature.Register();
+        CustomWindowChromeFeature = new(this);
+        CustomWindowChromeFeature.Register();
 
         ChromeUI.Address = ContentServer.GetUiAddress("/");
         ChromeUI.JavascriptObjectRepository.Register("api", _browserApi);

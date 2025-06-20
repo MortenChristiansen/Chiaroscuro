@@ -10,7 +10,7 @@ using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features;
 
-internal class CustomWindowChromeFeature(MainWindow window)
+public class CustomWindowChromeFeature(MainWindow window)
 {
     private readonly List<ChromiumWebBrowser> _browsers = [window.WebContent, window.ChromeUI, window.ActionDialog];
 
@@ -54,7 +54,7 @@ internal class CustomWindowChromeFeature(MainWindow window)
     {
         if (e.ClickCount == 2 && IsMouseOverTransparentPixel(e))
         {
-            ToggleMaximizedState(e);
+            ToggleMaximizedState();
             return;
         }
 
@@ -83,7 +83,7 @@ internal class CustomWindowChromeFeature(MainWindow window)
         }
     }
 
-    private void ToggleMaximizedState(MouseButtonEventArgs e)
+    public void ToggleMaximizedState()
     {
         if (window.WindowState == WindowState.Maximized)
             window.WindowState = WindowState.Normal;
@@ -91,7 +91,6 @@ internal class CustomWindowChromeFeature(MainWindow window)
             window.WindowState = WindowState.Maximized;
 
         RedrawBrowsers();
-        e.Handled = true;
     }
 
     private bool _isDraggingToDetach = false;
