@@ -3,7 +3,8 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./parts/address-bar/address-bar.component'),
+    loadComponent: () =>
+      import('./parts/window-chrome/window-chrome.component'),
   },
   {
     path: 'action-dialog',

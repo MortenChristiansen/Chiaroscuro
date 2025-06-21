@@ -2,10 +2,34 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wpf="clr-namespace:CefSharp.Wpf;assembly=CefSharp.Wpf"
+        xmlns:conv="clr-namespace:BrowserHost.Converter"
+        Background="Transparent"
         WindowState="Normal">
-    <Grid x:Name="RootGrid">
-        <wpf:ChromiumWebBrowser x:Name="ChromeUI" />
-        <wpf:ChromiumWebBrowser x:Name="WebContent" Address="https://www.google.com" Margin="0,30,0,0" />
-        <wpf:ChromiumWebBrowser x:Name="ActionDialog" Visibility="Hidden" />
-    </Grid>
+    <Window.Resources>
+        <conv:BorderClipConverter x:Key="BorderClipConverter" />
+    </Window.Resources>
+    <Border x:Name="ResizeBorder"  CornerRadius="8" Background="#01000000" SnapsToDevicePixels="True" Padding="4">
+        <Border x:Name="WindowBorder" CornerRadius="8" Background="#202634" BorderThickness="1" BorderBrush="#404654">
+            <Grid x:Name="RootGrid">
+                <Grid.OpacityMask>
+                    <VisualBrush Visual="{Binding ElementName=WebContentBorder}" />
+                </Grid.OpacityMask>
+                <wpf:ChromiumWebBrowser x:Name="ChromeUI" />
+                <Border x:Name="WebContentBorder" CornerRadius="8" Margin="8,45,8,8">
+                    <Border.Clip>
+                        <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                            <Binding Path="ActualWidth"
+                                RelativeSource="{RelativeSource Self}"/>
+                            <Binding Path="ActualHeight"
+                                RelativeSource="{RelativeSource Self}"/>
+                            <Binding Path="CornerRadius"
+                                RelativeSource="{RelativeSource Self}"/>
+                        </MultiBinding>
+                    </Border.Clip>
+                    <wpf:ChromiumWebBrowser x:Name="WebContent" Address="https://www.google.com" />
+                </Border>
+                <wpf:ChromiumWebBrowser x:Name="ActionDialog" Visibility="Hidden" />
+            </Grid>
+        </Border>
+    </Border>
 </Window>
