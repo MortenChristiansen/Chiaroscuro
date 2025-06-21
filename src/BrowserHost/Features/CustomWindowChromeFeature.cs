@@ -18,6 +18,7 @@ public class CustomWindowChromeFeature(MainWindow window)
     {
         window.WindowStyle = WindowStyle.None;
         window.AllowsTransparency = true;
+
         window.ChromeUI.PreviewMouseLeftButtonDown += ChromeUI_PreviewMouseLeftButtonDown;
         window.PreviewMouseLeftButtonUp += MainWindow_PreviewMouseLeftButtonUp;
         window.PreviewMouseMove += MainWindow_PreviewMouseMove;
@@ -25,30 +26,15 @@ public class CustomWindowChromeFeature(MainWindow window)
         window.ResizeBorder.PreviewMouseMove += ResizeBorder_PreviewMouseMove;
         window.ResizeBorder.PreviewMouseLeftButtonDown += ResizeBorder_PreviewMouseLeftButtonDown;
 
-        // Force WebContent to repaint on size change
-        var webContent = new List<ChromiumWebBrowser> { window.WebContent, window.ChromeUI, window.ActionDialog };
+        // Force WebContent to repaint on size change to fix rendering issue
         window.SizeChanged += (s, e) => RedrawBrowsers();
 
         // Prevent maximizing over the taskbar
-        window.StateChanged += (s, e) =>
-        {
-            if (window.WindowState == WindowState.Maximized)
-            {
-                var wa = SystemParameters.WorkArea;
-                var bottomMargin = window.Height - wa.Height - 10;
-                window.WindowBorder.Margin = new Thickness(0, 0, 0, bottomMargin);
-            }
-            else if (window.WindowState == WindowState.Normal)
-            {
-                window.WindowBorder.Margin = new Thickness(0);
-            }
-        };
+        window.StateChanged += (s, e) => AdjustWindowBorder();
     }
 
-    private void RedrawBrowsers()
-    {
+    private void RedrawBrowsers() =>
         _browsers.ForEach(b => b.GetBrowserHost()?.Invalidate(PaintElementType.View));
-    }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -67,31 +53,67 @@ public class CustomWindowChromeFeature(MainWindow window)
         }
     }
 
+    private static bool IsMouseOverTransparentPixel(MouseEventArgs e)
+    {
+        if (e.OriginalSource is Image source && source.Source is BitmapSource bitmap)
+        {
+            // Get mouse position relative to the image
+            var pos = e.GetPosition(source);
+            int x = (int)(pos.X * bitmap.PixelWidth / source.ActualWidth);
+            int y = (int)(pos.Y * bitmap.PixelHeight / source.ActualHeight);
+            if (x >= 0 && y >= 0 && x < bitmap.PixelWidth && y < bitmap.PixelHeight)
+            {
+                byte[] pixels = new byte[4];
+                bitmap.CopyPixels(new Int32Rect(x, y, 1, 1), pixels, 4, 0);
+                byte alpha = pixels[3];
+                return alpha == 0;
+            }
+        }
+        return false;
+    }
+
     private void MainWindow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (e.ButtonState == MouseButtonState.Released && _isDraggingToDetach)
-        {
             ResetDetachDrag();
-        }
     }
 
     private void MainWindow_PreviewMouseMove(object sender, MouseEventArgs e)
     {
         if (e.LeftButton == MouseButtonState.Pressed && _isDraggingToDetach)
-        {
             HandleDragToDetachFromMaximizedState(e);
-        }
     }
+
+    #region Minimize/Maximize
 
     public void ToggleMaximizedState()
     {
-        if (window.WindowState == WindowState.Maximized)
-            window.WindowState = WindowState.Normal;
-        else
-            window.WindowState = WindowState.Maximized;
-
+        window.WindowState = window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         RedrawBrowsers();
     }
+
+    public void Minimize()
+    {
+        window.WindowState = WindowState.Minimized;
+    }
+
+    private void AdjustWindowBorder()
+    {
+        if (window.WindowState == WindowState.Maximized)
+        {
+            var wa = SystemParameters.WorkArea;
+            var bottomMargin = window.Height - wa.Height - 10;
+            window.WindowBorder.Margin = new Thickness(0, 0, 0, bottomMargin);
+        }
+        else if (window.WindowState == WindowState.Normal)
+        {
+            window.WindowBorder.Margin = new Thickness(0);
+        }
+    }
+
+    #endregion
+
+    #region Window Detach Drag Handling
 
     private bool _isDraggingToDetach = false;
     private Point? _dragStartPoint;
@@ -113,6 +135,16 @@ public class CustomWindowChromeFeature(MainWindow window)
             return;
         }
 
+        PerformDetachOfWindow(e);
+
+        e.Handled = true;
+        ResetDetachDrag();
+        window.ChromeUI.ReleaseMouseCapture();
+        window.DragMove();
+    }
+
+    private void PerformDetachOfWindow(MouseEventArgs e)
+    {
         // Calculate mouse position relative to window
         var mouseX = e.GetPosition(window).X;
         var percentX = mouseX / window.ActualWidth;
@@ -144,10 +176,6 @@ public class CustomWindowChromeFeature(MainWindow window)
         }
 
         window.UpdateLayout();
-        e.Handled = true;
-        ResetDetachDrag();
-        window.ChromeUI.ReleaseMouseCapture();
-        window.DragMove();
     }
 
     private void StartDetachDrag(MouseEventArgs e)
@@ -155,7 +183,7 @@ public class CustomWindowChromeFeature(MainWindow window)
         _dragStartPoint = e.GetPosition(window);
         _isDraggingToDetach = true;
         window.Cursor = Cursors.SizeAll;
-        // Prevents selecting elements as we complete the operation
+        // Prevents selecting elements as we complete the detach operation
         window.ChromeUI.EvaluateScriptAsync("document.body.setAttribute('inert', '');").GetAwaiter().GetResult();
     }
 
@@ -165,27 +193,9 @@ public class CustomWindowChromeFeature(MainWindow window)
         _isDraggingToDetach = false;
         window.Cursor = Cursors.Arrow;
         window.ChromeUI.EvaluateScriptAsync("document.body.removeAttribute('inert');").GetAwaiter().GetResult();
-
     }
 
-    private static bool IsMouseOverTransparentPixel(MouseEventArgs e)
-    {
-        if (e.OriginalSource is Image source && source.Source is BitmapSource bitmap)
-        {
-            // Get mouse position relative to the image
-            var pos = e.GetPosition(source);
-            int x = (int)(pos.X * bitmap.PixelWidth / source.ActualWidth);
-            int y = (int)(pos.Y * bitmap.PixelHeight / source.ActualHeight);
-            if (x >= 0 && y >= 0 && x < bitmap.PixelWidth && y < bitmap.PixelHeight)
-            {
-                byte[] pixels = new byte[4];
-                bitmap.CopyPixels(new Int32Rect(x, y, 1, 1), pixels, 4, 0);
-                byte alpha = pixels[3];
-                return alpha == 0;
-            }
-        }
-        return false;
-    }
+    #endregion
 
     #region Resize Border Handling
 
@@ -244,9 +254,8 @@ public class CustomWindowChromeFeature(MainWindow window)
         return HitTest.HTNOWHERE;
     }
 
-    private static Cursor GetCursorForResizeDirection(HitTest hit)
-    {
-        return hit switch
+    private static Cursor GetCursorForResizeDirection(HitTest hit) =>
+        hit switch
         {
             HitTest.HTLEFT => Cursors.SizeWE,
             HitTest.HTRIGHT => Cursors.SizeWE,
@@ -258,7 +267,6 @@ public class CustomWindowChromeFeature(MainWindow window)
             HitTest.HTBOTTOMRIGHT => Cursors.SizeNWSE,
             _ => Cursors.Arrow
         };
-    }
 
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);

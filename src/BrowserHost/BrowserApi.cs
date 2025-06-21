@@ -51,13 +51,7 @@ internal class BrowserApi(MainWindow window)
 
     public void Minimize()
     {
-        window.Dispatcher.Invoke(() =>
-        {
-            if (window.WindowState == WindowState.Minimized)
-                return;
-
-            window.WindowState = WindowState.Minimized;
-        });
+        window.Dispatcher.Invoke(window.CustomWindowChromeFeature.Minimize);
     }
 
     public void Maximize()
