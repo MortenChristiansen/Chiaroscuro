@@ -1,6 +1,5 @@
 ﻿using CefSharp;
 using System;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -8,16 +7,11 @@ using System.Windows.Media.Animation;
 
 namespace BrowserHost.Features;
 
-public class ActionDialogFeature(MainWindow window, BrowserApi api)
+public class ActionDialogFeature(MainWindow window, BrowserApi api) : Feature(window, api)
 {
-    public void Register()
+    public override void Register()
     {
-        window.ActionDialog.Address = ContentServer.GetUiAddress("/action-dialog");
-        window.ActionDialog.ConsoleMessage += (sender, e) =>
-        {
-            Debug.WriteLine($"ActionDialog: {e.Message}");
-        };
-        window.ActionDialog.JavascriptObjectRepository.Register("api", api);
+        ConfigureUiControl("ActionDialog", "/action-dialog", Window.ActionDialog);
     }
 
     public bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -33,7 +27,7 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api)
 
     private void ShowDialog()
     {
-        if (window.ActionDialog.Visibility == Visibility.Visible)
+        if (Window.ActionDialog.Visibility == Visibility.Visible)
             return;
 
         ShowActionDialogControl();
@@ -42,33 +36,33 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api)
 
     private void ShowActionDialogControl()
     {
-        window.ActionDialog.Opacity = 0;
-        window.ActionDialog.Visibility = Visibility.Visible;
-        window.ActionDialog.Focus();
-        window.ActionDialog.ExecuteScriptAsync("window.angularApi.showDialog()");
+        Window.ActionDialog.Opacity = 0;
+        Window.ActionDialog.Visibility = Visibility.Visible;
+        Window.ActionDialog.Focus();
+        Window.ActionDialog.ExecuteScriptAsync("window.angularApi.showDialog()");
 
-        if (window.ActionDialog.RenderTransform is not ScaleTransform)
+        if (Window.ActionDialog.RenderTransform is not ScaleTransform)
         {
             var scale = new ScaleTransform(0, 0, 0.5, 0.5);
-            window.ActionDialog.RenderTransform = scale;
-            window.ActionDialog.RenderTransformOrigin = new Point(0.5, 0.5);
+            Window.ActionDialog.RenderTransform = scale;
+            Window.ActionDialog.RenderTransformOrigin = new Point(0.5, 0.5);
         }
         else
         {
-            ((ScaleTransform)window.ActionDialog.RenderTransform).ScaleX = 0;
-            ((ScaleTransform)window.ActionDialog.RenderTransform).ScaleY = 0;
+            ((ScaleTransform)Window.ActionDialog.RenderTransform).ScaleX = 0;
+            ((ScaleTransform)Window.ActionDialog.RenderTransform).ScaleY = 0;
         }
 
         var fadeIn = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(250)));
         var scaleIn = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(250))) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
-        window.ActionDialog.BeginAnimation(UIElement.OpacityProperty, fadeIn);
-        ((ScaleTransform)window.ActionDialog.RenderTransform).BeginAnimation(ScaleTransform.ScaleXProperty, scaleIn);
-        ((ScaleTransform)window.ActionDialog.RenderTransform).BeginAnimation(ScaleTransform.ScaleYProperty, scaleIn);
+        Window.ActionDialog.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+        ((ScaleTransform)Window.ActionDialog.RenderTransform).BeginAnimation(ScaleTransform.ScaleXProperty, scaleIn);
+        ((ScaleTransform)Window.ActionDialog.RenderTransform).BeginAnimation(ScaleTransform.ScaleYProperty, scaleIn);
     }
 
     private void AddGlassOverlayToCurrentTab()
     {
-        window.CurrentTab.ExecuteScriptAsync(@"(function() {
+        Window.CurrentTab.ExecuteScriptAsync(@"(function() {
             var id = 'chiaroscuro-glass-overlay';
             var overlay = document.getElementById(id);
             if (overlay) {
@@ -102,7 +96,7 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api)
 
     public void DismissDialog()
     {
-        if (window.ActionDialog.Visibility == Visibility.Hidden)
+        if (Window.ActionDialog.Visibility == Visibility.Hidden)
             return;
 
         HideActionDialogControl();
@@ -115,10 +109,10 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api)
         var scaleOut = new DoubleAnimation(1, 0, new Duration(TimeSpan.FromMilliseconds(250))) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
         fadeOut.Completed += (s, e) =>
         {
-            window.ActionDialog.Visibility = Visibility.Hidden;
+            Window.ActionDialog.Visibility = Visibility.Hidden;
         };
-        window.ActionDialog.BeginAnimation(UIElement.OpacityProperty, fadeOut);
-        if (window.ActionDialog.RenderTransform is ScaleTransform scale)
+        Window.ActionDialog.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+        if (Window.ActionDialog.RenderTransform is ScaleTransform scale)
         {
             scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleOut);
             scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleOut);
@@ -127,7 +121,7 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api)
 
     private void HideGlassOverlayFromCurrentTab()
     {
-        window.CurrentTab.ExecuteScriptAsync(@"(function() {
+        Window.CurrentTab.ExecuteScriptAsync(@"(function() {
             var overlay = document.getElementById('chiaroscuro-glass-overlay');
             if (overlay) {
                 overlay.style.transition = 'opacity 0.25s';

@@ -12,8 +12,6 @@ namespace BrowserHost;
 
 public partial class MainWindow : Window
 {
-    private BrowserApi _browserApi;
-
     public CustomWindowChromeFeature CustomWindowChromeFeature { get; }
     public ActionDialogFeature ActionDialogFeature { get; }
 
@@ -26,11 +24,11 @@ public partial class MainWindow : Window
 
         CheckForUpdates();
 
-        _browserApi = new BrowserApi(this);
+        var api = new BrowserApi(this);
 
-        CustomWindowChromeFeature = new(this, _browserApi);
+        CustomWindowChromeFeature = new(this, api);
         CustomWindowChromeFeature.Register();
-        ActionDialogFeature = new(this, _browserApi);
+        ActionDialogFeature = new(this, api);
         ActionDialogFeature.Register();
 
         CurrentTab.AddressChanged += CurrentTab_AddressChanged;
