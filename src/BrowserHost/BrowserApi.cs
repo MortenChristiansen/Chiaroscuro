@@ -1,5 +1,4 @@
 ﻿using CefSharp;
-using System.Windows;
 
 namespace BrowserHost;
 
@@ -23,44 +22,18 @@ public class BrowserApi(MainWindow window)
     public void Navigate(string url) =>
         window.CurrentTab.LoadUrl(url);
 
-    public void Reload()
-    {
+    public void Reload() =>
         window.WebContent.Reload();
-    }
 
-    public void ShowActionDialog()
-    {
-        if (window.ActionDialog.Visibility == Visibility.Visible)
-            return;
+    public void DismissActionDialog() =>
+        window.Dispatcher.Invoke(window.ActionDialogFeature.DismissDialog);
 
-        window.ActionDialog.Visibility = Visibility.Visible;
-        window.ActionDialog.Focus();
-        window.ActionDialog.ExecuteScriptAsync("window.angularApi.showDialog()");
-    }
-
-    public void DismissActionDialog()
-    {
-        if (window.ActionDialog.Visibility == Visibility.Hidden)
-            return;
-
-        window.Dispatcher.Invoke(() =>
-        {
-            window.ActionDialog.Visibility = Visibility.Hidden;
-        });
-    }
-
-    public void Minimize()
-    {
+    public void Minimize() =>
         window.Dispatcher.Invoke(window.CustomWindowChromeFeature.Minimize);
-    }
 
-    public void Maximize()
-    {
+    public void Maximize() =>
         window.Dispatcher.Invoke(window.CustomWindowChromeFeature.ToggleMaximizedState);
-    }
 
-    public void Close()
-    {
+    public void Close() =>
         window.Dispatcher.Invoke(window.Close);
-    }
 }
