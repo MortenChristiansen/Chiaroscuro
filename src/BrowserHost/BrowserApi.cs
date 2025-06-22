@@ -3,7 +3,7 @@ using System.Windows;
 
 namespace BrowserHost;
 
-internal class BrowserApi(MainWindow window)
+public class BrowserApi(MainWindow window)
 {
     public void ChangeAddress(string address) =>
         window.ChromeUI.ExecuteScriptAsync($"window.angularApi.changeAddress('{address}')");
