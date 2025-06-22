@@ -15,6 +15,10 @@ public partial class MainWindow : Window
     private BrowserApi _browserApi;
 
     public CustomWindowChromeFeature CustomWindowChromeFeature { get; }
+    public ActionDialogFeature ActionDialogFeature { get; }
+
+    public ChromiumWebBrowser Chrome => ChromeUI;
+    public ChromiumWebBrowser CurrentTab => WebContent;
 
     public MainWindow()
     {
@@ -24,22 +28,10 @@ public partial class MainWindow : Window
 
         _browserApi = new BrowserApi(this);
 
-        CustomWindowChromeFeature = new(this);
+        CustomWindowChromeFeature = new(this, _browserApi);
         CustomWindowChromeFeature.Register();
-
-        ChromeUI.Address = ContentServer.GetUiAddress("/");
-        ChromeUI.JavascriptObjectRepository.Register("api", _browserApi);
-        ChromeUI.ConsoleMessage += (sender, e) =>
-        {
-            Debug.WriteLine($"ChromeUI: {e.Message}");
-        };
-
-        ActionDialog.Address = ContentServer.GetUiAddress("/action-dialog");
-        ActionDialog.ConsoleMessage += (sender, e) =>
-        {
-            Debug.WriteLine($"ActionDialog: {e.Message}");
-        };
-        ActionDialog.JavascriptObjectRepository.Register("api", _browserApi);
+        ActionDialogFeature = new(this, _browserApi);
+        ActionDialogFeature.Register();
 
         CurrentTab.AddressChanged += CurrentTab_AddressChanged;
 
@@ -77,11 +69,9 @@ public partial class MainWindow : Window
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
         base.OnPreviewKeyDown(e);
-        if (e.Key == Key.T && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
-        {
-            _browserApi.ShowActionDialog();
-            e.Handled = true;
-        }
+
+        if (ActionDialogFeature.HandleOnPreviewKeyDown(e))
+            return;
 
         if (e.Key == Key.F5)
         {
@@ -94,7 +84,4 @@ public partial class MainWindow : Window
     {
         _browserApi.ChangeAddress($"{e.NewValue}");
     }
-
-    public ChromiumWebBrowser Chrome => ChromeUI;
-    public ChromiumWebBrowser CurrentTab => WebContent;
 }

@@ -35,8 +35,7 @@ import { Api } from '../interfaces/api';
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(30, 30, 30, 0.35);
-    backdrop-filter: blur(16px);
+    background: rgba(0, 0, 0, 0.01);
     z-index: 1000;
   }
 

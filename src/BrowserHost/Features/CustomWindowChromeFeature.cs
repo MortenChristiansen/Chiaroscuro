@@ -2,6 +2,7 @@
 using CefSharp.Wpf;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,12 +11,19 @@ using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features;
 
-public class CustomWindowChromeFeature(MainWindow window)
+public class CustomWindowChromeFeature(MainWindow window, BrowserApi api)
 {
     private readonly List<ChromiumWebBrowser> _browsers = [window.WebContent, window.ChromeUI, window.ActionDialog];
 
     public void Register()
     {
+        window.ChromeUI.Address = ContentServer.GetUiAddress("/");
+        window.ChromeUI.JavascriptObjectRepository.Register("api", api);
+        window.ChromeUI.ConsoleMessage += (sender, e) =>
+        {
+            Debug.WriteLine($"ChromeUI: {e.Message}");
+        };
+
         window.WindowStyle = WindowStyle.None;
         window.AllowsTransparency = true;
 
