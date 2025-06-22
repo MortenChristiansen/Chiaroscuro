@@ -36,13 +36,17 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api)
         if (window.ActionDialog.Visibility == Visibility.Visible)
             return;
 
-        // Prepare for animation
+        ShowActionDialogControl();
+        AddGlassOverlayToCurrentTab();
+    }
+
+    private void ShowActionDialogControl()
+    {
         window.ActionDialog.Opacity = 0;
         window.ActionDialog.Visibility = Visibility.Visible;
         window.ActionDialog.Focus();
         window.ActionDialog.ExecuteScriptAsync("window.angularApi.showDialog()");
 
-        // Set up scale transform if not already present
         if (window.ActionDialog.RenderTransform is not ScaleTransform)
         {
             var scale = new ScaleTransform(0, 0, 0.5, 0.5);
@@ -55,13 +59,15 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api)
             ((ScaleTransform)window.ActionDialog.RenderTransform).ScaleY = 0;
         }
 
-        // Animate opacity and scale
         var fadeIn = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(250)));
         var scaleIn = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(250))) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
         window.ActionDialog.BeginAnimation(UIElement.OpacityProperty, fadeIn);
         ((ScaleTransform)window.ActionDialog.RenderTransform).BeginAnimation(ScaleTransform.ScaleXProperty, scaleIn);
         ((ScaleTransform)window.ActionDialog.RenderTransform).BeginAnimation(ScaleTransform.ScaleYProperty, scaleIn);
+    }
 
+    private void AddGlassOverlayToCurrentTab()
+    {
         window.CurrentTab.ExecuteScriptAsync(@"(function() {
             var id = 'chiaroscuro-glass-overlay';
             var overlay = document.getElementById(id);
@@ -99,7 +105,12 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api)
         if (window.ActionDialog.Visibility == Visibility.Hidden)
             return;
 
-        // Animate opacity and scale out
+        HideActionDialogControl();
+        HideGlassOverlayFromCurrentTab();
+    }
+
+    private void HideActionDialogControl()
+    {
         var fadeOut = new DoubleAnimation(1, 0, new Duration(TimeSpan.FromMilliseconds(250)));
         var scaleOut = new DoubleAnimation(1, 0, new Duration(TimeSpan.FromMilliseconds(250))) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
         fadeOut.Completed += (s, e) =>
@@ -112,7 +123,10 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api)
             scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleOut);
             scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleOut);
         }
+    }
 
+    private void HideGlassOverlayFromCurrentTab()
+    {
         window.CurrentTab.ExecuteScriptAsync(@"(function() {
             var overlay = document.getElementById('chiaroscuro-glass-overlay');
             if (overlay) {
