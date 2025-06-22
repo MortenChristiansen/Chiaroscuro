@@ -23,6 +23,11 @@ internal class BrowserApi(MainWindow window)
     public void Navigate(string url) =>
         window.CurrentTab.LoadUrl(url);
 
+    public void Reload()
+    {
+        window.WebContent.Reload();
+    }
+
     public void ShowActionDialog()
     {
         if (window.ActionDialog.Visibility == Visibility.Visible)
@@ -42,5 +47,20 @@ internal class BrowserApi(MainWindow window)
         {
             window.ActionDialog.Visibility = Visibility.Hidden;
         });
+    }
+
+    public void Minimize()
+    {
+        window.Dispatcher.Invoke(window.CustomWindowChromeFeature.Minimize);
+    }
+
+    public void Maximize()
+    {
+        window.Dispatcher.Invoke(window.CustomWindowChromeFeature.ToggleMaximizedState);
+    }
+
+    public void Close()
+    {
+        window.Dispatcher.Invoke(window.Close);
     }
 }
