@@ -1,7 +1,11 @@
-﻿using CefSharp;
+﻿using BrowserHost.Api;
+using CefSharp;
 using CefSharp.Wpf;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 
 namespace BrowserHost.Features;
 
@@ -26,4 +30,23 @@ public abstract class Feature(MainWindow window, BrowserApi api)
 
     protected void RedrawBrowsers() =>
         _browsers.ForEach(b => b.GetBrowserHost()?.Invalidate(PaintElementType.View));
+
+    protected async Task Listen<TEvent>(Channel<TEvent> channel, Action<TEvent> action, bool dispatchToUi = false)
+    {
+        var reader = channel.Reader;
+        while (await reader.WaitToReadAsync())
+        {
+            while (reader.TryRead(out var evt))
+            {
+                if (dispatchToUi)
+                {
+                    Window.Dispatcher.Invoke(() => action(evt));
+                }
+                else
+                {
+                    action(evt);
+                }
+            }
+        }
+    }
 }

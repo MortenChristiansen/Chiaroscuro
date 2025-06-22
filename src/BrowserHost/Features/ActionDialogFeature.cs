@@ -1,4 +1,5 @@
-﻿using CefSharp;
+﻿using BrowserHost.Api;
+using CefSharp;
 using System;
 using System.Windows;
 using System.Windows.Input;
@@ -12,6 +13,9 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api) : Feature(wi
     public override void Register()
     {
         ConfigureUiControl("ActionDialog", "/action-dialog", Window.ActionDialog);
+
+        _ = Listen(Api.ActionDialogDismissedChannel, _ => DismissDialog(), dispatchToUi: true);
+        _ = Listen(Api.NavigationStartedChannel, e => Window.CurrentTab.LoadUrl(e.Address), dispatchToUi: true);
     }
 
     public bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -94,7 +98,7 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api) : Feature(wi
         })();");
     }
 
-    public void DismissDialog()
+    private void DismissDialog()
     {
         if (Window.ActionDialog.Visibility == Visibility.Hidden)
             return;

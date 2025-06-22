@@ -1,4 +1,5 @@
-﻿using CefSharp;
+﻿using BrowserHost.Api;
+using CefSharp;
 using System;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -29,6 +30,9 @@ public class CustomWindowChromeFeature(MainWindow window, BrowserApi api) : Feat
 
         // Prevent maximizing over the taskbar
         Window.StateChanged += (s, e) => AdjustWindowBorder();
+
+        _ = Listen(Api.WindowMinimizedChannel, _ => Minimize(), dispatchToUi: true);
+        _ = Listen(Api.WindowStateToggledChannel, _ => ToggleMaximizedState(), dispatchToUi: true);
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -81,13 +85,13 @@ public class CustomWindowChromeFeature(MainWindow window, BrowserApi api) : Feat
 
     #region Minimize/Maximize
 
-    public void ToggleMaximizedState()
+    private void ToggleMaximizedState()
     {
         Window.WindowState = Window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         RedrawBrowsers();
     }
 
-    public void Minimize()
+    private void Minimize()
     {
         Window.WindowState = WindowState.Minimized;
     }
