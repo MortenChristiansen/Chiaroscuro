@@ -78,5 +78,5 @@ jobs:
         run: |
           dotnet tool install -g vpk
           vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
-          vpk pack -u WithoutPrecedence.Chiaroscuro -v $env:APP_VERSION -p ./src/publish -e Chiaroscuro.exe --packTitle "Chiroscuro Browser" --packAuthors "Morten Christiansen"
-          vpk upload github --repoUrl https://github.com/${{ github.repository }} --publish --releaseName "Chiroscuro Browser v$env:APP_VERSION" --tag $Env:GITHUB_REF_NAME --token ${{ secrets.GITHUB_TOKEN }}
+          vpk pack -u WithoutPrecedence.Chiaroscuro -v $env:APP_VERSION -p ./src/publish -e Chiaroscuro.exe --packTitle "Chiaroscuro Browser" --packAuthors "Morten Christiansen"
+          vpk upload github --repoUrl https://github.com/${{ github.repository }} --publish --releaseName "Chiaroscuro v$env:APP_VERSION" --tag $Env:GITHUB_REF_NAME --token ${{ secrets.GITHUB_TOKEN }}
