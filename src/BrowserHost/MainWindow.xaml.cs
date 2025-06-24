@@ -41,6 +41,9 @@ public partial class MainWindow : Window
         try
         {
             var mgr = new UpdateManager(new GithubSource("https://github.com/MortenChristiansen/Chiaroscuro", accessToken: null, prerelease: false, downloader: null));
+            if (mgr.CurrentVersion is null)
+                return;
+
             var updateInfo = await mgr.CheckForUpdatesAsync();
             if (updateInfo != null)
             {
