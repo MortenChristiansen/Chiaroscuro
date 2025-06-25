@@ -14,55 +14,23 @@ interface Tab {
   selector: 'tabs-list',
   imports: [],
   template: `
-    <div class="tabs">
+    <div class="flex flex-col gap-2">
       @for (tab of tabs(); track tab.id) {
       <div
-        class="tab {{ tab.id === selectedTab()?.id ? 'active' : '' }}"
+        class="tab flex items-center px-4 py-2 rounded-lg select-none shadow-sm text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
+          tab.id === selectedTab()?.id ? 'bg-white/20 hover:bg-white/30' : ''
+        }}"
         (click)="selectedTab.set(tab)"
       >
         @if (tab.favicon) {
-        <img class="favicon" [src]="tab.favicon" />
+        <img class="w-4 h-4 mr-2" [src]="tab.favicon" />
         } @else {
-        <img class="favicon" [src]="fallbackFavicon" />
+        <img class="w-4 h-4 mr-2" [src]="fallbackFavicon" />
         }
-        {{ tab.title ?? 'Loading...' }}
+        <span class="truncate">{{ tab.title ?? 'Loading...' }}</span>
       </div>
       }
     </div>
-  `,
-  styles: `
-    .tabs {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .tab {
-        padding: 0.5rem 1rem;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 0.5rem;
-        cursor: pointer;
-        transition: background 0.3s ease;
-        color: #fff;
-        font-family: Arial, sans-serif;
-        font-size: 1rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        user-select: none;
-    }
-
-    .tab:hover {
-        background: rgba(255, 255, 255, 0.2);
-    }
-
-    .tab.active {
-        background: rgba(255, 255, 255, 0.3);
-    }
-
-    .favicon {
-        width: 16px;
-        height: 16px;   
-        margin-right: 0.5rem;
-    }
   `,
 })
 export default class TabsListComponent implements OnInit {

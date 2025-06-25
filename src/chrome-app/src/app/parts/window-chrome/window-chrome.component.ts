@@ -6,78 +6,149 @@ import { WindowsChromeApi } from './windowChromeApi';
   selector: 'window-chrome',
   imports: [],
   template: `
-    <div class="menu">
-      <div class="app-icon">🎨</div>
-      <div class="address-bar">
-        <button (click)="back()" [disabled]="!canGoBack()">←</button>
-        <button (click)="forward()" [disabled]="!canGoForward()">→</button>
-        <button (click)="reload()">↺</button>
-        <span class="address">
+    <div class="flex items-center gap-4 align-middle px-2 py-1 select-none">
+      <div class="address-bar flex flex-1 items-center gap-2 justify-center">
+        <button
+          (click)="back()"
+          [disabled]="!canGoBack()"
+          class="icon-btn"
+          aria-label="Back"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M12.293 15.707a1 1 0 010-1.414L15.586 11H4a1 1 0 110-2h11.586l-3.293-3.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+        <button
+          (click)="forward()"
+          [disabled]="!canGoForward()"
+          class="icon-btn"
+          aria-label="Forward"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            class="w-5 h-5 rotate-180"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M12.293 15.707a1 1 0 010-1.414L15.586 11H4a1 1 0 110-2h11.586l-3.293-3.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+        <button (click)="reload()" class="icon-btn" aria-label="Reload">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="w-5 h-5"
+          >
+            <path
+              d="M4 10a6 6 0 1 1 2.2 4.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <polyline
+              points="5 17 5 13 9 13"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+        <span
+          class="address mx-4 font-sans text-base text-gray-200 max-w-[400px] truncate"
+        >
           @let url = address(); @if (url === null) {
-          <span style="font-style: italic;">Press ctrl-t to start</span>
+          <span class="italic text-gray-400">Press ctrl-t to start</span>
           } @else {
           <span>{{ url }}</span>
           }
         </span>
       </div>
-      <div class="window-controls">
-        <button (click)="min()">🗕</button>
-        <button (click)="max()">🗖</button>
-        <button (click)="close()">✕</button>
+      <div class="window-controls flex gap-2 ml-auto">
+        <button (click)="min()" class="icon-btn" aria-label="Minimize">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 18L18 18"
+            />
+          </svg>
+        </button>
+        <button (click)="max()" class="icon-btn" aria-label="Maximize">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <rect x="6" y="6" width="12" height="12" rx="2" />
+          </svg>
+        </button>
+        <button
+          (click)="close()"
+          class="icon-btn text-red-400 hover:text-red-600"
+          aria-label="Close"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 6l12 12M6 18L18 6"
+            />
+          </svg>
+        </button>
       </div>
     </div>
   `,
   styles: `
-    .menu {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      vertical-align: middle;
-    }
-
-    .app-icon {
-      /* stays left by default */
-    }
-
-    .address-bar {
-      flex: 1;
-      display: flex;
-      gap: .5rem;
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: #e5e7eb;
+      font-family: Consolas;
+      border-radius: 0.375rem;
+      font-weight: 400;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-    }
-
-    .window-controls {
-      display: flex;
-      gap: 0.5rem;
-      margin-left: auto;
-    }
-
-    .address {
-      margin: 0 1rem;
-      font-family: Calibri;
-      color: #ddd;
-      max-width: 400px;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-
-    button {
-      background:rgba(0, 0, 0, 0.01);
-      border: none;
-      color: #eee;
-      font-size: 1rem;
+      padding: 0.25rem .5rem;
       cursor: pointer;
-      transition: font-weight 0.1s, color 0.1s;
-      font-family: Consolas;
-      padding: 0.25rem 0.5rem;
+      transition: background 0.15s, color 0.15s;
     }
-    button:hover:not(:disabled) {
-      font-weight: bold;
+    .icon-btn:hover:not(:disabled) {
+      background: rgba(255,255,255,0.08);
       color: #fff;
     }
-    button:disabled {
+    .icon-btn:disabled {
       opacity: 0.5;
       cursor: default;
     }
