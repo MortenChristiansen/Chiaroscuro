@@ -24,11 +24,11 @@ public class TabBrowser : BaseBrowser
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        _tabListBrowser.UpdateTab(new TabDto(Id, (string)e.NewValue, null));
+        _tabListBrowser.UpdateTabTitle(Id, (string)e.NewValue);
     }
 
     private void OnFaviconAddressesChanged(IList<string> addresses)
     {
-        Dispatcher.BeginInvoke(() => _tabListBrowser.UpdateTab(new TabDto(Id, Title, addresses.FirstOrDefault())));
+        Dispatcher.BeginInvoke(() => _tabListBrowser.UpdateTabFavicon(Id, addresses.FirstOrDefault()));
     }
 }

@@ -2,8 +2,10 @@ import { Component, OnInit, signal } from '@angular/core';
 import { TabListApi } from './tabListApi';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 
+type TabId = string;
+
 interface Tab {
-  id: string;
+  id: TabId;
   title: string | null;
   favicon: string | null;
 }
@@ -82,16 +84,28 @@ export default class TabsListComponent implements OnInit {
           console.log('Activated tab:', JSON.stringify(tab));
         }
       },
-      updateTab: (tab: Tab) => {
+      updateTitle: (tabId: TabId, title: string | null) => {
         this.tabs.update((currentTabs) => {
-          const index = currentTabs.findIndex((t) => t.id === tab.id);
-          if (index !== -1) {
-            const updatedTabs = [...currentTabs];
-            updatedTabs[index] = tab;
-            return updatedTabs;
-          }
-          return currentTabs;
+          const updatedTabs = currentTabs.map((tab, i) =>
+            currentTabs[i].id === tabId ? { ...tab, title } : tab
+          );
+          return updatedTabs;
         });
+      },
+      updateFavicon: (tabId: TabId, favicon: string | null) => {
+        this.tabs.update((currentTabs) => {
+          const updatedTabs = currentTabs.map((tab, i) =>
+            currentTabs[i].id === tabId ? { ...tab, favicon } : tab
+          );
+          return updatedTabs;
+        });
+      },
+      closeTab: (tabId: TabId, focusedTabId: TabId | null) => {
+        this.tabs.update((currentTabs) =>
+          currentTabs.filter((t) => t.id !== tabId)
+        );
+        const tab = this.tabs().find((t) => t.id === focusedTabId) ?? null;
+        this.selectedTab.set(tab);
       },
     });
 

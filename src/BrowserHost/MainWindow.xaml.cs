@@ -92,7 +92,7 @@ public partial class MainWindow : Window
         }
     }
 
-    public void SetCurrentTab(TabBrowser tab)
+    public void SetCurrentTab(TabBrowser? tab)
     {
         WebContentBorder.Child = tab;
     }

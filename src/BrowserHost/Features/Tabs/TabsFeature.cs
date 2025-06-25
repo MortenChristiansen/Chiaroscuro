@@ -1,15 +1,28 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
+using System.Windows.Input;
 
 namespace BrowserHost.Features.Tabs;
 
 public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.Tabs.Api)
 {
-    private readonly Dictionary<string, TabBrowser> _tabBrowsers = [];
+    private readonly List<TabBrowser> _tabBrowsers = [];
 
     public override void Register()
     {
         _ = Listen(Window.ActionDialog.Api.NavigationStartedChannel, e => AddTab(e.Address, activate: true), dispatchToUi: true);
+    }
+
+    public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.X && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            CloseCurrentTab();
+            return true;
+        }
+
+        return base.HandleOnPreviewKeyDown(e);
     }
 
     private void AddTab(string address, bool activate)
@@ -23,7 +36,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     private void AddTab(TabBrowser browser, bool activate)
     {
-        _tabBrowsers[browser.Id] = browser;
+        _tabBrowsers.Add(browser);
 
         var tab = new TabDto(browser.Id, browser.Title, null);
         Window.Tabs.AddTab(tab, activate);
@@ -36,5 +49,16 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
     {
         if (sender == Window.CurrentTab)
             Window.ChromeUI.ChangeAddress($"{e.NewValue}");
+    }
+
+    private void CloseCurrentTab()
+    {
+        var tab = Window.CurrentTab;
+        if (tab == null) return;
+
+        var nextTab = ((IEnumerable<TabBrowser>)_tabBrowsers).Reverse().SkipWhile(t => t != tab).Skip(1).FirstOrDefault();
+        _tabBrowsers.Remove(tab);
+        Window.Tabs.CloseTab(tab.Id, nextTab?.Id);
+        Window.SetCurrentTab(nextTab);
     }
 }
