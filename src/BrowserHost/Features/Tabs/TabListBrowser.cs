@@ -36,6 +36,3 @@ public class TabListBrowser : BaseBrowser<TabListBrowserApi>
     }
 }
 
-public class TabListBrowserApi(TabListBrowser browser) : BrowserApi(browser)
-{
-}
