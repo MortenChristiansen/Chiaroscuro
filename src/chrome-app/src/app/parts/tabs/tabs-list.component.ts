@@ -107,7 +107,7 @@ export default class TabsListComponent implements OnInit {
     const currentTabs = [...this.tabs()];
     moveItemInArray(currentTabs, event.previousIndex, event.currentIndex);
     this.tabs.set(currentTabs);
-    // TODO: Notify backend about the new order if needed
+    this.api.reorderTab(event.item.data.id, event.currentIndex);
   }
 
   async ngOnInit() {

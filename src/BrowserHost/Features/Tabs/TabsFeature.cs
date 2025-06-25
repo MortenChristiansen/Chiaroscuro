@@ -29,7 +29,17 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             if (tab != null)
             {
                 _tabBrowsers.Remove(tab);
-                Window.SetCurrentTab(FindNextTab(tab));
+                if (tab == Window.CurrentTab)
+                    Window.SetCurrentTab(FindNextTab(tab));
+            }
+        }, dispatchToUi: true);
+        _ = Listen(Api.TabPositionChanged, e =>
+        {
+            var tab = _tabBrowsers.FirstOrDefault(t => t.Id == e.TabId);
+            if (tab != null)
+            {
+                _tabBrowsers.Remove(tab);
+                _tabBrowsers.Insert(e.NewIndex, tab);
             }
         }, dispatchToUi: true);
     }
