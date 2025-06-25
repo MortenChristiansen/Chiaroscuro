@@ -1,5 +1,4 @@
-﻿using BrowserHost.Api;
-using CefSharp;
+﻿using CefSharp;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -8,12 +7,10 @@ using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
-public class CustomWindowChromeFeature(MainWindow window, BrowserApi api) : Feature(window, api)
+public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindowChromeBrowserApi>(window, window.ChromeUI.Api)
 {
     public override void Register()
     {
-        ConfigureUiControl("ChromeUI", "/", Window.ChromeUI);
-
         Window.WindowStyle = WindowStyle.None;
         Window.AllowsTransparency = true;
 
@@ -23,9 +20,6 @@ public class CustomWindowChromeFeature(MainWindow window, BrowserApi api) : Feat
 
         Window.ResizeBorder.PreviewMouseMove += ResizeBorder_PreviewMouseMove;
         Window.ResizeBorder.PreviewMouseLeftButtonDown += ResizeBorder_PreviewMouseLeftButtonDown;
-
-        // Force WebContent to repaint on size change to fix rendering issue
-        Window.SizeChanged += (s, e) => RedrawBrowsers();
 
         // Prevent maximizing over the taskbar
         Window.StateChanged += (s, e) => AdjustWindowBorder();
@@ -87,7 +81,6 @@ public class CustomWindowChromeFeature(MainWindow window, BrowserApi api) : Feat
     private void ToggleMaximizedState()
     {
         Window.WindowState = Window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-        RedrawBrowsers();
     }
 
     private void Minimize()

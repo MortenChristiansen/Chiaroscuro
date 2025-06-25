@@ -1,5 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { Api } from '../interfaces/api';
+import { TabListApi } from './tabListApi';
 
 interface Tab {
   id: string;
@@ -95,8 +95,8 @@ export default class TabsListComponent implements OnInit {
       },
     };
 
-    await this.api.uiLoaded('Tabs');
+    await this.api.uiLoaded();
   }
 
-  api!: Api;
+  api!: TabListApi;
 }

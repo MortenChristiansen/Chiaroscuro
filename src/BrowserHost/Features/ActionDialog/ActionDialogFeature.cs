@@ -1,5 +1,4 @@
-﻿using BrowserHost.Api;
-using CefSharp;
+﻿using CefSharp;
 using System;
 using System.Windows;
 using System.Windows.Input;
@@ -8,12 +7,10 @@ using System.Windows.Media.Animation;
 
 namespace BrowserHost.Features.ActionDialog;
 
-public class ActionDialogFeature(MainWindow window, BrowserApi api) : Feature(window, api)
+public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowserApi>(window, window.ActionDialog.Api)
 {
     public override void Register()
     {
-        ConfigureUiControl("ActionDialog", "/action-dialog", Window.ActionDialog);
-
         _ = Listen(Api.ActionDialogDismissedChannel, _ => DismissDialog(), dispatchToUi: true);
     }
 

@@ -1,24 +1,20 @@
-﻿using BrowserHost.Api;
-using BrowserHost.Api.Dtos;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Windows;
 
 namespace BrowserHost.Features.Tabs;
 
-public class TabsFeature(MainWindow window, BrowserApi api) : Feature(window, api)
+public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.Tabs.Api)
 {
     private readonly Dictionary<string, TabBrowser> _tabBrowsers = [];
 
     public override void Register()
     {
-        ConfigureUiControl("Tabs", "/tabs", Window.Tabs);
-
-        _ = Listen(Api.NavigationStartedChannel, e => AddTab(e.Address, activate: true), dispatchToUi: true);
+        _ = Listen(Window.ActionDialog.Api.NavigationStartedChannel, e => AddTab(e.Address, activate: true), dispatchToUi: true);
     }
 
     private void AddTab(string address, bool activate)
     {
-        var browser = new TabBrowser(Api, address);
+        var browser = new TabBrowser(Api, address, Window.Tabs);
 
         browser.AddressChanged += Tab_AddressChanged;
 
@@ -30,7 +26,7 @@ public class TabsFeature(MainWindow window, BrowserApi api) : Feature(window, ap
         _tabBrowsers[browser.Id] = browser;
 
         var tab = new TabDto(browser.Id, browser.Title, null);
-        Api.AddTab(tab, activate);
+        Window.Tabs.AddTab(tab, activate);
 
         if (activate)
             Window.Dispatcher.Invoke(() => Window.SetCurrentTab(browser));
@@ -39,6 +35,6 @@ public class TabsFeature(MainWindow window, BrowserApi api) : Feature(window, ap
     private void Tab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (sender == Window.CurrentTab)
-            Api.ChangeAddress($"{e.NewValue}");
+            Window.ChromeUI.ChangeAddress($"{e.NewValue}");
     }
 }

@@ -1,4 +1,3 @@
-using BrowserHost.Api;
 using BrowserHost.Features;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
@@ -22,22 +21,24 @@ public partial class MainWindow : Window
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
 
+    public static MainWindow Instance { get; private set; } = null!; // Initialized in constructor
+
     public MainWindow()
     {
         InitializeComponent();
 
         CheckForUpdates();
 
-        var api = new BrowserApi(this);
         _features =
         [
-            new CustomWindowChromeFeature(this, api),
-            new ActionDialogFeature(this, api),
-            new TabsFeature(this, api)
+            new CustomWindowChromeFeature(this),
+            new ActionDialogFeature(this),
+            new TabsFeature(this)
         ];
         _features.ForEach(f => f.Register());
 
         ContentServer.Run();
+        Instance = this;
     }
 
     private static async void CheckForUpdates()

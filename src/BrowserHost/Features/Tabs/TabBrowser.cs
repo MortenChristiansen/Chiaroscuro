@@ -1,7 +1,4 @@
-﻿using BrowserHost.Api;
-using BrowserHost.Api.Dtos;
-using BrowserHost.Handlers;
-using CefSharp.Wpf;
+﻿using BrowserHost.CefInfrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,30 +6,29 @@ using System.Windows;
 
 namespace BrowserHost.Features.Tabs;
 
-public class TabBrowser : ChromiumWebBrowser
+public class TabBrowser : BaseBrowser
 {
+    private readonly TabListBrowser _tabListBrowser;
+
     public string Id { get; } = $"{Guid.NewGuid()}";
 
-    private readonly BrowserApi _api;
-
-    public TabBrowser(BrowserApi api, string address)
+    public TabBrowser(BrowserApi api, string address, TabListBrowser tabListBrowser)
     {
-        _api = api;
-
         Address = address;
 
         TitleChanged += OnTitleChanged;
 
         DisplayHandler = new FaviconDisplayHandler(OnFaviconAddressesChanged);
+        _tabListBrowser = tabListBrowser;
     }
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        _api.UpdateTab(new TabDto(Id, (string)e.NewValue, null));
+        _tabListBrowser.UpdateTab(new TabDto(Id, (string)e.NewValue, null));
     }
 
     private void OnFaviconAddressesChanged(IList<string> addresses)
     {
-        Dispatcher.BeginInvoke(() => _api.UpdateTab(new TabDto(Id, Title, addresses.FirstOrDefault())));
+        Dispatcher.BeginInvoke(() => _tabListBrowser.UpdateTab(new TabDto(Id, Title, addresses.FirstOrDefault())));
     }
 }

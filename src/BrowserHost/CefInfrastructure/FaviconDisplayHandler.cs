@@ -3,7 +3,7 @@ using CefSharp.Handler;
 using System;
 using System.Collections.Generic;
 
-namespace BrowserHost.Handlers;
+namespace BrowserHost.CefInfrastructure;
 
 public class FaviconDisplayHandler(Action<IList<string>> onFaviconAddressesChanged) : DisplayHandler
 {

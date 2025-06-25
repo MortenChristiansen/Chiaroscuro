@@ -1,5 +1,5 @@
 import { Component, ElementRef, OnInit, viewChild } from '@angular/core';
-import { Api } from '../interfaces/api';
+import { ActionDialogApi } from './actionDialogApi';
 
 @Component({
   selector: 'action-dialog',
@@ -70,10 +70,10 @@ export default class ActionDialogComponent implements OnInit {
       },
     };
 
-    await this.api.uiLoaded('ActionDialog');
+    await this.api.uiLoaded();
   }
 
-  api!: Api;
+  api!: ActionDialogApi;
 
   async execute(value: string) {
     await this.api.navigate(value);

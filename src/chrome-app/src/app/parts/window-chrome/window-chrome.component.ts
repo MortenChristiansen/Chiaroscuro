@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { Api } from '../interfaces/api';
+import { WindowsChromeApi } from './windowChromeApi';
 
 @Component({
   selector: 'window-chrome',
@@ -95,13 +96,13 @@ export default class WindowChromeComponent implements OnInit {
       },
     };
 
-    await this.api.uiLoaded('WindowChrome');
+    await this.api.uiLoaded();
   }
   canGoBack = signal(false);
   canGoForward = signal(false);
   address = signal<string | null>(null);
 
-  api!: Api;
+  api!: WindowsChromeApi;
 
   back() {
     this.api.back();
