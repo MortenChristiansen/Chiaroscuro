@@ -11,7 +11,19 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     public override void Register()
     {
-        _ = Listen(Window.ActionDialog.Api.NavigationStartedChannel, e => AddTab(e.Address, activate: true), dispatchToUi: true);
+        _ = Listen(Window.ActionDialog.Api.NavigationStartedChannel, e =>
+        {
+            if (Window.CurrentTab != null && e.UseCurrentTab)
+            {
+                Window.ChromeUI.ChangeAddress(e.Address);
+                Window.CurrentTab.Address = e.Address;
+            }
+            else
+            {
+                AddTab(e.Address, activate: true);
+            }
+
+        }, dispatchToUi: true);
         _ = Listen(
             Api.TabActivatedChannel,
             e =>

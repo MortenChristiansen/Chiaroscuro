@@ -18,7 +18,7 @@ import { loadBackendApi, exposeApiToBackend } from '../interfaces/api';
         class="w-[30rem] text-lg px-4 py-3 rounded-lg border border-gray-300 outline-none shadow-sm bg-white/80 placeholder-gray-400"
         placeholder="Where to?"
         type="text"
-        (keydown.enter)="execute(dialog.value)"
+        (keydown)="execute(dialog.value, $event)"
         #dialog
       />
     </div>
@@ -42,8 +42,10 @@ export default class ActionDialogComponent implements OnInit {
 
   api!: ActionDialogApi;
 
-  async execute(value: string) {
-    await this.api.navigate(value);
+  async execute(value: string, event: KeyboardEvent) {
+    if (event.key !== 'Enter') return;
+    const useCurrentTab = event.ctrlKey;
+    await this.api.navigate(value, useCurrentTab);
     await this.api.dismissActionDialog();
   }
 }
