@@ -26,7 +26,7 @@ interface Tab {
     >
       @for (tab of tabs(); track tab.id) {
       <div
-        class="tab group flex items-center px-4 py-2 rounded-lg select-none shadow-sm text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
+        class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
           tab.id === selectedTab()?.id ? 'bg-white/20 hover:bg-white/30' : ''
         }} cdkDrag"
         (click)="selectedTab.set(tab)"
@@ -62,6 +62,31 @@ interface Tab {
       </div>
       }
     </div>
+  `,
+  styles: `
+  .cdk-drag-placeholder {
+    /* The destination element - currently not styled */
+  }
+
+  .cdk-drag-animating {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .cdk-drop-list-dragging .tab:not(.cdk-drag-placeholder) {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .cdk-drag-preview {
+    opacity: 0; /* We don't show an element at the mouse position while dragging */
+  }
+
+  .cdk-drop-list-dragging .tab:not(.cdk-drag-placeholder) {
+    background: transparent !important; /* Disable hover effect of dragged over elements */
+  }
+
+  .cdk-drop-list-dragging .tab:not(.cdk-drag-placeholder) button {
+    display: none; /* Hide close button of dragged over elements */
+  }
   `,
 })
 export default class TabsListComponent implements OnInit {
