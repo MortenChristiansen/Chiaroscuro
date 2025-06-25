@@ -25,7 +25,15 @@
                         <ColumnDefinition Width="*" MinWidth="200" />
                     </Grid.ColumnDefinitions>
                     <tabs:TabListBrowser x:Name="Tabs" Grid.Column="0" />
-                    <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns" ShowsPreview="True"/>
+                    <GridSplitter
+                        Grid.Column="1"
+                        Width="5"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Background="Transparent"
+                        ResizeBehavior="PreviousAndNext"
+                        ResizeDirection="Columns"
+                        ShowsPreview="False"/>
                     <Border x:Name="WebContentBorder" Grid.Column="2" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#202634">
                         <Border.Clip>
                             <MultiBinding Converter="{StaticResource BorderClipConverter}">
