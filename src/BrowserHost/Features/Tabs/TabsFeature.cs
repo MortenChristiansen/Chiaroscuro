@@ -81,6 +81,17 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         Window.SetCurrentTab(nextTab);
     }
 
-    private TabBrowser? FindNextTab(TabBrowser tab) =>
-        ((IEnumerable<TabBrowser>)_tabBrowsers).Reverse().SkipWhile(t => t != tab).Skip(1).FirstOrDefault();
+    private TabBrowser? FindNextTab(TabBrowser tab)
+    {
+        int index = _tabBrowsers.IndexOf(tab);
+        if (index == -1 || _tabBrowsers.Count <= 1)
+            return null;
+        // Prefer previous tab if possible
+        if (index > 0)
+            return _tabBrowsers[index - 1];
+        // Otherwise, return next tab
+        if (index < _tabBrowsers.Count - 1)
+            return _tabBrowsers[index + 1];
+        return null;
+    }
 }
