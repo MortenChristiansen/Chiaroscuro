@@ -4,11 +4,17 @@ using System.Threading.Channels;
 namespace BrowserHost.Features.Tabs;
 
 public record TabActivatedEvent(string TabId);
+public record TabClosedEvent(string TabId);
 
 public class TabListBrowserApi(TabListBrowser browser) : BrowserApi(browser)
 {
     public Channel<TabActivatedEvent> TabActivatedChannel { get; } = Channel.CreateUnbounded<TabActivatedEvent>();
+    public Channel<TabClosedEvent> TabClosedChannel { get; } = Channel.CreateUnbounded<TabClosedEvent>();
 
     public void ActivateTab(string tabId) =>
         TabActivatedChannel.Writer.TryWrite(new TabActivatedEvent(tabId));
+
+    public void CloseTab(string tabId) =>
+        TabClosedChannel.Writer.TryWrite(new TabClosedEvent(tabId));
+
 }

@@ -23,6 +23,15 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             },
             dispatchToUi: true
         );
+        _ = Listen(Api.TabClosedChannel, e =>
+        {
+            var tab = _tabBrowsers.FirstOrDefault(t => t.Id == e.TabId);
+            if (tab != null)
+            {
+                _tabBrowsers.Remove(tab);
+                Window.SetCurrentTab(FindNextTab(tab));
+            }
+        }, dispatchToUi: true);
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -66,10 +75,12 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
     {
         var tab = Window.CurrentTab;
         if (tab == null) return;
-
-        var nextTab = ((IEnumerable<TabBrowser>)_tabBrowsers).Reverse().SkipWhile(t => t != tab).Skip(1).FirstOrDefault();
+        TabBrowser? nextTab = FindNextTab(tab);
         _tabBrowsers.Remove(tab);
         Window.Tabs.CloseTab(tab.Id, nextTab?.Id);
         Window.SetCurrentTab(nextTab);
     }
+
+    private TabBrowser? FindNextTab(TabBrowser tab) =>
+        ((IEnumerable<TabBrowser>)_tabBrowsers).Reverse().SkipWhile(t => t != tab).Skip(1).FirstOrDefault();
 }

@@ -17,7 +17,7 @@ interface Tab {
     <div class="flex flex-col gap-2">
       @for (tab of tabs(); track tab.id) {
       <div
-        class="tab flex items-center px-4 py-2 rounded-lg select-none shadow-sm text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
+        class="tab group flex items-center px-4 py-2 rounded-lg select-none shadow-sm text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
           tab.id === selectedTab()?.id ? 'bg-white/20 hover:bg-white/30' : ''
         }}"
         (click)="selectedTab.set(tab)"
@@ -27,7 +27,27 @@ interface Tab {
         } @else {
         <img class="w-4 h-4 mr-2" [src]="fallbackFavicon" />
         }
-        <span class="truncate">{{ tab.title ?? 'Loading...' }}</span>
+        <span class="truncate flex-1">{{ tab.title ?? 'Loading...' }}</span>
+        <button
+          class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
+          (click)="$event.stopPropagation(); close(tab.id)"
+          aria-label="Close tab"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 20 20"
+            stroke-width="2"
+            stroke="currentColor"
+            class="w-4 h-4"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 6l8 8M6 14L14 6"
+            />
+          </svg>
+        </button>
       </div>
       }
     </div>
@@ -89,4 +109,21 @@ export default class TabsListComponent implements OnInit {
   }
 
   api!: TabListApi;
+
+  close(tabId: TabId) {
+    const currentTabIndex = this.tabs().findIndex((t) => t.id === tabId);
+    this.tabs.update((currentTabs) =>
+      currentTabs.filter((t) => t.id !== tabId)
+    );
+
+    if (this.selectedTab()?.id === tabId) {
+      const newSelectedTab =
+        this.tabs().length == 0
+          ? null
+          : this.tabs()[Math.max(0, currentTabIndex - 1)];
+      this.selectedTab.set(newSelectedTab);
+    }
+
+    this.api.closeTab(tabId);
+  }
 }
