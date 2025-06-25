@@ -88,7 +88,7 @@ export default class WindowChromeComponent implements OnInit {
     this.api = await loadBackendApi<WindowsChromeApi>();
 
     exposeApiToBackend({
-      changeAddress: async (url: string) => {
+      changeAddress: async (url: string | null) => {
         this.address.set(url);
         this.canGoBack.set(await this.api.canGoBack());
         this.canGoForward.set(await this.api.canGoForward());

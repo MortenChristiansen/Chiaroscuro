@@ -1,8 +1,8 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, effect, OnInit, signal } from '@angular/core';
 import { TabListApi } from './tabListApi';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 
-type TabId = string;
+export type TabId = string;
 
 interface Tab {
   id: TabId;
@@ -70,6 +70,14 @@ export default class TabsListComponent implements OnInit {
   selectedTab = signal<Tab | null>(null);
   fallbackFavicon =
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" rx="4" fill="%23bbb"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="white" font-family="Arial">★</text></svg>';
+
+  constructor() {
+    effect(() => {
+      const activeTab = this.selectedTab();
+      if (!activeTab) return;
+      this.api.activateTab(activeTab.id);
+    });
+  }
 
   async ngOnInit() {
     this.api = await loadBackendApi<TabListApi>();

@@ -12,6 +12,17 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
     public override void Register()
     {
         _ = Listen(Window.ActionDialog.Api.NavigationStartedChannel, e => AddTab(e.Address, activate: true), dispatchToUi: true);
+        _ = Listen(
+            Api.TabActivatedChannel,
+            e =>
+            {
+                var tab = _tabBrowsers.FirstOrDefault(t => t.Id == e.TabId);
+                Window.SetCurrentTab(tab);
+                // Is there a more declarative way to do this?
+                Window.ChromeUI.ChangeAddress(tab?.Address);
+            },
+            dispatchToUi: true
+        );
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)

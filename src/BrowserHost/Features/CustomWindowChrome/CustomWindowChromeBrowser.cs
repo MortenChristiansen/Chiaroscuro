@@ -14,6 +14,6 @@ public class CustomWindowChromeBrowser : BaseBrowser<CustomWindowChromeBrowserAp
         Api = new CustomWindowChromeBrowserApi(this);
     }
 
-    public void ChangeAddress(string address) =>
+    public void ChangeAddress(string? address) =>
         this.ExecuteScriptAsync($"window.angularApi.changeAddress({address.ToJsonString()})");
 }
