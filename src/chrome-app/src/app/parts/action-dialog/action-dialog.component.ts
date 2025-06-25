@@ -1,5 +1,6 @@
 import { Component, ElementRef, OnInit, viewChild } from '@angular/core';
 import { ActionDialogApi } from './actionDialogApi';
+import { loadBackendApi, exposeApiToBackend } from '../interfaces/api';
 
 @Component({
   selector: 'action-dialog',
@@ -60,15 +61,14 @@ export default class ActionDialogComponent implements OnInit {
   dialog = viewChild<ElementRef<HTMLInputElement>>('dialog');
 
   async ngOnInit() {
-    await (window as any).CefSharp.BindObjectAsync('api');
-    this.api = (window as any).api;
+    this.api = await loadBackendApi<ActionDialogApi>();
 
-    (window as any).angularApi = {
+    exposeApiToBackend({
       showDialog: () => {
         this.dialog()!.nativeElement.value = '';
         this.dialog()!.nativeElement.focus();
       },
-    };
+    });
 
     await this.api.uiLoaded();
   }

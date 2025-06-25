@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { TabListApi } from './tabListApi';
+import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 
 interface Tab {
   id: string;
@@ -69,10 +70,9 @@ export default class TabsListComponent implements OnInit {
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" rx="4" fill="%23bbb"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="white" font-family="Arial">★</text></svg>';
 
   async ngOnInit() {
-    await (window as any).CefSharp.BindObjectAsync('api');
-    this.api = (window as any).api;
+    this.api = await loadBackendApi<TabListApi>();
 
-    (window as any).angularApi = {
+    exposeApiToBackend({
       addTab: (tab: Tab, activate: boolean) => {
         console.log('Adding tab:', JSON.stringify(tab), 'Activate:', activate);
         this.tabs.update((currentTabs) => [...currentTabs, tab]);
@@ -93,7 +93,7 @@ export default class TabsListComponent implements OnInit {
           return currentTabs;
         });
       },
-    };
+    });
 
     await this.api.uiLoaded();
   }

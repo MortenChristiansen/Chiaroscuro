@@ -1,5 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { Api } from '../interfaces/api';
+import { Api, exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { WindowsChromeApi } from './windowChromeApi';
 
 @Component({
@@ -85,16 +85,15 @@ import { WindowsChromeApi } from './windowChromeApi';
 })
 export default class WindowChromeComponent implements OnInit {
   async ngOnInit() {
-    await (window as any).CefSharp.BindObjectAsync('api');
-    this.api = (window as any).api;
+    this.api = await loadBackendApi<WindowsChromeApi>();
 
-    (window as any).angularApi = {
+    exposeApiToBackend({
       changeAddress: async (url: string) => {
         this.address.set(url);
         this.canGoBack.set(await this.api.canGoBack());
         this.canGoForward.set(await this.api.canGoForward());
       },
-    };
+    });
 
     await this.api.uiLoaded();
   }
