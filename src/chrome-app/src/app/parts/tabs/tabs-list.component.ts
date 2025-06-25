@@ -1,6 +1,11 @@
 import { Component, effect, OnInit, signal } from '@angular/core';
 import { TabListApi } from './tabListApi';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
+import {
+  CdkDragDrop,
+  moveItemInArray,
+  DragDropModule,
+} from '@angular/cdk/drag-drop';
 
 export type TabId = string;
 
@@ -12,15 +17,21 @@ interface Tab {
 
 @Component({
   selector: 'tabs-list',
-  imports: [],
+  imports: [DragDropModule],
   template: `
-    <div class="flex flex-col gap-2">
+    <div
+      class="flex flex-col gap-2"
+      cdkDropList
+      (cdkDropListDropped)="drop($event)"
+    >
       @for (tab of tabs(); track tab.id) {
       <div
         class="tab group flex items-center px-4 py-2 rounded-lg select-none shadow-sm text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
           tab.id === selectedTab()?.id ? 'bg-white/20 hover:bg-white/30' : ''
-        }}"
+        }} cdkDrag"
         (click)="selectedTab.set(tab)"
+        cdkDrag
+        [cdkDragData]="tab"
       >
         @if (tab.favicon) {
         <img class="w-4 h-4 mr-2" [src]="tab.favicon" />
@@ -65,6 +76,13 @@ export default class TabsListComponent implements OnInit {
       if (!activeTab) return;
       this.api.activateTab(activeTab.id);
     });
+  }
+
+  drop(event: CdkDragDrop<any>) {
+    const currentTabs = [...this.tabs()];
+    moveItemInArray(currentTabs, event.previousIndex, event.currentIndex);
+    this.tabs.set(currentTabs);
+    // TODO: Notify backend about the new order if needed
   }
 
   async ngOnInit() {

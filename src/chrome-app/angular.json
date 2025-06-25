@@ -22,7 +22,10 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.css"],
+            "styles": [
+              "src/styles.css",
+              "./node_modules/@angular/cdk/drag-drop/drag-drop.css"
+            ],
             "server": "src/main.server.ts",
             "outputMode": "server",
             "ssr": {
