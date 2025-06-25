@@ -11,4 +11,8 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./parts/action-dialog/action-dialog.component'),
   },
+  {
+    path: 'tabs',
+    loadComponent: () => import('./parts/tabs/tabs-list.component'),
+  },
 ];

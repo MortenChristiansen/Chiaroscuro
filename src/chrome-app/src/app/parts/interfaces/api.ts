@@ -1,4 +1,6 @@
 export interface Api {
+  uiLoaded: (source: 'WindowChrome' | 'ActionDialog' | 'Tabs') => Promise<void>;
+
   back: () => Promise<void>;
   canGoBack: () => Promise<boolean>;
   forward: () => Promise<void>;

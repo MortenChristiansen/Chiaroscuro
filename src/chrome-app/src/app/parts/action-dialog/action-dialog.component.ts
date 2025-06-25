@@ -69,6 +69,8 @@ export default class ActionDialogComponent implements OnInit {
         this.dialog()!.nativeElement.focus();
       },
     };
+
+    await this.api.uiLoaded('ActionDialog');
   }
 
   api!: Api;

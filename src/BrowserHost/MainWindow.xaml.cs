@@ -1,7 +1,12 @@
+using BrowserHost.Api;
 using BrowserHost.Features;
+using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.CustomWindowChrome;
+using BrowserHost.Features.Tabs;
 using CefSharp;
 using CefSharp.Wpf;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
@@ -12,11 +17,10 @@ namespace BrowserHost;
 
 public partial class MainWindow : Window
 {
-    public CustomWindowChromeFeature CustomWindowChromeFeature { get; }
-    public ActionDialogFeature ActionDialogFeature { get; }
+    private readonly List<Feature> _features;
 
     public ChromiumWebBrowser Chrome => ChromeUI;
-    public ChromiumWebBrowser CurrentTab => WebContent;
+    public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
 
     public MainWindow()
     {
@@ -25,13 +29,13 @@ public partial class MainWindow : Window
         CheckForUpdates();
 
         var api = new BrowserApi(this);
-
-        CustomWindowChromeFeature = new(this, api);
-        CustomWindowChromeFeature.Register();
-        ActionDialogFeature = new(this, api);
-        ActionDialogFeature.Register();
-
-        CurrentTab.AddressChanged += CurrentTab_AddressChanged;
+        _features =
+        [
+            new CustomWindowChromeFeature(this, api),
+            new ActionDialogFeature(this, api),
+            new TabsFeature(this, api)
+        ];
+        _features.ForEach(f => f.Register());
 
         ContentServer.Run();
     }
@@ -71,18 +75,24 @@ public partial class MainWindow : Window
     {
         base.OnPreviewKeyDown(e);
 
-        if (ActionDialogFeature.HandleOnPreviewKeyDown(e))
-            return;
+        foreach (var feature in _features)
+        {
+            if (feature.HandleOnPreviewKeyDown(e))
+            {
+                e.Handled = true;
+                return;
+            }
+        }
 
         if (e.Key == Key.F5)
         {
             var ignoreCache = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
-            WebContent.Reload(ignoreCache);
+            CurrentTab.Reload(ignoreCache);
         }
     }
 
-    private void CurrentTab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
+    public void SetCurrentTab(TabBrowser tab)
     {
-        _browserApi.ChangeAddress($"{e.NewValue}");
+        WebContentBorder.Child = tab;
     }
 }

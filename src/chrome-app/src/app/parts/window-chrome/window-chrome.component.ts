@@ -12,7 +12,11 @@ import { Api } from '../interfaces/api';
         <button (click)="forward()" [disabled]="!canGoForward()">→</button>
         <button (click)="reload()">↺</button>
         <span class="address">
-          {{ address() }}
+          @let url = address(); @if (url === null) {
+          <span style="font-style: italic;">Press ctrl-t to start</span>
+          } @else {
+          <span>{{ url }}</span>
+          }
         </span>
       </div>
       <div class="window-controls">
@@ -90,10 +94,12 @@ export default class WindowChromeComponent implements OnInit {
         this.canGoForward.set(await this.api.canGoForward());
       },
     };
+
+    await this.api.uiLoaded('WindowChrome');
   }
   canGoBack = signal(false);
   canGoForward = signal(false);
-  address = signal<string>('https://google.com');
+  address = signal<string | null>(null);
 
   api!: Api;
 

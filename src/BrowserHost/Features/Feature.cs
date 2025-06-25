@@ -6,17 +6,22 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace BrowserHost.Features;
 
 public abstract class Feature(MainWindow window, BrowserApi api)
 {
-    private readonly List<ChromiumWebBrowser> _browsers = [window.WebContent, window.ChromeUI, window.ActionDialog, window.Tabs];
+    private List<ChromiumWebBrowser> Browsers => Window.CurrentTab != null ?
+        [Window.CurrentTab, Window.ChromeUI, Window.ActionDialog, Window.Tabs] :
+        [Window.ChromeUI, Window.ActionDialog, Window.Tabs];
 
     protected MainWindow Window { get; } = window;
     protected BrowserApi Api { get; } = api;
 
     public abstract void Register();
+
+    public virtual bool HandleOnPreviewKeyDown(KeyEventArgs e) => false;
 
     protected void ConfigureUiControl(string name, string address, ChromiumWebBrowser uiComponent)
     {
@@ -29,7 +34,7 @@ public abstract class Feature(MainWindow window, BrowserApi api)
     }
 
     protected void RedrawBrowsers() =>
-        _browsers.ForEach(b => b.GetBrowserHost()?.Invalidate(PaintElementType.View));
+        Browsers.ForEach(b => b.GetBrowserHost()?.Invalidate(PaintElementType.View));
 
     protected async Task Listen<TEvent>(Channel<TEvent> channel, Action<TEvent> action, bool dispatchToUi = false)
     {

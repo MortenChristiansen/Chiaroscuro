@@ -6,7 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
-namespace BrowserHost.Features;
+namespace BrowserHost.Features.ActionDialog;
 
 public class ActionDialogFeature(MainWindow window, BrowserApi api) : Feature(window, api)
 {
@@ -15,15 +15,13 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api) : Feature(wi
         ConfigureUiControl("ActionDialog", "/action-dialog", Window.ActionDialog);
 
         _ = Listen(Api.ActionDialogDismissedChannel, _ => DismissDialog(), dispatchToUi: true);
-        _ = Listen(Api.NavigationStartedChannel, e => Window.CurrentTab.LoadUrl(e.Address), dispatchToUi: true);
     }
 
-    public bool HandleOnPreviewKeyDown(KeyEventArgs e)
+    public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
         if (e.Key == Key.T && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
             ShowDialog();
-            e.Handled = true;
             return true;
         }
         return false;
@@ -66,36 +64,8 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api) : Feature(wi
 
     private void AddGlassOverlayToCurrentTab()
     {
-        Window.CurrentTab.ExecuteScriptAsync(@"(function() {
-            var id = 'chiaroscuro-glass-overlay';
-            var overlay = document.getElementById(id);
-            if (overlay) {
-                overlay.style.transition = 'opacity 0.25s';
-                overlay.style.opacity = '0';
-                setTimeout(function() {
-                    overlay.style.opacity = '1';
-                }, 10);
-            } else {
-                overlay = document.createElement('div');
-                overlay.id = id;
-                overlay.style.position = 'fixed';
-                overlay.style.top = '0';
-                overlay.style.left = '0';
-                overlay.style.width = '100vw';
-                overlay.style.height = '100vh';
-                overlay.style.zIndex = '2147483647';
-                overlay.style.pointerEvents = 'auto';
-                overlay.style.background = 'rgba(150,150,190,0.14)';
-                overlay.style.backdropFilter = 'blur(12px)';
-                overlay.style.webkitBackdropFilter = 'blur(12px)';
-                overlay.style.transition = 'opacity 0.25s';
-                overlay.style.opacity = '0';
-                document.body.appendChild(overlay);
-                setTimeout(function() {
-                    overlay.style.opacity = '1';
-                }, 10);
-            }
-        })();");
+        // TODO: Implement glass overlay logic
+        return;
     }
 
     private void DismissDialog()
@@ -125,15 +95,7 @@ public class ActionDialogFeature(MainWindow window, BrowserApi api) : Feature(wi
 
     private void HideGlassOverlayFromCurrentTab()
     {
-        Window.CurrentTab.ExecuteScriptAsync(@"(function() {
-            var overlay = document.getElementById('chiaroscuro-glass-overlay');
-            if (overlay) {
-                overlay.style.transition = 'opacity 0.25s';
-                overlay.style.opacity = '0';
-                setTimeout(function() {
-                    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-                }, 250);
-            }
-         })();");
+        // TODO: Implement glass overlay logic
+        return;
     }
 }

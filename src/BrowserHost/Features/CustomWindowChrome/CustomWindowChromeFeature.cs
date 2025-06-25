@@ -1,13 +1,12 @@
 ﻿using BrowserHost.Api;
 using CefSharp;
-using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 
-namespace BrowserHost.Features;
+namespace BrowserHost.Features.CustomWindowChrome;
 
 public class CustomWindowChromeFeature(MainWindow window, BrowserApi api) : Feature(window, api)
 {
@@ -268,13 +267,13 @@ public class CustomWindowChromeFeature(MainWindow window, BrowserApi api) : Feat
         };
 
     [DllImport("user32.dll")]
-    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    private static extern nint SendMessage(nint hWnd, int msg, nint wParam, nint lParam);
     private const int WM_NCLBUTTONDOWN = 0x00A1;
 
     private void ResizeWindow(HitTest hit)
     {
         var hwnd = new System.Windows.Interop.WindowInteropHelper(Window).Handle;
-        SendMessage(hwnd, WM_NCLBUTTONDOWN, (IntPtr)hit, IntPtr.Zero);
+        SendMessage(hwnd, WM_NCLBUTTONDOWN, (nint)hit, nint.Zero);
     }
 
     #endregion
