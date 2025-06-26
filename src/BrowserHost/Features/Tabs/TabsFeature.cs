@@ -5,7 +5,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.Tabs;
 
-public record TabStateDto(string Address, string? Title, string? Favicon);
+public record TabStateDto(string Address, string? Title, string? Favicon, bool IsActive);
 
 public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.Tabs.Api)
 {
@@ -13,7 +13,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     public override void Register()
     {
-        TabStateManager.RestoreTabsFromDisk().ForEach(t => AddTab(t.Address, activate: false, t.Title, t.Favicon));
+        TabStateManager.RestoreTabsFromDisk().ForEach(t => AddTab(t.Address, activate: t.IsActive, t.Title, t.Favicon));
 
         _ = Listen(Window.ActionDialog.Api.NavigationStartedChannel, e =>
         {
@@ -21,6 +21,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             {
                 Window.ChromeUI.ChangeAddress(e.Address);
                 Window.CurrentTab.Address = e.Address;
+                TabStateManager.SaveTabsToDisk(_tabBrowsers);
             }
             else
             {
@@ -34,6 +35,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
                 var tab = _tabBrowsers.FirstOrDefault(t => t.Id == e.TabId);
                 Window.SetCurrentTab(tab);
                 Window.ChromeUI.ChangeAddress(tab?.Address);
+                TabStateManager.SaveTabsToDisk(_tabBrowsers);
             },
             dispatchToUi: true
         );

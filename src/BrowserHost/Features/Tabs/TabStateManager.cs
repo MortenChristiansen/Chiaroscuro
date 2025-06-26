@@ -18,7 +18,7 @@ public static class TabStateManager
             MainWindow.Instance?.Dispatcher.Invoke(() =>
             {
                 Debug.WriteLine("Saving tabs state to disk...");
-                var states = tabs.Select(t => new TabStateDto(t.Address, t.Title, t.Favicon)).ToList();
+                var states = tabs.Select(t => new TabStateDto(t.Address, t.Title, t.Favicon, t == MainWindow.Instance.CurrentTab)).ToList();
                 File.WriteAllText(_tabsStatePath, JsonSerializer.Serialize(states));
             });
 
