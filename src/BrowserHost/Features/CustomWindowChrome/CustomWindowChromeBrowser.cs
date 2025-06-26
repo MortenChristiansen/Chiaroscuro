@@ -4,7 +4,7 @@ using CefSharp;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
-public class CustomWindowChromeBrowser : BaseBrowser<CustomWindowChromeBrowserApi>
+public class CustomWindowChromeBrowser : Browser<CustomWindowChromeBrowserApi>
 {
     public override CustomWindowChromeBrowserApi Api { get; }
 

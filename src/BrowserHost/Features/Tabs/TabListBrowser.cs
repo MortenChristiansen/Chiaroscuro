@@ -4,7 +4,7 @@ using CefSharp;
 
 namespace BrowserHost.Features.Tabs;
 
-public class TabListBrowser : BaseBrowser<TabListBrowserApi>
+public class TabListBrowser : Browser<TabListBrowserApi>
 {
     public override TabListBrowserApi Api { get; }
 

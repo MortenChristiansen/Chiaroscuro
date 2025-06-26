@@ -6,7 +6,7 @@ using System.Windows;
 
 namespace BrowserHost.Features.Tabs;
 
-public class TabBrowser : BaseBrowser
+public class TabBrowser : Browser
 {
     private readonly TabListBrowser _tabListBrowser;
 

@@ -2,7 +2,7 @@
 
 namespace BrowserHost.Features.ActionDialog;
 
-public class ActionDialogBrowser : BaseBrowser<ActionDialogBrowserApi>
+public class ActionDialogBrowser : Browser<ActionDialogBrowserApi>
 {
     public override ActionDialogBrowserApi Api { get; }
 
