@@ -21,7 +21,6 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             {
                 Window.ChromeUI.ChangeAddress(e.Address);
                 Window.CurrentTab.Address = e.Address;
-                TabStateManager.SaveTabsToDisk(_tabBrowsers);
             }
             else
             {
@@ -35,7 +34,6 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
                 var tab = _tabBrowsers.FirstOrDefault(t => t.Id == e.TabId);
                 Window.SetCurrentTab(tab);
                 Window.ChromeUI.ChangeAddress(tab?.Address);
-                TabStateManager.SaveTabsToDisk(_tabBrowsers);
             },
             dispatchToUi: true
         );
@@ -47,19 +45,18 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
                 _tabBrowsers.Remove(tab);
                 if (tab == Window.CurrentTab)
                     Window.SetCurrentTab(FindNextTab(tab));
-                TabStateManager.SaveTabsToDisk(_tabBrowsers);
             }
         }, dispatchToUi: true);
-        _ = Listen(Api.TabPositionChanged, e =>
+        _ = Listen(Api.TabPositionChangedChannel, e =>
         {
             var tab = _tabBrowsers.FirstOrDefault(t => t.Id == e.TabId);
             if (tab != null)
             {
                 _tabBrowsers.Remove(tab);
                 _tabBrowsers.Insert(e.NewIndex, tab);
-                TabStateManager.SaveTabsToDisk(_tabBrowsers);
             }
         }, dispatchToUi: true);
+        _ = Listen(Api.TabsChangedChannel, e => TabStateManager.SaveTabsToDisk(e.Tabs));
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -79,10 +76,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
         browser.AddressChanged += Tab_AddressChanged;
-        browser.TitleChanged += (o, e) => TabStateManager.SaveTabsToDisk(_tabBrowsers);
-        browser.FaviconChanged += (o, e) => TabStateManager.SaveTabsToDisk(_tabBrowsers);
         AddTab(browser, activate, favicon);
-        TabStateManager.SaveTabsToDisk(_tabBrowsers);
     }
 
     private void AddTab(TabBrowser browser, bool activate, string? favicon)
@@ -99,8 +93,6 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
     {
         if (sender == Window.CurrentTab)
             Window.ChromeUI.ChangeAddress($"{e.NewValue}");
-
-        TabStateManager.SaveTabsToDisk(_tabBrowsers);
     }
 
     private void CloseCurrentTab()
@@ -112,7 +104,6 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         _tabBrowsers.Remove(tab);
         Window.Tabs.CloseTab(tab.Id, nextTab?.Id);
         Window.SetCurrentTab(nextTab);
-        TabStateManager.SaveTabsToDisk(_tabBrowsers);
     }
 
     private TabBrowser? FindNextTab(TabBrowser tab)

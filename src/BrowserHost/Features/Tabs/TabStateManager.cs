@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 
 namespace BrowserHost.Features.Tabs;
@@ -10,16 +9,16 @@ namespace BrowserHost.Features.Tabs;
 public static class TabStateManager
 {
     private static readonly string _tabsStatePath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "tabs.json"));
+    private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { WriteIndented = true };
 
-    public static void SaveTabsToDisk(IEnumerable<TabBrowser> tabs)
+    public static void SaveTabsToDisk(IEnumerable<TabStateDto> tabs)
     {
         try
         {
             MainWindow.Instance?.Dispatcher.Invoke(() =>
             {
                 Debug.WriteLine("Saving tabs state to disk...");
-                var states = tabs.Select(t => new TabStateDto(t.Address, t.Title, t.Favicon, t == MainWindow.Instance.CurrentTab)).ToList();
-                File.WriteAllText(_tabsStatePath, JsonSerializer.Serialize(states));
+                File.WriteAllText(_tabsStatePath, JsonSerializer.Serialize(tabs, _jsonSerializerOptions));
             });
 
         }

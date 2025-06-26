@@ -101,6 +101,18 @@ export default class TabsListComponent implements OnInit {
       if (!activeTab) return;
       this.api.activateTab(activeTab.id);
     });
+
+    effect(() => {
+      const currentTabs = this.tabs();
+      this.api.tabsChanged(
+        currentTabs.map((tab) => ({
+          Address: tab.id,
+          Title: tab.title,
+          Favicon: tab.favicon,
+          IsActive: tab.id === this.selectedTab()?.id,
+        }))
+      );
+    });
   }
 
   drop(event: CdkDragDrop<any>) {
