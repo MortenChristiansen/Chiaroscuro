@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 
 namespace BrowserHost.Features.Tabs;
+
+public record TabStateDto(string Address, string? Title, string? Favicon);
 
 public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.Tabs.Api)
 {
@@ -11,6 +13,8 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     public override void Register()
     {
+        TabStateManager.RestoreTabsFromDisk().ForEach(t => AddTab(t.Address, activate: false, t.Title, t.Favicon));
+
         _ = Listen(Window.ActionDialog.Api.NavigationStartedChannel, e =>
         {
             if (Window.CurrentTab != null && e.UseCurrentTab)
@@ -22,7 +26,6 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             {
                 AddTab(e.Address, activate: true);
             }
-
         }, dispatchToUi: true);
         _ = Listen(
             Api.TabActivatedChannel,
@@ -30,7 +33,6 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             {
                 var tab = _tabBrowsers.FirstOrDefault(t => t.Id == e.TabId);
                 Window.SetCurrentTab(tab);
-                // Is there a more declarative way to do this?
                 Window.ChromeUI.ChangeAddress(tab?.Address);
             },
             dispatchToUi: true
@@ -43,6 +45,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
                 _tabBrowsers.Remove(tab);
                 if (tab == Window.CurrentTab)
                     Window.SetCurrentTab(FindNextTab(tab));
+                TabStateManager.SaveTabsToDisk(_tabBrowsers);
             }
         }, dispatchToUi: true);
         _ = Listen(Api.TabPositionChanged, e =>
@@ -52,6 +55,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             {
                 _tabBrowsers.Remove(tab);
                 _tabBrowsers.Insert(e.NewIndex, tab);
+                TabStateManager.SaveTabsToDisk(_tabBrowsers);
             }
         }, dispatchToUi: true);
     }
@@ -67,20 +71,22 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         return base.HandleOnPreviewKeyDown(e);
     }
 
-    private void AddTab(string address, bool activate)
+    private void AddTab(string address, bool activate, string? title = null, string? favicon = null)
     {
         var browser = new TabBrowser(Api, address, Window.Tabs);
-
+        if (!string.IsNullOrEmpty(title))
+            browser.Title = title;
         browser.AddressChanged += Tab_AddressChanged;
-
-        AddTab(browser, activate);
+        browser.TitleChanged += (o, e) => TabStateManager.SaveTabsToDisk(_tabBrowsers);
+        browser.FaviconChanged += (o, e) => TabStateManager.SaveTabsToDisk(_tabBrowsers);
+        AddTab(browser, activate, favicon);
+        TabStateManager.SaveTabsToDisk(_tabBrowsers);
     }
 
-    private void AddTab(TabBrowser browser, bool activate)
+    private void AddTab(TabBrowser browser, bool activate, string? favicon)
     {
         _tabBrowsers.Add(browser);
-
-        var tab = new TabDto(browser.Id, browser.Title, null);
+        var tab = new TabDto(browser.Id, browser.Title, favicon);
         Window.Tabs.AddTab(tab, activate);
 
         if (activate)
@@ -91,16 +97,20 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
     {
         if (sender == Window.CurrentTab)
             Window.ChromeUI.ChangeAddress($"{e.NewValue}");
+
+        TabStateManager.SaveTabsToDisk(_tabBrowsers);
     }
 
     private void CloseCurrentTab()
     {
         var tab = Window.CurrentTab;
         if (tab == null) return;
+
         TabBrowser? nextTab = FindNextTab(tab);
         _tabBrowsers.Remove(tab);
         Window.Tabs.CloseTab(tab.Id, nextTab?.Id);
         Window.SetCurrentTab(nextTab);
+        TabStateManager.SaveTabsToDisk(_tabBrowsers);
     }
 
     private TabBrowser? FindNextTab(TabBrowser tab)

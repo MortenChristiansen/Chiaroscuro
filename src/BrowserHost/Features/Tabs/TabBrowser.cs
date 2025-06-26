@@ -11,6 +11,9 @@ public class TabBrowser : Browser
     private readonly TabListBrowser _tabListBrowser;
 
     public string Id { get; } = $"{Guid.NewGuid()}";
+    public string? Favicon { get; private set; }
+
+    public event EventHandler? FaviconChanged;
 
     public TabBrowser(BrowserApi api, string address, TabListBrowser tabListBrowser)
     {
@@ -29,6 +32,8 @@ public class TabBrowser : Browser
 
     private void OnFaviconAddressesChanged(IList<string> addresses)
     {
-        Dispatcher.BeginInvoke(() => _tabListBrowser.UpdateTabFavicon(Id, addresses.FirstOrDefault()));
+        Favicon = addresses.FirstOrDefault();
+        Dispatcher.BeginInvoke(() => _tabListBrowser.UpdateTabFavicon(Id, Favicon));
+        FaviconChanged?.Invoke(this, EventArgs.Empty);
     }
 }
