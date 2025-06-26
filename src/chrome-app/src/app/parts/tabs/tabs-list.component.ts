@@ -95,6 +95,8 @@ export default class TabsListComponent implements OnInit {
   fallbackFavicon =
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" rx="4" fill="%23bbb"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="white" font-family="Arial">★</text></svg>';
 
+  private tabsChangedTimeout: any = null;
+
   constructor() {
     effect(() => {
       const activeTab = this.selectedTab();
@@ -104,14 +106,20 @@ export default class TabsListComponent implements OnInit {
 
     effect(() => {
       const currentTabs = this.tabs();
-      this.api.tabsChanged(
-        currentTabs.map((tab) => ({
-          Address: tab.id,
-          Title: tab.title,
-          Favicon: tab.favicon,
-          IsActive: tab.id === this.selectedTab()?.id,
-        }))
-      );
+      const selectedTab = this.selectedTab();
+      if (this.tabsChangedTimeout) {
+        clearTimeout(this.tabsChangedTimeout);
+      }
+      this.tabsChangedTimeout = setTimeout(() => {
+        this.api.tabsChanged(
+          currentTabs.map((tab) => ({
+            Address: tab.id,
+            Title: tab.title,
+            Favicon: tab.favicon,
+            IsActive: tab.id === selectedTab?.id,
+          }))
+        );
+      }, 3000);
     });
   }
 
