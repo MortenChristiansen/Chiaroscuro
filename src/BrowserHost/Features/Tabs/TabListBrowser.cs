@@ -48,11 +48,11 @@ public class TabListBrowser : Browser<TabListBrowserApi>
         });
     }
 
-    public void CloseTab(string tabId, string? focusedTabId)
+    public void CloseTab(string tabId)
     {
         RunWhenSourceHasLoaded(() =>
         {
-            this.ExecuteScriptAsync($"window.angularApi.closeTab({tabId.ToJsonString()}, {focusedTabId.ToJsonString()})");
+            this.ExecuteScriptAsync($"window.angularApi.closeTab({tabId.ToJsonString()})");
         });
     }
 }

@@ -177,13 +177,7 @@ export default class TabsListComponent implements OnInit {
           return updatedTabs;
         });
       },
-      closeTab: (tabId: TabId, focusedTabId: TabId | null) => {
-        this.tabs.update((currentTabs) =>
-          currentTabs.filter((t) => t.id !== tabId)
-        );
-        const tab = this.tabs().find((t) => t.id === focusedTabId) ?? null;
-        this.selectedTab.set(tab);
-      },
+      closeTab: (tabId: TabId) => this.close(tabId, false),
     });
 
     await this.api.uiLoaded();
@@ -191,7 +185,7 @@ export default class TabsListComponent implements OnInit {
 
   api!: TabListApi;
 
-  close(tabId: TabId) {
+  close(tabId: TabId, updateBackend = true) {
     const currentTabIndex = this.tabs().findIndex((t) => t.id === tabId);
     this.tabs.update((currentTabs) =>
       currentTabs.filter((t) => t.id !== tabId)
@@ -205,6 +199,8 @@ export default class TabsListComponent implements OnInit {
       this.selectedTab.set(newSelectedTab);
     }
 
-    this.api.closeTab(tabId);
+    if (updateBackend) {
+      this.api.closeTab(tabId);
+    }
   }
 }

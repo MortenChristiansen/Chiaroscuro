@@ -94,6 +94,18 @@ public partial class MainWindow : Window
 
     public void SetCurrentTab(TabBrowser? tab)
     {
+        if (CurrentTab != null)
+            CurrentTab.AddressChanged -= Tab_AddressChanged;
+
         WebContentBorder.Child = tab;
+        ChromeUI.ChangeAddress(tab?.Address);
+
+        if (tab != null)
+            tab.AddressChanged += Tab_AddressChanged;
+    }
+
+    private void Tab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        ChromeUI.ChangeAddress($"{e.NewValue}");
     }
 }
