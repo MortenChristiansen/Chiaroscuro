@@ -35,7 +35,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         _ = Listen(Api.TabClosedChannel,
             e =>
             {
-                var tab = _tabBrowsers.FirstOrDefault(t => t.Id == e.TabId);
+                var tab = _tabBrowsers.Find(t => t.Id == e.TabId);
                 if (tab != null)
                 {
                     _tabBrowsers.Remove(tab);
@@ -46,7 +46,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             dispatchToUi: true
         );
         _ = Listen(Api.TabsChangedChannel,
-            e => TabStateManager.SaveTabsToDisk(e.Tabs.Select(t => new TabStateDto(_tabBrowsers.FirstOrDefault(b => b.Id == t.Id)?.Address ?? "", t.Title, t.Favicon, t.IsActive)))
+            e => TabStateManager.SaveTabsToDisk(e.Tabs.Select(t => new TabStateDto(_tabBrowsers.Find(b => b.Id == t.Id)?.Address ?? "", t.Title, t.Favicon, t.IsActive)))
         );
     }
 
@@ -56,7 +56,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         var browsers = tabs.Select(t => (Browser: AddExistingTab(t.Address, activate: t.IsActive, t.Title, t.Favicon), Tab: t)).ToList();
         Window.Tabs.SetTabs(
             [.. browsers.Select(t => new TabDto(t.Browser.Id, t.Tab.Title, t.Tab.Favicon))],
-            browsers.FirstOrDefault(t => t.Tab.IsActive).Browser?.Id
+            browsers.Find(t => t.Tab.IsActive).Browser?.Id
         );
     }
 
@@ -84,7 +84,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
     private void RegisterNewTabWithFrontend(TabBrowser browser)
     {
         var tab = new TabDto(browser.Id, browser.Title, null);
-        Window.Tabs.AddTab(tab, true);
+        Window.Tabs.AddTab(tab, activate: true);
         Window.Dispatcher.Invoke(() => Window.SetCurrentTab(browser));
     }
 
