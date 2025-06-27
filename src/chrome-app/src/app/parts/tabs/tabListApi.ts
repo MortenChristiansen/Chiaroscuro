@@ -2,7 +2,7 @@ import { Api } from '../interfaces/api';
 import { TabId } from './tabs-list.component';
 
 export interface TabStateDto {
-  Address: string;
+  Id: TabId;
   Title: string | null;
   Favicon: string | null;
   IsActive: boolean;

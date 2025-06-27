@@ -23,6 +23,15 @@ public class TabListBrowser : Browser<TabListBrowserApi>
         });
     }
 
+    public void SetTabs(TabDto[] tabs, string? activeTabId)
+    {
+        RunWhenSourceHasLoaded(() =>
+        {
+            var script = $"window.angularApi.setTabs({tabs.ToJsonObject()}, {activeTabId.ToJsonString()})";
+            this.ExecuteScriptAsync(script);
+        });
+    }
+
     public void UpdateTabTitle(string tabId, string? title)
     {
         RunWhenSourceHasLoaded(() =>

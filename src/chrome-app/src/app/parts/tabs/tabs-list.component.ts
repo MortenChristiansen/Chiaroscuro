@@ -91,6 +91,7 @@ interface Tab {
 })
 export default class TabsListComponent implements OnInit {
   tabs = signal<Tab[]>([]);
+  tabsInitialized = signal(false);
   selectedTab = signal<Tab | null>(null);
   fallbackFavicon =
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" rx="4" fill="%23bbb"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="white" font-family="Arial">★</text></svg>';
@@ -105,6 +106,7 @@ export default class TabsListComponent implements OnInit {
     });
 
     effect(() => {
+      if (!this.tabsInitialized()) return;
       const currentTabs = this.tabs();
       const selectedTab = this.selectedTab();
       if (this.tabsChangedTimeout) {
@@ -113,13 +115,13 @@ export default class TabsListComponent implements OnInit {
       this.tabsChangedTimeout = setTimeout(() => {
         this.api.tabsChanged(
           currentTabs.map((tab) => ({
-            Address: tab.id,
+            Id: tab.id,
             Title: tab.title,
             Favicon: tab.favicon,
             IsActive: tab.id === selectedTab?.id,
           }))
         );
-      }, 3000);
+      }, 1000); // Debounce delay for saving tab state
     });
   }
 
@@ -142,6 +144,22 @@ export default class TabsListComponent implements OnInit {
           this.selectedTab.set(tab);
           console.log('Activated tab:', JSON.stringify(tab));
         }
+      },
+      setTabs: (tabs: Tab[], activeTabId: TabId) => {
+        console.log(
+          'Setting tabs:',
+          JSON.stringify(tabs),
+          'Active tab ID:',
+          activeTabId
+        );
+        this.tabs.set(tabs);
+
+        const activeTab = tabs.find((t) => t.id === activeTabId);
+        if (activeTab) {
+          this.selectedTab.set(activeTab);
+          console.log('Activated tab:', JSON.stringify(activeTab));
+        }
+        this.tabsInitialized.set(true);
       },
       updateTitle: (tabId: TabId, title: string | null) => {
         this.tabs.update((currentTabs) => {

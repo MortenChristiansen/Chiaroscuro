@@ -8,7 +8,9 @@ namespace BrowserHost.Features.Tabs;
 public record TabActivatedEvent(string TabId);
 public record TabClosedEvent(string TabId);
 public record TabPositionChangedEvent(string TabId, int NewIndex);
-public record TabsChangedEvent(TabStateDto[] Tabs);
+public record TabsChangedEvent(TabUiStateDto[] Tabs);
+
+public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive);
 
 public class TabListBrowserApi(TabListBrowser browser) : BrowserApi(browser)
 {
@@ -29,7 +31,7 @@ public class TabListBrowserApi(TabListBrowser browser) : BrowserApi(browser)
     public void TabsChanged(List<object> tabs)
     {
         TabsChangedChannel.Writer.TryWrite(new TabsChangedEvent(
-            [.. tabs.Select((dynamic tab) => new TabStateDto(tab.Address, tab.Title, tab.Favicon, tab.IsActive))]
+            [.. tabs.Select((dynamic tab) => new TabUiStateDto(tab.Id, tab.Title, tab.Favicon, tab.IsActive))]
         ));
     }
 }

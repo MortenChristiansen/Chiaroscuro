@@ -13,7 +13,12 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     public override void Register()
     {
-        TabStateManager.RestoreTabsFromDisk().ForEach(t => AddTab(t.Address, activate: t.IsActive, t.Title, t.Favicon));
+        var tabs = TabStateManager.RestoreTabsFromDisk();
+        var browsers = tabs.Select(t => (Browser: AddTab(t.Address, activate: t.IsActive, t.Title, t.Favicon, addToFrontend: false), Tab: t)).ToList();
+        Window.Tabs.SetTabs(
+            [.. browsers.Select(t => new TabDto(t.Browser.Id, t.Tab.Title, t.Tab.Favicon))],
+            browsers.FirstOrDefault(t => t.Tab.IsActive).Browser?.Id
+        );
 
         _ = Listen(Window.ActionDialog.Api.NavigationStartedChannel, e =>
         {
@@ -56,7 +61,9 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
                 _tabBrowsers.Insert(e.NewIndex, tab);
             }
         }, dispatchToUi: true);
-        _ = Listen(Api.TabsChangedChannel, e => TabStateManager.SaveTabsToDisk(e.Tabs));
+        _ = Listen(Api.TabsChangedChannel, e =>
+            TabStateManager.SaveTabsToDisk(e.Tabs.Select(t => new TabStateDto(_tabBrowsers.FirstOrDefault(b => b.Id == t.Id)?.Address ?? "", t.Title, t.Favicon, t.IsActive)))
+        );
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -70,18 +77,23 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         return base.HandleOnPreviewKeyDown(e);
     }
 
-    private void AddTab(string address, bool activate, string? title = null, string? favicon = null)
+    private TabBrowser AddTab(string address, bool activate, string? title = null, string? favicon = null, bool addToFrontend = true)
     {
         var browser = new TabBrowser(Api, address, Window.Tabs);
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
+
         browser.AddressChanged += Tab_AddressChanged;
-        AddTab(browser, activate, favicon);
+        _tabBrowsers.Add(browser);
+
+        if (addToFrontend)
+            RegisterTabWithFrontend(activate, favicon, browser);
+
+        return browser;
     }
 
-    private void AddTab(TabBrowser browser, bool activate, string? favicon)
+    private void RegisterTabWithFrontend(bool activate, string? favicon, TabBrowser browser)
     {
-        _tabBrowsers.Add(browser);
         var tab = new TabDto(browser.Id, browser.Title, favicon);
         Window.Tabs.AddTab(tab, activate);
 
