@@ -1,12 +1,14 @@
 using BrowserHost.Features;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
+using BrowserHost.Features.DevTool;
 using BrowserHost.Features.Tabs;
 using CefSharp;
 using CefSharp.Wpf;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using Velopack;
@@ -33,12 +35,19 @@ public partial class MainWindow : Window
         [
             new CustomWindowChromeFeature(this),
             new ActionDialogFeature(this),
-            new TabsFeature(this)
+            new TabsFeature(this),
+            new DevToolFeature(this)
         ];
         _features.ForEach(f => f.Register());
 
         ContentServer.Run();
         Instance = this;
+    }
+
+    public TFeature GetFeature<TFeature>() where TFeature : Feature
+    {
+        return _features.OfType<TFeature>().FirstOrDefault()
+            ?? throw new InvalidOperationException($"Feature of type {typeof(TFeature).Name} not found.");
     }
 
     private static async void CheckForUpdates()
