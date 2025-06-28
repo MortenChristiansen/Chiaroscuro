@@ -53,6 +53,7 @@ public partial class MainWindow : Window
             if (updateInfo != null)
             {
                 var result = MessageBox.Show(
+                    Application.Current.MainWindow,
                     "A new version is available. Would you like to update now?",
                     "Update Available",
                     MessageBoxButton.YesNo,
