@@ -4,9 +4,13 @@ import { Component, input, output } from '@angular/core';
   selector: 'icon-button',
   template: `
     <button
+      #button
       [disabled]="disabled()"
       class="icon-btn"
       (click)="onClick.emit($event)"
+      (mousedown)="button.classList.add('pressed')"
+      (mouseup)="button.classList.remove('pressed')"
+      (mouseleave)="button.classList.remove('pressed')"
     >
       <ng-content></ng-content>
     </button>
@@ -33,6 +37,10 @@ import { Component, input, output } from '@angular/core';
     .icon-btn:disabled {
       opacity: 0.5;
       cursor: default;
+    }
+    .pressed {
+      background: rgba(255,255,255,0.18) !important;
+      color: #fff;
     }
   `,
 })
