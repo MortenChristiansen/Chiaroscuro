@@ -1,23 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
 
 namespace BrowserHost.Utilities;
 
 public static class PubSub
 {
-    private static readonly Dictionary<Type, List<Delegate>> _subscribers = new();
+    private static readonly Dictionary<Type, List<Delegate>> _subscribers = [];
+    private static readonly Lock _lock = new();
 
     public static void Subscribe<T>(Action<T> action)
     {
         var type = typeof(T);
-        if (!_subscribers.TryGetValue(type, out List<Delegate>? value))
+        lock (_lock)
         {
-            value = [];
-            _subscribers[type] = value;
-        }
+            if (!_subscribers.TryGetValue(type, out List<Delegate>? value))
+            {
+                value = [];
+                _subscribers[type] = value;
+            }
 
-        value.Add(action);
+            value.Add(action);
+        }
     }
 
     public static void Publish<T>(T message)
@@ -48,8 +52,11 @@ public static class PubSub
 
     public static void Unsubscribe<T>(Action<T> action)
     {
-        var type = typeof(T);
-        if (_subscribers.TryGetValue(type, out List<Delegate>? value))
-            value.Remove(action);
+        lock (_lock)
+        {
+            var type = typeof(T);
+            if (_subscribers.TryGetValue(type, out List<Delegate>? value))
+                value.Remove(action);
+        }
     }
 }
