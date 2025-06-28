@@ -8,7 +8,7 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
   imports: [IconButtonComponent],
   template: `
     <div class="flex items-center gap-4 align-middle px-2 py-1 select-none">
-      <div class="address-bar flex flex-1 items-center gap-2 justify-center">
+      <div class="address-bar flex flex-1 items-center gap-1 justify-center">
         <icon-button [disabled]="!address() || !canGoBack()" (onClick)="back()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -92,7 +92,7 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
           }
         </span>
       </div>
-      <div class="window-controls flex gap-2 ml-auto">
+      <div class="window-controls flex gap-1 ml-auto">
         <icon-button (onClick)="min()" ariaLabel="Minimize">
           <svg
             xmlns="http://www.w3.org/2000/svg"
