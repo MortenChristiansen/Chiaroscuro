@@ -5,7 +5,6 @@ namespace BrowserHost.Features.DevTool;
 
 public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.Tabs.Api)
 {
-    private bool _devToolsOpen = false;
     private TabBrowser? _devToolsTab = null;
 
     public override void Register()
@@ -36,7 +35,9 @@ public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(wind
 
     private void ToggleDevTools()
     {
-        if (_devToolsOpen)
+        // Instead of relying on internal state, check if we have a dev tools tab tracked
+        // This is more robust against manual closure of dev tools window
+        if (_devToolsTab != null)
         {
             CloseDevTools();
         }
@@ -52,7 +53,7 @@ public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(wind
         if (currentTab == null) return;
 
         // Close any existing dev tools first
-        if (_devToolsOpen && _devToolsTab != null)
+        if (_devToolsTab != null)
         {
             CloseDevTools();
         }
@@ -62,7 +63,6 @@ public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(wind
         if (browserHost != null)
         {
             browserHost.ShowDevTools();
-            _devToolsOpen = true;
             _devToolsTab = currentTab;
         }
     }
@@ -75,7 +75,6 @@ public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(wind
             browserHost?.CloseDevTools();
         }
         
-        _devToolsOpen = false;
         _devToolsTab = null;
     }
 
@@ -84,14 +83,11 @@ public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(wind
         var newCurrentTab = Window.CurrentTab;
         
         // If dev tools are open and the current tab changed
-        if (_devToolsOpen && newCurrentTab != null && newCurrentTab != _devToolsTab)
+        if (_devToolsTab != null && newCurrentTab != null && newCurrentTab != _devToolsTab)
         {
             // Close dev tools for the old tab
-            if (_devToolsTab != null)
-            {
-                var oldBrowserHost = _devToolsTab.GetBrowserHost();
-                oldBrowserHost?.CloseDevTools();
-            }
+            var oldBrowserHost = _devToolsTab.GetBrowserHost();
+            oldBrowserHost?.CloseDevTools();
             
             // Open dev tools for the new current tab
             var newBrowserHost = newCurrentTab.GetBrowserHost();
@@ -106,7 +102,7 @@ public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(wind
     private void HandleTabClosed(string tabId)
     {
         // If the closed tab had dev tools open, close them
-        if (_devToolsOpen && _devToolsTab != null && _devToolsTab.Id == tabId)
+        if (_devToolsTab != null && _devToolsTab.Id == tabId)
         {
             CloseDevTools();
         }
