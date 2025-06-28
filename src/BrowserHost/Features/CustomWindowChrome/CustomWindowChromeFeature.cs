@@ -26,6 +26,12 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindow
 
         _ = Listen(Api.WindowMinimizedChannel, _ => Minimize(), dispatchToUi: true);
         _ = Listen(Api.WindowStateToggledChannel, _ => ToggleMaximizedState(), dispatchToUi: true);
+        _ = Listen(Api.AddressCopyRequestedChannel, _ =>
+        {
+            var address = Window.CurrentTab?.Address;
+            if (!string.IsNullOrEmpty(address))
+                Clipboard.SetText(address);
+        });
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

@@ -9,4 +9,5 @@ export interface WindowsChromeApi extends Api {
   forward: () => Promise<void>;
   canGoForward: () => Promise<boolean>;
   reload: () => Promise<void>;
+  copyAddress: () => Promise<void>;
 }
