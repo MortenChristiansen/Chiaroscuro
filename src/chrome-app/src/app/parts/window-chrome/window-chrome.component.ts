@@ -1,5 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { Api, exposeApiToBackend, loadBackendApi } from '../interfaces/api';
+import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { WindowsChromeApi } from './windowChromeApi';
 import { IconButtonComponent } from '../../shared/icon-button.component';
 
@@ -121,10 +121,7 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
             <rect x="6" y="6" width="12" height="12" rx="2" />
           </svg>
         </icon-button>
-        <icon-button
-          (onClick)="close()"
-          extraClass="text-red-400 hover:text-red-600"
-        >
+        <icon-button (onClick)="close()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
