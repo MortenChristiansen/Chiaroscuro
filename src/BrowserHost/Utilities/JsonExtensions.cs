@@ -7,7 +7,7 @@ public static class JsonExtensions
     private static readonly JsonSerializerOptions _tabSerializationOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     public static string ToJsonString(this string? s) =>
-        s == null ? "null" : $"'{s}'";
+        s == null ? "null" : $"'{s.Replace("'", "\\'")}'";
 
     public static string ToJsonBoolean(this bool? b) =>
         b.HasValue ? b.Value.ToJsonBoolean() : "null";
