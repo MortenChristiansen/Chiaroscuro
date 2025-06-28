@@ -1,3 +1,5 @@
+using BrowserHost.Features.ActionDialog;
+using BrowserHost.Utilities;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
@@ -14,39 +16,28 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
     {
         RestoreTabs();
 
-        _ = Listen(Window.ActionDialog.Api.NavigationStartedChannel,
-            e =>
+        PubSub.Subscribe<NavigationStartedEvent>(e =>
+        {
+            if (Window.CurrentTab != null && e.UseCurrentTab)
             {
-                if (Window.CurrentTab != null && e.UseCurrentTab)
-                {
-                    Window.CurrentTab.Address = e.Address;
-                }
-                else
-                {
-                    AddNewTab(e.Address);
-                }
-            },
-            dispatchToUi: true
-        );
-        _ = Listen(Api.TabActivatedChannel,
-            e => Window.SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId)),
-            dispatchToUi: true
-        );
-        _ = Listen(Api.TabClosedChannel,
-            e =>
+                Window.CurrentTab.Address = e.Address;
+            }
+            else
             {
-                var tab = _tabBrowsers.Find(t => t.Id == e.TabId);
-                if (tab != null)
-                {
-                    _tabBrowsers.Remove(tab);
-                    if (tab == Window.CurrentTab)
-                        Window.SetCurrentTab(null);
-                }
-            },
-            dispatchToUi: true
+                AddNewTab(e.Address);
+            }
+        });
+        PubSub.Subscribe<TabActivatedEvent>(e =>
+            Window.SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId))
         );
-        _ = Listen(Api.TabsChangedChannel,
-            e => TabStateManager.SaveTabsToDisk(e.Tabs.Select(t => new TabStateDto(_tabBrowsers.Find(b => b.Id == t.Id)?.Address ?? "", t.Title, t.Favicon, t.IsActive)))
+        PubSub.Subscribe<TabClosedEvent>(e =>
+        {
+            _tabBrowsers.Remove(e.Tab);
+            if (e.Tab == Window.CurrentTab)
+                Window.SetCurrentTab(null);
+        });
+        PubSub.Subscribe<TabsChangedEvent>(e =>
+            TabStateManager.SaveTabsToDisk(e.Tabs.Select(t => new TabStateDto(_tabBrowsers.Find(b => b.Id == t.Id)?.Address ?? "", t.Title, t.Favicon, t.IsActive)))
         );
     }
 
@@ -104,8 +95,12 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         var tab = Window.CurrentTab;
         if (tab == null) return;
 
-        _tabBrowsers.Remove(tab);
         Window.Tabs.CloseTab(tab.Id);
-        Window.SetCurrentTab(null);
+        PubSub.Publish(new TabClosedEvent(tab));
+    }
+
+    public TabBrowser? GetTabById(string tabId)
+    {
+        return _tabBrowsers.FirstOrDefault(t => t.Id == tabId);
     }
 }

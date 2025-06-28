@@ -1,4 +1,5 @@
-﻿using CefSharp;
+﻿using BrowserHost.Utilities;
+using CefSharp;
 using System;
 using System.Windows;
 using System.Windows.Input;
@@ -11,7 +12,7 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
 {
     public override void Register()
     {
-        _ = Listen(Api.ActionDialogDismissedChannel, _ => DismissDialog(), dispatchToUi: true);
+        PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)

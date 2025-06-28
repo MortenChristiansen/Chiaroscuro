@@ -1,4 +1,5 @@
-﻿using CefSharp;
+﻿using BrowserHost.Utilities;
+using CefSharp;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -24,9 +25,9 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindow
         // Prevent maximizing over the taskbar
         Window.StateChanged += (s, e) => AdjustWindowBorder();
 
-        _ = Listen(Api.WindowMinimizedChannel, _ => Minimize(), dispatchToUi: true);
-        _ = Listen(Api.WindowStateToggledChannel, _ => ToggleMaximizedState(), dispatchToUi: true);
-        _ = Listen(Api.AddressCopyRequestedChannel, _ =>
+        PubSub.Subscribe<WindowMinimizedEvent>(_ => Minimize());
+        PubSub.Subscribe<WindowStateToggledEvent>(_ => ToggleMaximizedState());
+        PubSub.Subscribe<AddressCopyRequestedEvent>(_ =>
         {
             var address = Window.CurrentTab?.Address;
             if (!string.IsNullOrEmpty(address))

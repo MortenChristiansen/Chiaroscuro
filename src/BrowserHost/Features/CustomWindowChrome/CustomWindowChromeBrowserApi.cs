@@ -1,6 +1,6 @@
 ﻿using BrowserHost.CefInfrastructure;
 using CefSharp;
-using System.Threading.Channels;
+using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
@@ -10,12 +10,6 @@ public record AddressCopyRequestedEvent();
 
 public class CustomWindowChromeBrowserApi(CustomWindowChromeBrowser browser) : BrowserApi(browser)
 {
-    public Channel<WindowMinimizedEvent> WindowMinimizedChannel { get; } = Channel.CreateUnbounded<WindowMinimizedEvent>();
-    public Channel<WindowStateToggledEvent> WindowStateToggledChannel { get; } = Channel.CreateUnbounded<WindowStateToggledEvent>();
-    public Channel<AddressCopyRequestedEvent> AddressCopyRequestedChannel { get; } = Channel.CreateUnbounded<AddressCopyRequestedEvent>();
-
-    // TODO: Is there a better way to get the MainWindow instance?
-
     public bool CanGoForward() =>
         MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.CanGoForward ?? false);
 
@@ -32,14 +26,14 @@ public class CustomWindowChromeBrowserApi(CustomWindowChromeBrowser browser) : B
         MainWindow.Instance.CurrentTab?.Reload();
 
     public void Minimize() =>
-        WindowMinimizedChannel.Writer.TryWrite(new WindowMinimizedEvent());
+        PubSub.Publish(new WindowMinimizedEvent());
 
     public void Maximize() =>
-        WindowStateToggledChannel.Writer.TryWrite(new WindowStateToggledEvent());
+        PubSub.Publish(new WindowStateToggledEvent());
 
     public void Close() =>
         MainWindow.Instance.Dispatcher.Invoke(MainWindow.Instance.Close);
 
     public void CopyAddress() =>
-        AddressCopyRequestedChannel.Writer.TryWrite(new AddressCopyRequestedEvent());
+        PubSub.Publish(new AddressCopyRequestedEvent());
 }

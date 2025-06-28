@@ -8,6 +8,7 @@ using CefSharp.Wpf;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using Velopack;
@@ -41,6 +42,12 @@ public partial class MainWindow : Window
 
         ContentServer.Run();
         Instance = this;
+    }
+
+    public TFeature GetFeature<TFeature>() where TFeature : Feature
+    {
+        return _features.OfType<TFeature>().FirstOrDefault()
+            ?? throw new InvalidOperationException($"Feature of type {typeof(TFeature).Name} not found.");
     }
 
     private static async void CheckForUpdates()
