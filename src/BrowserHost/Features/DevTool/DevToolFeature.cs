@@ -1,4 +1,5 @@
 using BrowserHost.Features.Tabs;
+using CefSharp;
 using System.Windows.Input;
 
 namespace BrowserHost.Features.DevTool;
@@ -14,7 +15,7 @@ public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(wind
             e => HandleTabActivated(e.TabId),
             dispatchToUi: true
         );
-        
+
         // Listen for tab closed events to close dev tools if needed
         _ = Listen(Api.TabClosedChannel,
             e => HandleTabClosed(e.TabId),
@@ -74,21 +75,21 @@ public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(wind
             var browserHost = _devToolsTab.GetBrowserHost();
             browserHost?.CloseDevTools();
         }
-        
+
         _devToolsTab = null;
     }
 
     private void HandleTabActivated(string tabId)
     {
         var newCurrentTab = Window.CurrentTab;
-        
+
         // If dev tools are open and the current tab changed
         if (_devToolsTab != null && newCurrentTab != null && newCurrentTab != _devToolsTab)
         {
             // Close dev tools for the old tab
             var oldBrowserHost = _devToolsTab.GetBrowserHost();
             oldBrowserHost?.CloseDevTools();
-            
+
             // Open dev tools for the new current tab
             var newBrowserHost = newCurrentTab.GetBrowserHost();
             if (newBrowserHost != null)
