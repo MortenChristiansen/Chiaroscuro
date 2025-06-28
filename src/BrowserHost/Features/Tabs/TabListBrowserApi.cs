@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace BrowserHost.Features.Tabs;
 
-public record TabActivatedEvent(string TabId);
+public record TabActivatedEvent(string TabId, TabBrowser? CurrentTab);
 public record TabClosedEvent(TabBrowser Tab);
 public record TabPositionChangedEvent(string TabId, int NewIndex);
 public record TabsChangedEvent(TabUiStateDto[] Tabs);
@@ -16,7 +16,7 @@ public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsAct
 public class TabListBrowserApi(TabListBrowser browser) : BrowserApi(browser)
 {
     public void ActivateTab(string tabId) =>
-        PubSub.Publish(new TabActivatedEvent(tabId));
+        PubSub.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
 
     public void CloseTab(string tabId) =>
         PubSub.Publish(new TabClosedEvent(MainWindow.Instance.GetFeature<TabsFeature>().GetTabById(tabId) ?? throw new ArgumentException("Tab does not exist")));

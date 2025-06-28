@@ -5,11 +5,12 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.DevTool;
 
-public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.Tabs.Api)
+public class DevToolFeature(MainWindow window) : Feature(window)
 {
     public override void Register()
     {
-        PubSub.Subscribe<TabClosedEvent>(e => HandleTabClosed(e.Tab));
+        PubSub.Subscribe<TabClosedEvent>(e => CloseDevTools(e.Tab));
+        PubSub.Subscribe<TabActivatedEvent>(e => CloseDevTools(e.CurrentTab));
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -38,10 +39,11 @@ public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(wind
         }
     }
 
-    private void HandleTabClosed(TabBrowser tab)
+    private static void CloseDevTools(TabBrowser? tab)
     {
-        var browserHost = tab?.GetBrowserHost();
-        if (browserHost?.HasDevTools == true)
-            browserHost.CloseDevTools();
+        if (tab == null) return;
+
+        var browserHost = tab.GetBrowserHost();
+        browserHost.CloseDevTools();
     }
 }
