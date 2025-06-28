@@ -1,7 +1,11 @@
 using BrowserHost.Features;
+using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.CustomWindowChrome;
+using BrowserHost.Features.Tabs;
 using CefSharp;
 using CefSharp.Wpf;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
@@ -12,13 +16,12 @@ namespace BrowserHost;
 
 public partial class MainWindow : Window
 {
-    private BrowserApi _browserApi;
-
-    public CustomWindowChromeFeature CustomWindowChromeFeature { get; }
-    public ActionDialogFeature ActionDialogFeature { get; }
+    private readonly List<Feature> _features;
 
     public ChromiumWebBrowser Chrome => ChromeUI;
-    public ChromiumWebBrowser CurrentTab => WebContent;
+    public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
+
+    public static MainWindow Instance { get; private set; } = null!; // Initialized in constructor
 
     public MainWindow()
     {
@@ -26,16 +29,16 @@ public partial class MainWindow : Window
 
         CheckForUpdates();
 
-        _browserApi = new BrowserApi(this);
-
-        CustomWindowChromeFeature = new(this, _browserApi);
-        CustomWindowChromeFeature.Register();
-        ActionDialogFeature = new(this, _browserApi);
-        ActionDialogFeature.Register();
-
-        CurrentTab.AddressChanged += CurrentTab_AddressChanged;
+        _features =
+        [
+            new CustomWindowChromeFeature(this),
+            new ActionDialogFeature(this),
+            new TabsFeature(this)
+        ];
+        _features.ForEach(f => f.Register());
 
         ContentServer.Run();
+        Instance = this;
     }
 
     private static async void CheckForUpdates()
@@ -43,6 +46,9 @@ public partial class MainWindow : Window
         try
         {
             var mgr = new UpdateManager(new GithubSource("https://github.com/MortenChristiansen/Chiaroscuro", accessToken: null, prerelease: false, downloader: null));
+            if (mgr.CurrentVersion is null)
+                return;
+
             var updateInfo = await mgr.CheckForUpdatesAsync();
             if (updateInfo != null)
             {
@@ -70,18 +76,36 @@ public partial class MainWindow : Window
     {
         base.OnPreviewKeyDown(e);
 
-        if (ActionDialogFeature.HandleOnPreviewKeyDown(e))
-            return;
+        foreach (var feature in _features)
+        {
+            if (feature.HandleOnPreviewKeyDown(e))
+            {
+                e.Handled = true;
+                return;
+            }
+        }
 
         if (e.Key == Key.F5)
         {
             var ignoreCache = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
-            WebContent.Reload(ignoreCache);
+            CurrentTab.Reload(ignoreCache);
         }
     }
 
-    private void CurrentTab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
+    public void SetCurrentTab(TabBrowser? tab)
     {
-        _browserApi.ChangeAddress($"{e.NewValue}");
+        if (CurrentTab != null)
+            CurrentTab.AddressChanged -= Tab_AddressChanged;
+
+        WebContentBorder.Child = tab;
+        ChromeUI.ChangeAddress(tab?.Address);
+
+        if (tab != null)
+            tab.AddressChanged += Tab_AddressChanged;
+    }
+
+    private void Tab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        ChromeUI.ChangeAddress($"{e.NewValue}");
     }
 }

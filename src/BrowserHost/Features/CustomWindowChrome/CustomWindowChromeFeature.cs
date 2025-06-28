@@ -1,48 +1,32 @@
 ﻿using CefSharp;
-using CefSharp.Wpf;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 
-namespace BrowserHost.Features;
+namespace BrowserHost.Features.CustomWindowChrome;
 
-public class CustomWindowChromeFeature(MainWindow window, BrowserApi api)
+public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindowChromeBrowserApi>(window, window.ChromeUI.Api)
 {
-    private readonly List<ChromiumWebBrowser> _browsers = [window.WebContent, window.ChromeUI, window.ActionDialog];
-
-    public void Register()
+    public override void Register()
     {
-        window.ChromeUI.Address = ContentServer.GetUiAddress("/");
-        window.ChromeUI.JavascriptObjectRepository.Register("api", api);
-        window.ChromeUI.ConsoleMessage += (sender, e) =>
-        {
-            Debug.WriteLine($"ChromeUI: {e.Message}");
-        };
+        Window.WindowStyle = WindowStyle.None;
+        Window.AllowsTransparency = true;
 
-        window.WindowStyle = WindowStyle.None;
-        window.AllowsTransparency = true;
+        Window.ChromeUI.PreviewMouseLeftButtonDown += ChromeUI_PreviewMouseLeftButtonDown;
+        Window.PreviewMouseLeftButtonUp += MainWindow_PreviewMouseLeftButtonUp;
+        Window.PreviewMouseMove += MainWindow_PreviewMouseMove;
 
-        window.ChromeUI.PreviewMouseLeftButtonDown += ChromeUI_PreviewMouseLeftButtonDown;
-        window.PreviewMouseLeftButtonUp += MainWindow_PreviewMouseLeftButtonUp;
-        window.PreviewMouseMove += MainWindow_PreviewMouseMove;
-
-        window.ResizeBorder.PreviewMouseMove += ResizeBorder_PreviewMouseMove;
-        window.ResizeBorder.PreviewMouseLeftButtonDown += ResizeBorder_PreviewMouseLeftButtonDown;
-
-        // Force WebContent to repaint on size change to fix rendering issue
-        window.SizeChanged += (s, e) => RedrawBrowsers();
+        Window.ResizeBorder.PreviewMouseMove += ResizeBorder_PreviewMouseMove;
+        Window.ResizeBorder.PreviewMouseLeftButtonDown += ResizeBorder_PreviewMouseLeftButtonDown;
 
         // Prevent maximizing over the taskbar
-        window.StateChanged += (s, e) => AdjustWindowBorder();
-    }
+        Window.StateChanged += (s, e) => AdjustWindowBorder();
 
-    private void RedrawBrowsers() =>
-        _browsers.ForEach(b => b.GetBrowserHost()?.Invalidate(PaintElementType.View));
+        _ = Listen(Api.WindowMinimizedChannel, _ => Minimize(), dispatchToUi: true);
+        _ = Listen(Api.WindowStateToggledChannel, _ => ToggleMaximizedState(), dispatchToUi: true);
+    }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -54,10 +38,10 @@ public class CustomWindowChromeFeature(MainWindow window, BrowserApi api)
 
         if (e.ButtonState == MouseButtonState.Pressed && IsMouseOverTransparentPixel(e))
         {
-            if (window.WindowState == WindowState.Maximized)
+            if (Window.WindowState == WindowState.Maximized)
                 HandleDragToDetachFromMaximizedState(e);
 
-            window.DragMove();
+            Window.DragMove();
         }
     }
 
@@ -94,28 +78,27 @@ public class CustomWindowChromeFeature(MainWindow window, BrowserApi api)
 
     #region Minimize/Maximize
 
-    public void ToggleMaximizedState()
+    private void ToggleMaximizedState()
     {
-        window.WindowState = window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-        RedrawBrowsers();
+        Window.WindowState = Window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     }
 
-    public void Minimize()
+    private void Minimize()
     {
-        window.WindowState = WindowState.Minimized;
+        Window.WindowState = WindowState.Minimized;
     }
 
     private void AdjustWindowBorder()
     {
-        if (window.WindowState == WindowState.Maximized)
+        if (Window.WindowState == WindowState.Maximized)
         {
             var wa = SystemParameters.WorkArea;
-            var bottomMargin = window.Height - wa.Height - 10;
-            window.WindowBorder.Margin = new Thickness(0, 0, 0, bottomMargin);
+            var bottomMargin = Window.Height - wa.Height - 10;
+            Window.WindowBorder.Margin = new Thickness(0, 0, 0, bottomMargin);
         }
-        else if (window.WindowState == WindowState.Normal)
+        else if (Window.WindowState == WindowState.Normal)
         {
-            window.WindowBorder.Margin = new Thickness(0);
+            Window.WindowBorder.Margin = new Thickness(0);
         }
     }
 
@@ -130,7 +113,7 @@ public class CustomWindowChromeFeature(MainWindow window, BrowserApi api)
         if (_isDraggingToDetach && _dragStartPoint.HasValue)
         {
             // If already dragging, calculate the distance moved
-            var currentPoint = e.GetPosition(window);
+            var currentPoint = e.GetPosition(Window);
             var distance = (currentPoint - _dragStartPoint.Value).Length;
             // If the mouse has moved significantly, allow detaching
             if (distance < 20)
@@ -147,60 +130,60 @@ public class CustomWindowChromeFeature(MainWindow window, BrowserApi api)
 
         e.Handled = true;
         ResetDetachDrag();
-        window.ChromeUI.ReleaseMouseCapture();
-        window.DragMove();
+        Window.ChromeUI.ReleaseMouseCapture();
+        Window.DragMove();
     }
 
     private void PerformDetachOfWindow(MouseEventArgs e)
     {
         // Calculate mouse position relative to window
-        var mouseX = e.GetPosition(window).X;
-        var percentX = mouseX / window.ActualWidth;
-        var mouseY = e.GetPosition(window).Y;
-        var percentY = mouseY / window.ActualHeight;
+        var mouseX = e.GetPosition(Window).X;
+        var percentX = mouseX / Window.ActualWidth;
+        var mouseY = e.GetPosition(Window).Y;
+        var percentY = mouseY / Window.ActualHeight;
 
         // Set to normal state
-        window.WindowState = WindowState.Normal;
+        Window.WindowState = WindowState.Normal;
 
         // Get mouse position in screen coordinates
         var mouseScreen = Mouse.GetPosition(null);
-        var presentationSource = PresentationSource.FromVisual(window);
+        var presentationSource = PresentationSource.FromVisual(Window);
         if (presentationSource != null)
         {
             var transform = presentationSource.CompositionTarget.TransformToDevice;
             var screenX = mouseScreen.X * transform.M11;
             var screenY = mouseScreen.Y * transform.M22;
-            var newLeft = screenX - window.ActualWidth * percentX;
-            var newTop = screenY - window.ActualHeight * percentY;
+            var newLeft = screenX - Window.ActualWidth * percentX;
+            var newTop = screenY - Window.ActualHeight * percentY;
 
             // Clamp newLeft to the primary screen's working area
             double minLeft = 0;
-            double maxLeft = SystemParameters.WorkArea.Width - window.ActualWidth;
+            double maxLeft = SystemParameters.WorkArea.Width - Window.ActualWidth;
             if (newLeft < minLeft) newLeft = minLeft;
             if (newLeft > maxLeft) newLeft = maxLeft;
 
-            window.Left = newLeft;
-            window.Top = newTop;
+            Window.Left = newLeft;
+            Window.Top = newTop;
         }
 
-        window.UpdateLayout();
+        Window.UpdateLayout();
     }
 
     private void StartDetachDrag(MouseEventArgs e)
     {
-        _dragStartPoint = e.GetPosition(window);
+        _dragStartPoint = e.GetPosition(Window);
         _isDraggingToDetach = true;
-        window.Cursor = Cursors.SizeAll;
+        Window.Cursor = Cursors.SizeAll;
         // Prevents selecting elements as we complete the detach operation
-        window.ChromeUI.EvaluateScriptAsync("document.body.setAttribute('inert', '');").GetAwaiter().GetResult();
+        Window.ChromeUI.EvaluateScriptAsync("document.body.setAttribute('inert', '');").GetAwaiter().GetResult();
     }
 
     private void ResetDetachDrag()
     {
         _dragStartPoint = null;
         _isDraggingToDetach = false;
-        window.Cursor = Cursors.Arrow;
-        window.ChromeUI.EvaluateScriptAsync("document.body.removeAttribute('inert');").GetAwaiter().GetResult();
+        Window.Cursor = Cursors.Arrow;
+        Window.ChromeUI.EvaluateScriptAsync("document.body.removeAttribute('inert');").GetAwaiter().GetResult();
     }
 
     #endregion
@@ -209,20 +192,20 @@ public class CustomWindowChromeFeature(MainWindow window, BrowserApi api)
 
     private void ResizeBorder_PreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (window.WindowState == WindowState.Normal)
+        if (Window.WindowState == WindowState.Normal)
         {
-            var pos = e.GetPosition(window.ResizeBorder);
-            var hit = GetResizeDirection(pos, window.ResizeBorder.ActualWidth, window.ResizeBorder.ActualHeight);
-            window.Cursor = GetCursorForResizeDirection(hit);
+            var pos = e.GetPosition(Window.ResizeBorder);
+            var hit = GetResizeDirection(pos, Window.ResizeBorder.ActualWidth, Window.ResizeBorder.ActualHeight);
+            Window.Cursor = GetCursorForResizeDirection(hit);
         }
     }
 
     private void ResizeBorder_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (window.WindowState == WindowState.Normal && e.LeftButton == MouseButtonState.Pressed)
+        if (Window.WindowState == WindowState.Normal && e.LeftButton == MouseButtonState.Pressed)
         {
-            var pos = e.GetPosition(window.ResizeBorder);
-            var hit = GetResizeDirection(pos, window.ResizeBorder.ActualWidth, window.ResizeBorder.ActualHeight);
+            var pos = e.GetPosition(Window.ResizeBorder);
+            var hit = GetResizeDirection(pos, Window.ResizeBorder.ActualWidth, Window.ResizeBorder.ActualHeight);
             if (hit != HitTest.HTNOWHERE)
             {
                 ResizeWindow(hit);
@@ -277,13 +260,13 @@ public class CustomWindowChromeFeature(MainWindow window, BrowserApi api)
         };
 
     [DllImport("user32.dll")]
-    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    private static extern nint SendMessage(nint hWnd, int msg, nint wParam, nint lParam);
     private const int WM_NCLBUTTONDOWN = 0x00A1;
 
     private void ResizeWindow(HitTest hit)
     {
-        var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
-        SendMessage(hwnd, WM_NCLBUTTONDOWN, (IntPtr)hit, IntPtr.Zero);
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(Window).Handle;
+        SendMessage(hwnd, WM_NCLBUTTONDOWN, (nint)hit, nint.Zero);
     }
 
     #endregion
