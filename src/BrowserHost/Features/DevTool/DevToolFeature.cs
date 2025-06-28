@@ -36,15 +36,30 @@ public class DevToolFeature(MainWindow window) : Feature<TabListBrowserApi>(wind
 
     private void ToggleDevTools()
     {
-        // Instead of relying on internal state, check if we have a dev tools tab tracked
-        // This is more robust against manual closure of dev tools window
+        var currentTab = Window.CurrentTab;
+        if (currentTab == null) return;
+
+        // Always try to close dev tools first to handle manual closure scenarios
+        // This ensures we're synchronized with the actual dev tools state
+        var browserHost = currentTab.GetBrowserHost();
+        if (browserHost != null)
+        {
+            browserHost.CloseDevTools();
+        }
+
+        // If we had tracked dev tools as open, they're now closed
         if (_devToolsTab != null)
         {
-            CloseDevTools();
+            _devToolsTab = null;
         }
         else
         {
-            OpenDevTools();
+            // Dev tools weren't tracked as open, so they should now be opened
+            if (browserHost != null)
+            {
+                browserHost.ShowDevTools();
+                _devToolsTab = currentTab;
+            }
         }
     }
 
