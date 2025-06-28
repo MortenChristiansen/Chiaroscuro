@@ -23,6 +23,9 @@ public class TabBrowser : Browser
 
         DisplayHandler = new FaviconDisplayHandler(OnFaviconAddressesChanged);
         _tabListBrowser = tabListBrowser;
+
+        var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        DownloadHandler = new DownloadHandler(downloadsPath);
     }
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
