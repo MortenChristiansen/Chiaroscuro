@@ -93,7 +93,7 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
         </span>
       </div>
       <div class="window-controls flex gap-1 ml-auto">
-        <icon-button (onClick)="min()" ariaLabel="Minimize">
+        <icon-button (onClick)="min()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -109,7 +109,7 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
             />
           </svg>
         </icon-button>
-        <icon-button (onClick)="max()" ariaLabel="Maximize">
+        <icon-button (onClick)="max()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -123,7 +123,6 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
         </icon-button>
         <icon-button
           (onClick)="close()"
-          ariaLabel="Close"
           extraClass="text-red-400 hover:text-red-600"
         >
           <svg
