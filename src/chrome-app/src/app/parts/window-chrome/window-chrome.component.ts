@@ -9,11 +9,7 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
   template: `
     <div class="flex items-center gap-4 align-middle px-2 py-1 select-none">
       <div class="address-bar flex flex-1 items-center gap-2 justify-center">
-        <icon-button
-          ariaLabel="Back"
-          [disabled]="!canGoBack()"
-          (onClick)="back()"
-        >
+        <icon-button [disabled]="!address() || !canGoBack()" (onClick)="back()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
@@ -28,8 +24,7 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
           </svg>
         </icon-button>
         <icon-button
-          ariaLabel="Forward"
-          [disabled]="!canGoForward()"
+          [disabled]="!address() || !canGoForward()"
           (onClick)="forward()"
         >
           <svg
@@ -45,7 +40,7 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
             />
           </svg>
         </icon-button>
-        <icon-button ariaLabel="Reload" (onClick)="reload()">
+        <icon-button [disabled]="!address()" (onClick)="reload()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
@@ -66,7 +61,7 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
             />
           </svg>
         </icon-button>
-        <icon-button ariaLabel="Copy address" (onClick)="copyAddress()">
+        <icon-button [disabled]="!address()" (onClick)="copyAddress()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
