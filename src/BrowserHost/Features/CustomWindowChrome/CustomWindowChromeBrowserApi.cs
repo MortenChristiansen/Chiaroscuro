@@ -6,11 +6,13 @@ namespace BrowserHost.Features.CustomWindowChrome;
 
 public record WindowMinimizedEvent();
 public record WindowStateToggledEvent();
+public record AddressCopyRequestedEvent();
 
 public class CustomWindowChromeBrowserApi(CustomWindowChromeBrowser browser) : BrowserApi(browser)
 {
     public Channel<WindowMinimizedEvent> WindowMinimizedChannel { get; } = Channel.CreateUnbounded<WindowMinimizedEvent>();
     public Channel<WindowStateToggledEvent> WindowStateToggledChannel { get; } = Channel.CreateUnbounded<WindowStateToggledEvent>();
+    public Channel<AddressCopyRequestedEvent> AddressCopyRequestedChannel { get; } = Channel.CreateUnbounded<AddressCopyRequestedEvent>();
 
     // TODO: Is there a better way to get the MainWindow instance?
 
@@ -37,4 +39,7 @@ public class CustomWindowChromeBrowserApi(CustomWindowChromeBrowser browser) : B
 
     public void Close() =>
         MainWindow.Instance.Dispatcher.Invoke(MainWindow.Instance.Close);
+
+    public void CopyAddress() =>
+        AddressCopyRequestedChannel.Writer.TryWrite(new AddressCopyRequestedEvent());
 }

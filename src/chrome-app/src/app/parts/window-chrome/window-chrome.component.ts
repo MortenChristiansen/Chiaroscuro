@@ -67,6 +67,31 @@ import { WindowsChromeApi } from './windowChromeApi';
             />
           </svg>
         </button>
+        <button
+          (click)="copyAddress()"
+          class="icon-btn"
+          aria-label="Copy address"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 20 20"
+            stroke-width="2"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <rect x="7" y="7" width="9" height="9" rx="2" />
+            <rect
+              x="4"
+              y="4"
+              width="9"
+              height="9"
+              rx="2"
+              fill="none"
+              stroke-dasharray="2 2"
+            />
+          </svg>
+        </button>
         <span
           class="address mx-4 font-sans text-base text-gray-200 max-w-[400px] truncate"
         >
@@ -196,5 +221,9 @@ export default class WindowChromeComponent implements OnInit {
 
   close() {
     this.api.close();
+  }
+
+  copyAddress() {
+    this.api.copyAddress();
   }
 }
