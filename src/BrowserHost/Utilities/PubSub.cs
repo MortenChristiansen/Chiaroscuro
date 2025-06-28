@@ -26,7 +26,7 @@ public static class PubSub
         if (_subscribers.TryGetValue(type, out List<Delegate>? value))
         {
             var actions = value.ToArray();
-            foreach (var action in actions.ToArray())
+            foreach (var action in actions)
             {
                 if (action is Action<T> typedAction)
                 {
