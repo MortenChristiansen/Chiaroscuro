@@ -1,18 +1,18 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { Api, exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { WindowsChromeApi } from './windowChromeApi';
+import { IconButtonComponent } from '../../shared/icon-button.component';
 
 @Component({
   selector: 'window-chrome',
-  imports: [],
+  imports: [IconButtonComponent],
   template: `
     <div class="flex items-center gap-4 align-middle px-2 py-1 select-none">
       <div class="address-bar flex flex-1 items-center gap-2 justify-center">
-        <button
-          (click)="back()"
+        <icon-button
+          ariaLabel="Back"
           [disabled]="!canGoBack()"
-          class="icon-btn"
-          aria-label="Back"
+          (onClick)="back()"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -26,12 +26,11 @@ import { WindowsChromeApi } from './windowChromeApi';
               clip-rule="evenodd"
             />
           </svg>
-        </button>
-        <button
-          (click)="forward()"
+        </icon-button>
+        <icon-button
+          ariaLabel="Forward"
           [disabled]="!canGoForward()"
-          class="icon-btn"
-          aria-label="Forward"
+          (onClick)="forward()"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -45,8 +44,8 @@ import { WindowsChromeApi } from './windowChromeApi';
               clip-rule="evenodd"
             />
           </svg>
-        </button>
-        <button (click)="reload()" class="icon-btn" aria-label="Reload">
+        </icon-button>
+        <icon-button ariaLabel="Reload" (onClick)="reload()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
@@ -66,12 +65,8 @@ import { WindowsChromeApi } from './windowChromeApi';
               stroke-linejoin="round"
             />
           </svg>
-        </button>
-        <button
-          (click)="copyAddress()"
-          class="icon-btn"
-          aria-label="Copy address"
-        >
+        </icon-button>
+        <icon-button ariaLabel="Copy address" (onClick)="copyAddress()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -91,7 +86,7 @@ import { WindowsChromeApi } from './windowChromeApi';
               stroke-dasharray="2 2"
             />
           </svg>
-        </button>
+        </icon-button>
         <span
           class="address mx-4 font-sans text-base text-gray-200 max-w-[400px] truncate"
         >
@@ -103,7 +98,7 @@ import { WindowsChromeApi } from './windowChromeApi';
         </span>
       </div>
       <div class="window-controls flex gap-2 ml-auto">
-        <button (click)="min()" class="icon-btn" aria-label="Minimize">
+        <icon-button (onClick)="min()" ariaLabel="Minimize">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -118,8 +113,8 @@ import { WindowsChromeApi } from './windowChromeApi';
               d="M6 18L18 18"
             />
           </svg>
-        </button>
-        <button (click)="max()" class="icon-btn" aria-label="Maximize">
+        </icon-button>
+        <icon-button (onClick)="max()" ariaLabel="Maximize">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -130,11 +125,11 @@ import { WindowsChromeApi } from './windowChromeApi';
           >
             <rect x="6" y="6" width="12" height="12" rx="2" />
           </svg>
-        </button>
-        <button
-          (click)="close()"
-          class="icon-btn text-red-400 hover:text-red-600"
-          aria-label="Close"
+        </icon-button>
+        <icon-button
+          (onClick)="close()"
+          ariaLabel="Close"
+          extraClass="text-red-400 hover:text-red-600"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -150,33 +145,9 @@ import { WindowsChromeApi } from './windowChromeApi';
               d="M6 6l12 12M6 18L18 6"
             />
           </svg>
-        </button>
+        </icon-button>
       </div>
     </div>
-  `,
-  styles: `
-    .icon-btn {
-      background: transparent;
-      border: none;
-      color: #e5e7eb;
-      font-family: Consolas;
-      border-radius: 0.375rem;
-      font-weight: 400;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.25rem .5rem;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-    }
-    .icon-btn:hover:not(:disabled) {
-      background: rgba(255,255,255,0.08);
-      color: #fff;
-    }
-    .icon-btn:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
   `,
 })
 export default class WindowChromeComponent implements OnInit {
