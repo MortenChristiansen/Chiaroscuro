@@ -20,7 +20,6 @@ public static class TabStateManager
                 Debug.WriteLine("Saving tabs state to disk...");
                 File.WriteAllText(_tabsStatePath, JsonSerializer.Serialize(tabs, _jsonSerializerOptions));
             });
-
         }
         catch (Exception e)
         {

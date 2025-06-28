@@ -97,6 +97,7 @@ export default class TabsListComponent implements OnInit {
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" rx="4" fill="%23bbb"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="white" font-family="Arial">★</text></svg>';
 
   private tabsChangedTimeout: any = null;
+  private saveTabsDebounceDelay = 1000;
 
   constructor() {
     effect(() => {
@@ -121,7 +122,7 @@ export default class TabsListComponent implements OnInit {
             IsActive: tab.id === selectedTab?.id,
           }))
         );
-      }, 1000); // Debounce delay for saving tab state
+      }, this.saveTabsDebounceDelay);
     });
   }
 
