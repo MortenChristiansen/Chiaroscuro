@@ -1,4 +1,7 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Utilities;
+using CefSharp;
+using System.Collections.Generic;
 
 namespace BrowserHost.Features.ActionDialog;
 
@@ -10,5 +13,10 @@ public class ActionDialogBrowser : Browser<ActionDialogBrowserApi>
         : base("/action-dialog")
     {
         Api = new ActionDialogBrowserApi(this);
+    }
+
+    public void UpdateSuggestions(List<NavigationSuggestion> suggestions)
+    {
+        this.ExecuteScriptAsync($"window.angularApi.updateSuggestions({suggestions.ToJsonObject()})");
     }
 }

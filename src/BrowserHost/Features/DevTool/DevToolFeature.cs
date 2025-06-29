@@ -43,7 +43,6 @@ public class DevToolFeature(MainWindow window) : Feature(window)
     {
         if (tab == null) return;
 
-        var browserHost = tab.GetBrowserHost();
-        browserHost.CloseDevTools();
+        tab.GetBrowserHost()?.CloseDevTools();
     }
 }

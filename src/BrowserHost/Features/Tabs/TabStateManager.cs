@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BrowserHost.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -8,7 +9,7 @@ namespace BrowserHost.Features.Tabs;
 
 public static class TabStateManager
 {
-    private static readonly string _tabsStatePath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "tabs.json"));
+    private static readonly string _tabsStatePath = AppDataPathManager.GetAppDataFilePath("tabs.json");
     private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { WriteIndented = true };
 
     public static void SaveTabsToDisk(IEnumerable<TabStateDto> tabs)

@@ -12,12 +12,15 @@ public class TabBrowser : Browser
 
     public string Id { get; } = $"{Guid.NewGuid()}";
     public string? Favicon { get; private set; }
+    public string? ManualAddress { get; private set; }
 
     public event EventHandler? FaviconChanged;
 
-    public TabBrowser(BrowserApi api, string address, TabListBrowser tabListBrowser)
+    public TabBrowser(string address, TabListBrowser tabListBrowser, bool isNewTab)
     {
         Address = address;
+        if (isNewTab)
+            ManualAddress = address;
 
         TitleChanged += OnTitleChanged;
 
@@ -38,5 +41,11 @@ public class TabBrowser : Browser
         Favicon = addresses.FirstOrDefault();
         Dispatcher.BeginInvoke(() => _tabListBrowser.UpdateTabFavicon(Id, Favicon));
         FaviconChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetManuallyNavigatedAddress(string address)
+    {
+        Address = address;
+        ManualAddress = address;
     }
 }
