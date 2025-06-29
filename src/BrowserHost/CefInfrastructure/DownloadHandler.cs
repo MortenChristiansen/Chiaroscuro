@@ -1,3 +1,4 @@
+using BrowserHost.Features.FileDownload;
 using CefSharp;
 using System.IO;
 
@@ -24,5 +25,15 @@ public class DownloadHandler(string downloadDirectory) : IDownloadHandler
 
     public void OnDownloadUpdated(IWebBrowser chromiumWebBrowser, IBrowser browser, DownloadItem downloadItem, IDownloadItemCallback callback)
     {
+        // Notify the FileDownloadFeature of progress updates
+        try
+        {
+            var fileDownloadFeature = MainWindow.Instance?.GetFeature<FileDownloadFeature>();
+            fileDownloadFeature?.OnDownloadUpdated(downloadItem.Id, downloadItem, callback);
+        }
+        catch
+        {
+            // If FileDownloadFeature is not available, continue without progress tracking
+        }
     }
 }

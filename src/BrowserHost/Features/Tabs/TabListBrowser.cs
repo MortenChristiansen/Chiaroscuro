@@ -9,7 +9,7 @@ public class TabListBrowser : Browser<TabListBrowserApi>
     public override TabListBrowserApi Api { get; }
 
     public TabListBrowser()
-        : base("/tabs")
+        : base("/actions-host")
     {
         Api = new TabListBrowserApi(this);
     }

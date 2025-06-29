@@ -2,6 +2,7 @@ using BrowserHost.Features;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
+using BrowserHost.Features.FileDownload;
 using BrowserHost.Features.Tabs;
 using CefSharp;
 using CefSharp.Wpf;
@@ -36,6 +37,7 @@ public partial class MainWindow : Window
             new CustomWindowChromeFeature(this),
             new ActionDialogFeature(this),
             new TabsFeature(this),
+            new FileDownloadFeature(this),
             new DevToolFeature(this)
         ];
         _features.ForEach(f => f.Register());

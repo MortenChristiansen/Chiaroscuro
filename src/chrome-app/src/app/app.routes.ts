@@ -12,7 +12,7 @@ export const routes: Routes = [
       import('./parts/action-dialog/action-dialog.component'),
   },
   {
-    path: 'tabs',
-    loadComponent: () => import('./parts/tabs/tabs-list.component'),
+    path: 'actions-host',
+    loadComponent: () => import('./parts/actions-host/actions-host.component'),
   },
 ];

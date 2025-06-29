@@ -35,7 +35,7 @@ static class ContentServer
         var baseDir = AppContext.BaseDirectory;
         var chromeAppRoot = Path.Combine(baseDir, "chrome-app");
         var chromeAppActionDialog = Path.Combine(baseDir, "chrome-app", "action-dialog");
-        var tabs = Path.Combine(baseDir, "chrome-app", "tabs");
+        var actionsHost = Path.Combine(baseDir, "chrome-app", "actions-host");
 
         return new WebServer(o => o
             .WithUrlPrefix(_host)
@@ -43,7 +43,7 @@ static class ContentServer
         )
         .WithStaticFolder("/", chromeAppRoot, true, m => m.WithContentCaching())
         .WithStaticFolder("/action-dialog", chromeAppActionDialog, true, m => m.WithContentCaching())
-        .WithStaticFolder("/tabs", tabs, true, m => m.WithContentCaching())
+        .WithStaticFolder("/actions-host", actionsHost, true, m => m.WithContentCaching())
         ;
     }
 #endif
