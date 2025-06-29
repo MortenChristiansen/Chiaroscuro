@@ -64,6 +64,8 @@ export default class ActionDialogComponent implements OnInit {
         this.updateInputWithSuggestion();
       } else {
         this.activeSuggestionIndex.set(-1);
+        // Clear any auto-completion when no suggestions are available
+        this.clearAutoCompletion();
       }
     });
   }
@@ -147,25 +149,85 @@ export default class ActionDialogComponent implements OnInit {
     const suggestions = this.suggestions();
     const activeIndex = this.activeSuggestionIndex();
     
-    if (activeIndex >= 0 && activeIndex < suggestions.length && this.userTypedText) {
+    if (activeIndex >= 0 && activeIndex < suggestions.length && this.userTypedText && typeof window !== 'undefined') {
       const suggestion = suggestions[activeIndex];
+      const input = this.dialog()!.nativeElement;
+      
+      // Only apply the suggestion if it's relevant to the current user input
+      // Check if the suggestion matches the user's typed text
+      if (this.suggestionMatchesUserInput(suggestion.address, this.userTypedText)) {
+        // Set flag to prevent onInputChange from updating userTypedText
+        this.isUpdatingInput = true;
+        
+        // Set the full suggestion text
+        input.value = suggestion.address;
+        
+        // Select the auto-completed part (only in browser environment)
+        if (input.setSelectionRange) {
+          const userTextLength = this.userTypedText.length;
+          input.setSelectionRange(userTextLength, suggestion.address.length);
+        }
+        
+        // Reset flag after a short delay to allow the input event to fire
+        setTimeout(() => {
+          this.isUpdatingInput = false;
+        }, 0);
+      } else {
+        // If the suggestion doesn't match the user input, clear auto-completion
+        this.clearAutoCompletion();
+      }
+    }
+  }
+
+  private suggestionMatchesUserInput(suggestionAddress: string, userInput: string): boolean {
+    if (!suggestionAddress || !userInput) return false;
+    
+    const userInputLower = userInput.toLowerCase();
+    const suggestionLower = suggestionAddress.toLowerCase();
+    
+    // Check if suggestion starts with user input directly
+    if (suggestionLower.startsWith(userInputLower)) {
+      return true;
+    }
+    
+    // Check if suggestion without scheme starts with user input
+    const suggestionWithoutScheme = this.removeScheme(suggestionAddress).toLowerCase();
+    if (suggestionWithoutScheme.startsWith(userInputLower)) {
+      return true;
+    }
+    
+    return false;
+  }
+
+  private clearAutoCompletion() {
+    if (this.userTypedText !== undefined && typeof window !== 'undefined') {
       const input = this.dialog()!.nativeElement;
       
       // Set flag to prevent onInputChange from updating userTypedText
       this.isUpdatingInput = true;
       
-      // Set the full suggestion text
-      input.value = suggestion.address;
+      // Reset input to only show user's typed text
+      input.value = this.userTypedText;
       
-      // Select the auto-completed part
-      const userTextLength = this.userTypedText.length;
-      input.setSelectionRange(userTextLength, suggestion.address.length);
+      // Position cursor at the end (only in browser environment)
+      if (input.setSelectionRange) {
+        input.setSelectionRange(this.userTypedText.length, this.userTypedText.length);
+      }
       
-      // Reset flag after a short delay to allow the input event to fire
+      // Reset flag after a short delay
       setTimeout(() => {
         this.isUpdatingInput = false;
       }, 0);
     }
+  }
+
+  private removeScheme(url: string): string {
+    if (url.startsWith('http://')) {
+      return url.substring(7);
+    } else if (url.startsWith('https://')) {
+      return url.substring(8);
+    }
+    return url;
   }
 
   selectSuggestion(suggestion: NavigationSuggestion) {
