@@ -61,6 +61,8 @@ public static class NavigationHistoryStateManager
         if (string.IsNullOrWhiteSpace(address))
             return string.Empty;
 
+        address = address.ToLowerInvariant();
+
         if (address.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
             address = address.Substring(7);
         else if (address.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
@@ -110,10 +112,12 @@ public static class NavigationHistoryStateManager
             return [];
 
         var suggestions = history
-            .Where(kvp => GetRelevanceScore(kvp.Key, searchText) > 0)
-            .OrderByDescending(kvp => GetRelevanceScore(kvp.Key, searchText))
+            .Select(x => (Item: x, Score: GetRelevanceScore(x.Key, searchText)))
+            .Where(x => x.Score > 0)
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => x.Item.Key)
             .Take(maxSuggestions)
-            .Select(kvp => new NavigationSuggestion(kvp.Key, kvp.Value.Title, kvp.Value.Favicon))
+            .Select(x => new NavigationSuggestion(x.Item.Key, x.Item.Value.Title, x.Item.Value.Favicon))
             .ToList();
 
         return suggestions;
@@ -124,26 +128,16 @@ public static class NavigationHistoryStateManager
         if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(searchText))
             return 0;
 
-        // Remove scheme from URL for matching (http://, https://)
-        var urlWithoutScheme = url;
-        if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
-            urlWithoutScheme = url.Substring(7);
-        else if (url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            urlWithoutScheme = url.Substring(8);
-
-        // Count matching characters
+        var normalizedUrl = NormalizeAddress(url);
         var searchLower = searchText.ToLowerInvariant();
-        var urlLower = urlWithoutScheme.ToLowerInvariant();
 
         int matchingChars = 0;
-        int searchIndex = 0;
 
-        for (int i = 0; i < urlLower.Length && searchIndex < searchLower.Length; i++)
+        for (int i = 0; i < normalizedUrl.Length && i < searchLower.Length; i++)
         {
-            if (urlLower[i] == searchLower[searchIndex])
+            if (normalizedUrl[i] == searchLower[i])
             {
                 matchingChars++;
-                searchIndex++;
             }
         }
 
