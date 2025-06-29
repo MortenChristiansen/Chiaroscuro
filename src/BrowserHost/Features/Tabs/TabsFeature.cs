@@ -20,7 +20,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         {
             if (Window.CurrentTab != null && e.UseCurrentTab)
             {
-                Window.CurrentTab.Address = e.Address;
+                Window.CurrentTab.SetManuallyNavigatedAddress(e.Address);
             }
             else
             {
@@ -64,7 +64,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     private TabBrowser AddNewTab(string address)
     {
-        var browser = new TabBrowser(Api, address, Window.Tabs);
+        var browser = new TabBrowser(address, Window.Tabs, isNewTab: true);
         _tabBrowsers.Add(browser);
 
         RegisterNewTabWithFrontend(browser);
@@ -81,7 +81,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     private TabBrowser AddExistingTab(string address, bool activate, string? title, string? favicon)
     {
-        var browser = new TabBrowser(Api, address, Window.Tabs);
+        var browser = new TabBrowser(address, Window.Tabs, isNewTab: false);
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
 

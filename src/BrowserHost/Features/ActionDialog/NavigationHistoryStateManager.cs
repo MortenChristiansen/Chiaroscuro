@@ -17,17 +17,19 @@ public static class NavigationHistoryStateManager
 
     public static void SaveNavigationEntry(string address, string? title, string? favicon)
     {
+        var normalizedAddress = NormalizeAddress(address);
+
         try
         {
             MainWindow.Instance?.Dispatcher.Invoke(() =>
             {
-                Debug.WriteLine($"Saving navigation entry: {address}");
-                
+                Debug.WriteLine($"Saving navigation entry: {normalizedAddress}");
+
                 var history = LoadNavigationHistory();
-                
+
                 // Update or add the entry (address is the key)
-                history[address] = new NavigationHistoryEntry(title ?? address, favicon);
-                
+                history[normalizedAddress] = new NavigationHistoryEntry(title ?? normalizedAddress, favicon);
+
                 File.WriteAllText(_navigationHistoryPath, JsonSerializer.Serialize(history, _jsonSerializerOptions));
             });
         }
@@ -35,6 +37,22 @@ public static class NavigationHistoryStateManager
         {
             Debug.WriteLine($"Failed to save navigation history: {e.Message}");
         }
+    }
+
+    private static string NormalizeAddress(string address)
+    {
+        if (string.IsNullOrWhiteSpace(address))
+            return string.Empty;
+
+        if (address.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+            address = address.Substring(7);
+        else if (address.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            address = address.Substring(8);
+
+        if (address.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+            address = address.Substring(4);
+
+        return address.Trim().TrimEnd('/');
     }
 
     public static Dictionary<string, NavigationHistoryEntry> LoadNavigationHistory()
@@ -58,7 +76,7 @@ public static class NavigationHistoryStateManager
     public static List<NavigationSuggestion> GetSuggestions(string searchText, int maxSuggestions = 5)
     {
         var history = LoadNavigationHistory();
-        
+
         if (string.IsNullOrWhiteSpace(searchText))
             return new List<NavigationSuggestion>();
 
@@ -87,10 +105,10 @@ public static class NavigationHistoryStateManager
         // Count matching characters
         var searchLower = searchText.ToLowerInvariant();
         var urlLower = urlWithoutScheme.ToLowerInvariant();
-        
+
         int matchingChars = 0;
         int searchIndex = 0;
-        
+
         for (int i = 0; i < urlLower.Length && searchIndex < searchLower.Length; i++)
         {
             if (urlLower[i] == searchLower[searchIndex])

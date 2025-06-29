@@ -35,9 +35,9 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
         {
             var tabFeature = Window.GetFeature<TabsFeature>();
             var tabBrowser = tabFeature.GetTabById(currentTab.Id);
-            if (tabBrowser != null && !string.IsNullOrEmpty(tabBrowser.Address))
+            if (tabBrowser != null && !string.IsNullOrEmpty(tabBrowser.ManualAddress))
             {
-                NavigationHistoryStateManager.SaveNavigationEntry(tabBrowser.Address, currentTab.Title, currentTab.Favicon);
+                NavigationHistoryStateManager.SaveNavigationEntry(tabBrowser.ManualAddress, currentTab.Title, currentTab.Favicon);
             }
         }
     }
@@ -46,7 +46,7 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
     {
         // Get suggestions based on the current input
         var suggestions = NavigationHistoryStateManager.GetSuggestions(e.Value);
-        
+
         // Send suggestions to frontend
         Window.ActionDialog.UpdateSuggestions(suggestions);
     }
