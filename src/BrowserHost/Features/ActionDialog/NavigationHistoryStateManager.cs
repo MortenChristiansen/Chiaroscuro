@@ -14,6 +14,10 @@ public static class NavigationHistoryStateManager
 {
     private static readonly string _navigationHistoryPath = AppDataPathManager.GetAppDataFilePath("navigationHistory.json");
     private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { WriteIndented = true };
+    
+    // In-memory cache for navigation history
+    private static Dictionary<string, NavigationHistoryEntry>? _cachedHistory = null;
+    private static readonly object _cacheLock = new object();
 
     public static void SaveNavigationEntry(string address, string? title, string? favicon)
     {
@@ -25,12 +29,17 @@ public static class NavigationHistoryStateManager
             {
                 Debug.WriteLine($"Saving navigation entry: {normalizedAddress}");
 
-                var history = LoadNavigationHistory();
+                lock (_cacheLock)
+                {
+                    // Ensure cache is loaded
+                    EnsureCacheLoaded();
+                    
+                    // Update the cache
+                    _cachedHistory![normalizedAddress] = new NavigationHistoryEntry(title ?? normalizedAddress, favicon);
 
-                // Update or add the entry (address is the key)
-                history[normalizedAddress] = new NavigationHistoryEntry(title ?? normalizedAddress, favicon);
-
-                File.WriteAllText(_navigationHistoryPath, JsonSerializer.Serialize(history, _jsonSerializerOptions));
+                    // Save to file
+                    File.WriteAllText(_navigationHistoryPath, JsonSerializer.Serialize(_cachedHistory, _jsonSerializerOptions));
+                }
             });
         }
         catch (Exception e)
@@ -55,7 +64,15 @@ public static class NavigationHistoryStateManager
         return address.Trim().TrimEnd('/');
     }
 
-    public static Dictionary<string, NavigationHistoryEntry> LoadNavigationHistory()
+    private static void EnsureCacheLoaded()
+    {
+        if (_cachedHistory == null)
+        {
+            _cachedHistory = LoadNavigationHistoryFromDisk();
+        }
+    }
+
+    private static Dictionary<string, NavigationHistoryEntry> LoadNavigationHistoryFromDisk()
     {
         try
         {
@@ -73,9 +90,36 @@ public static class NavigationHistoryStateManager
         return new Dictionary<string, NavigationHistoryEntry>();
     }
 
+    public static Dictionary<string, NavigationHistoryEntry> LoadNavigationHistory()
+    {
+        lock (_cacheLock)
+        {
+            EnsureCacheLoaded();
+            // Return a copy to prevent external modifications to the cache
+            return new Dictionary<string, NavigationHistoryEntry>(_cachedHistory!);
+        }
+    }
+
+    /// <summary>
+    /// Clears the in-memory cache, forcing a reload from disk on next access
+    /// </summary>
+    public static void ClearCache()
+    {
+        lock (_cacheLock)
+        {
+            _cachedHistory = null;
+        }
+    }
+
     public static List<NavigationSuggestion> GetSuggestions(string searchText, int maxSuggestions = 5)
     {
-        var history = LoadNavigationHistory();
+        Dictionary<string, NavigationHistoryEntry> history;
+        
+        lock (_cacheLock)
+        {
+            EnsureCacheLoaded();
+            history = _cachedHistory!;
+        }
 
         if (string.IsNullOrWhiteSpace(searchText))
             return new List<NavigationSuggestion>();
