@@ -54,16 +54,22 @@ export default class ActionDialogComponent implements OnInit {
   private userTypedText = '';
   private debounceTimer?: any;
   private isUpdatingInput = false;
+  private userNavigatedSuggestions = false;
 
   constructor() {
-    // Reset active suggestion when suggestions change
+    // Reset active suggestion when suggestions change, but preserve user navigation
     effect(() => {
       const sigs = this.suggestions();
       if (sigs.length > 0) {
-        this.activeSuggestionIndex.set(0);
+        // Only reset to 0 if user hasn't manually navigated or if current index is out of bounds
+        const currentIndex = this.activeSuggestionIndex();
+        if (!this.userNavigatedSuggestions || currentIndex >= sigs.length) {
+          this.activeSuggestionIndex.set(0);
+        }
         this.updateInputWithSuggestion();
       } else {
         this.activeSuggestionIndex.set(-1);
+        this.userNavigatedSuggestions = false;
         // Clear any auto-completion when no suggestions are available
         this.clearAutoCompletion();
       }
@@ -79,6 +85,7 @@ export default class ActionDialogComponent implements OnInit {
         this.userTypedText = '';
         this.suggestions.set([]);
         this.activeSuggestionIndex.set(-1);
+        this.userNavigatedSuggestions = false;
         this.dialog()!.nativeElement.focus();
       },
       updateSuggestions: (suggestions: NavigationSuggestion[]) => {
@@ -98,6 +105,8 @@ export default class ActionDialogComponent implements OnInit {
     // Only update userTypedText if we're not in the middle of programmatically updating the input
     if (!this.isUpdatingInput) {
       this.userTypedText = value;
+      // Reset navigation flag when user types manually
+      this.userNavigatedSuggestions = false;
     }
 
     // Clear debounce timer
@@ -142,6 +151,7 @@ export default class ActionDialogComponent implements OnInit {
     }
 
     this.activeSuggestionIndex.set(newIndex);
+    this.userNavigatedSuggestions = true;
     this.updateInputWithSuggestion();
   }
 
