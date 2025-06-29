@@ -6,6 +6,7 @@ import {
   moveItemInArray,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
+import { debounce } from '../../shared/utils';
 
 export type TabId = string;
 
@@ -95,8 +96,6 @@ export default class TabsListComponent implements OnInit {
   selectedTab = signal<Tab | null>(null);
   fallbackFavicon =
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" rx="4" fill="%23bbb"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="white" font-family="Arial">★</text></svg>';
-
-  private tabsChangedTimeout: any = null;
   private saveTabsDebounceDelay = 1000;
 
   constructor() {
@@ -109,22 +108,20 @@ export default class TabsListComponent implements OnInit {
     effect(() => {
       if (!this.tabsInitialized()) return;
       const currentTabs = this.tabs();
-      const selectedTab = this.selectedTab();
-      if (this.tabsChangedTimeout) {
-        clearTimeout(this.tabsChangedTimeout);
-      }
-      this.tabsChangedTimeout = setTimeout(() => {
-        this.api.tabsChanged(
-          currentTabs.map((tab) => ({
-            Id: tab.id,
-            Title: tab.title,
-            Favicon: tab.favicon,
-            IsActive: tab.id === selectedTab?.id,
-          }))
-        );
-      }, this.saveTabsDebounceDelay);
+      this.tabsChanged(currentTabs, this.selectedTab()?.id ?? null);
     });
   }
+
+  private tabsChanged = debounce((tabs: Tab[], selectedTabId: TabId | null) => {
+    this.api.tabsChanged(
+      tabs.map((tab) => ({
+        Id: tab.id,
+        Title: tab.title,
+        Favicon: tab.favicon,
+        IsActive: tab.id === selectedTabId,
+      }))
+    );
+  }, this.saveTabsDebounceDelay);
 
   drop(event: CdkDragDrop<any>) {
     const currentTabs = [...this.tabs()];

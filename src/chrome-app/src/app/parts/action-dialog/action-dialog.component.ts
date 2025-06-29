@@ -9,6 +9,7 @@ import {
 import { ActionDialogApi, NavigationSuggestion } from './actionDialogApi';
 import { loadBackendApi, exposeApiToBackend } from '../interfaces/api';
 import { CommonModule } from '@angular/common';
+import { debounce } from '../../shared/utils';
 
 @Component({
   selector: 'action-dialog',
@@ -69,7 +70,6 @@ export default class ActionDialogComponent implements OnInit {
   suggestions = signal<NavigationSuggestion[]>([]);
   activeSuggestionIndex = signal<number>(-1);
   private userTypedText = '';
-  private debounceTimer?: any;
   private isUpdatingInput = false;
   private userNavigatedSuggestions = false;
   private suggestionDebounceDelay = 500;
@@ -127,20 +127,12 @@ export default class ActionDialogComponent implements OnInit {
       this.userNavigatedSuggestions = false;
     }
 
-    // Clear debounce timer
-    if (this.debounceTimer) {
-      (typeof window !== 'undefined' ? window.clearTimeout : clearTimeout)(
-        this.debounceTimer
-      );
-    }
-
-    // Debounce the API call
-    this.debounceTimer = (
-      typeof window !== 'undefined' ? window.setTimeout : setTimeout
-    )(() => {
-      this.api.notifyValueChanged(this.userTypedText);
-    }, this.suggestionDebounceDelay);
+    this.notifyValueChanged(this.userTypedText);
   }
+
+  private notifyValueChanged = debounce((value: string) => {
+    this.api.notifyValueChanged(value);
+  }, this.suggestionDebounceDelay);
 
   onKeyDown(event: KeyboardEvent) {
     const input = event.target as HTMLInputElement;
