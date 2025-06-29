@@ -17,7 +17,6 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
         PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
         PubSub.Subscribe<NavigationStartedEvent>(HandleNavigationStarted);
         PubSub.Subscribe<ActionDialogValueChangedEvent>(HandleValueChanged);
-        PubSub.Subscribe<TabsChangedEvent>(HandleTabsChanged);
     }
 
     private void HandleNavigationStarted(NavigationStartedEvent e)
@@ -25,21 +24,6 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
         // For now, save the address with basic info
         // The title and favicon will be updated when the page loads
         NavigationHistoryStateManager.SaveNavigationEntry(e.Address, null, null);
-    }
-
-    private void HandleTabsChanged(TabsChangedEvent e)
-    {
-        // Update navigation history with current tab information
-        var currentTab = e.Tabs.FirstOrDefault(t => t.IsActive);
-        if (currentTab != null)
-        {
-            var tabFeature = Window.GetFeature<TabsFeature>();
-            var tabBrowser = tabFeature.GetTabById(currentTab.Id);
-            if (tabBrowser != null && !string.IsNullOrEmpty(tabBrowser.Address))
-            {
-                NavigationHistoryStateManager.SaveNavigationEntry(tabBrowser.Address, currentTab.Title, currentTab.Favicon);
-            }
-        }
     }
 
     private void HandleValueChanged(ActionDialogValueChangedEvent e)
