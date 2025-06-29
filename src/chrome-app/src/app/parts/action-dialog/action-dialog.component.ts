@@ -176,8 +176,7 @@ export default class ActionDialogComponent implements OnInit {
     if (
       activeIndex >= 0 &&
       activeIndex < suggestions.length &&
-      this.userTypedText &&
-      typeof window !== 'undefined'
+      this.userTypedText
     ) {
       const suggestion = suggestions[activeIndex];
       const input = this.dialog()!.nativeElement;
@@ -218,7 +217,7 @@ export default class ActionDialogComponent implements OnInit {
   }
 
   private clearAutoCompletion() {
-    if (this.userTypedText !== undefined && typeof window !== 'undefined') {
+    if (this.userTypedText !== undefined) {
       const input = this.dialog()!.nativeElement;
 
       // Set flag to prevent onInputChange from updating userTypedText
