@@ -53,6 +53,7 @@ export default class ActionDialogComponent implements OnInit {
   activeSuggestionIndex = signal<number>(-1);
   private userTypedText = '';
   private debounceTimer?: any;
+  private isUpdatingInput = false;
 
   constructor() {
     // Reset active suggestion when suggestions change
@@ -92,9 +93,8 @@ export default class ActionDialogComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const value = input.value;
     
-    // Update user typed text only if this is actual user input
-    const cursorPosition = input.selectionStart || 0;
-    if (cursorPosition <= this.userTypedText.length || !this.userTypedText || value.length <= this.userTypedText.length) {
+    // Only update userTypedText if we're not in the middle of programmatically updating the input
+    if (!this.isUpdatingInput) {
       this.userTypedText = value;
     }
 
@@ -151,12 +151,20 @@ export default class ActionDialogComponent implements OnInit {
       const suggestion = suggestions[activeIndex];
       const input = this.dialog()!.nativeElement;
       
+      // Set flag to prevent onInputChange from updating userTypedText
+      this.isUpdatingInput = true;
+      
       // Set the full suggestion text
       input.value = suggestion.address;
       
       // Select the auto-completed part
       const userTextLength = this.userTypedText.length;
       input.setSelectionRange(userTextLength, suggestion.address.length);
+      
+      // Reset flag after a short delay to allow the input event to fire
+      setTimeout(() => {
+        this.isUpdatingInput = false;
+      }, 0);
     }
   }
 
