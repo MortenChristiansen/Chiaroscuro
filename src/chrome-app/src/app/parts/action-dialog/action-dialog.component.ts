@@ -1,4 +1,11 @@
-import { Component, ElementRef, OnInit, viewChild, signal, effect } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnInit,
+  viewChild,
+  signal,
+  effect,
+} from '@angular/core';
 import { ActionDialogApi, NavigationSuggestion } from './actionDialogApi';
 import { loadBackendApi, exposeApiToBackend } from '../interfaces/api';
 import { CommonModule } from '@angular/common';
@@ -24,25 +31,35 @@ import { CommonModule } from '@angular/common';
         #dialog
       />
       @if (suggestions().length > 0) {
-        <div class="w-[30rem] mt-2 bg-white rounded-lg border border-gray-200 shadow-lg max-h-64 overflow-y-auto">
-          @for (suggestion of suggestions(); track suggestion.address) {
-            <div 
-              class="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-              [class.bg-blue-50]="$index === activeSuggestionIndex()"
-              (click)="selectSuggestion(suggestion)"
-            >
-              @if (suggestion.favicon) {
-                <img [src]="suggestion.favicon" class="w-4 h-4 mr-3 flex-shrink-0" alt="">
-              } @else {
-                <div class="w-4 h-4 mr-3 flex-shrink-0 bg-gray-300 rounded"></div>
-              }
-              <div class="flex-1 min-w-0">
-                <div class="font-medium text-gray-900 truncate">{{ suggestion.title }}</div>
-                <div class="text-sm text-gray-500 truncate">{{ suggestion.address }}</div>
-              </div>
-            </div>
+      <div
+        class="w-[30rem] mt-2 bg-white rounded-lg border border-gray-200 shadow-lg max-h-64 overflow-y-auto"
+      >
+        @for (suggestion of suggestions(); track suggestion.address) {
+        <div
+          class="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+          [class.bg-blue-50]="$index === activeSuggestionIndex()"
+          (click)="selectSuggestion(suggestion)"
+        >
+          @if (suggestion.favicon) {
+          <img
+            [src]="suggestion.favicon"
+            class="w-4 h-4 mr-3 flex-shrink-0"
+            alt=""
+          />
+          } @else {
+          <div class="w-4 h-4 mr-3 flex-shrink-0 bg-gray-300 rounded"></div>
           }
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-gray-900 truncate">
+              {{ suggestion.title }}
+            </div>
+            <div class="text-sm text-gray-500 truncate">
+              {{ suggestion.address }}
+            </div>
+          </div>
         </div>
+        }
+      </div>
       }
     </div>
   `,
@@ -55,6 +72,7 @@ export default class ActionDialogComponent implements OnInit {
   private debounceTimer?: any;
   private isUpdatingInput = false;
   private userNavigatedSuggestions = false;
+  private suggestionDebounceDelay = 500;
 
   constructor() {
     // Reset active suggestion when suggestions change, but preserve user navigation
@@ -101,7 +119,7 @@ export default class ActionDialogComponent implements OnInit {
   onInputChange(event: Event) {
     const input = event.target as HTMLInputElement;
     const value = input.value;
-    
+
     // Only update userTypedText if we're not in the middle of programmatically updating the input
     if (!this.isUpdatingInput) {
       this.userTypedText = value;
@@ -111,18 +129,22 @@ export default class ActionDialogComponent implements OnInit {
 
     // Clear debounce timer
     if (this.debounceTimer) {
-      (typeof window !== 'undefined' ? window.clearTimeout : clearTimeout)(this.debounceTimer);
+      (typeof window !== 'undefined' ? window.clearTimeout : clearTimeout)(
+        this.debounceTimer
+      );
     }
 
     // Debounce the API call
-    this.debounceTimer = (typeof window !== 'undefined' ? window.setTimeout : setTimeout)(() => {
+    this.debounceTimer = (
+      typeof window !== 'undefined' ? window.setTimeout : setTimeout
+    )(() => {
       this.api.notifyValueChanged(this.userTypedText);
-    }, 300);
+    }, this.suggestionDebounceDelay);
   }
 
   onKeyDown(event: KeyboardEvent) {
     const input = event.target as HTMLInputElement;
-    
+
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       this.moveActiveSuggestion(1);
@@ -158,26 +180,33 @@ export default class ActionDialogComponent implements OnInit {
   private updateInputWithSuggestion() {
     const suggestions = this.suggestions();
     const activeIndex = this.activeSuggestionIndex();
-    
-    if (activeIndex >= 0 && activeIndex < suggestions.length && this.userTypedText && typeof window !== 'undefined') {
+
+    if (
+      activeIndex >= 0 &&
+      activeIndex < suggestions.length &&
+      this.userTypedText &&
+      typeof window !== 'undefined'
+    ) {
       const suggestion = suggestions[activeIndex];
       const input = this.dialog()!.nativeElement;
-      
+
       // Only apply the suggestion if it's relevant to the current user input
       // Check if the suggestion matches the user's typed text
-      if (this.suggestionMatchesUserInput(suggestion.address, this.userTypedText)) {
+      if (
+        this.suggestionMatchesUserInput(suggestion.address, this.userTypedText)
+      ) {
         // Set flag to prevent onInputChange from updating userTypedText
         this.isUpdatingInput = true;
-        
+
         // Set the full suggestion text
         input.value = suggestion.address;
-        
+
         // Select the auto-completed part (only in browser environment)
         if (input.setSelectionRange) {
           const userTextLength = this.userTypedText.length;
           input.setSelectionRange(userTextLength, suggestion.address.length);
         }
-        
+
         // Reset flag after a short delay to allow the input event to fire
         setTimeout(() => {
           this.isUpdatingInput = false;
@@ -189,55 +218,36 @@ export default class ActionDialogComponent implements OnInit {
     }
   }
 
-  private suggestionMatchesUserInput(suggestionAddress: string, userInput: string): boolean {
-    if (!suggestionAddress || !userInput) return false;
-    
-    const userInputLower = userInput.toLowerCase();
-    const suggestionLower = suggestionAddress.toLowerCase();
-    
-    // Check if suggestion starts with user input directly
-    if (suggestionLower.startsWith(userInputLower)) {
-      return true;
-    }
-    
-    // Check if suggestion without scheme starts with user input
-    const suggestionWithoutScheme = this.removeScheme(suggestionAddress).toLowerCase();
-    if (suggestionWithoutScheme.startsWith(userInputLower)) {
-      return true;
-    }
-    
-    return false;
+  private suggestionMatchesUserInput(
+    suggestionAddress: string,
+    userInput: string
+  ) {
+    return userInput && suggestionAddress.startsWith(userInput.toLowerCase());
   }
 
   private clearAutoCompletion() {
     if (this.userTypedText !== undefined && typeof window !== 'undefined') {
       const input = this.dialog()!.nativeElement;
-      
+
       // Set flag to prevent onInputChange from updating userTypedText
       this.isUpdatingInput = true;
-      
+
       // Reset input to only show user's typed text
       input.value = this.userTypedText;
-      
+
       // Position cursor at the end (only in browser environment)
       if (input.setSelectionRange) {
-        input.setSelectionRange(this.userTypedText.length, this.userTypedText.length);
+        input.setSelectionRange(
+          this.userTypedText.length,
+          this.userTypedText.length
+        );
       }
-      
+
       // Reset flag after a short delay
       setTimeout(() => {
         this.isUpdatingInput = false;
       }, 0);
     }
-  }
-
-  private removeScheme(url: string): string {
-    if (url.startsWith('http://')) {
-      return url.substring(7);
-    } else if (url.startsWith('https://')) {
-      return url.substring(8);
-    }
-    return url;
   }
 
   selectSuggestion(suggestion: NavigationSuggestion) {
