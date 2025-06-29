@@ -34,7 +34,18 @@ public static class NavigationHistoryStateManager
                 lock (_cacheLock)
                 {
                     EnsureCacheLoaded();
-                    _cachedHistory[normalizedAddress] = new NavigationHistoryEntry(title ?? normalizedAddress, favicon);
+                    var newValue = new NavigationHistoryEntry(title ?? normalizedAddress, favicon);
+                    if (_cachedHistory.TryGetValue(normalizedAddress, out var existingValue))
+                    {
+                        var isNewValue = newValue.Title == normalizedAddress && newValue.Favicon == null;
+                        if (isNewValue) // We already have this entry and this is a new navigation without a title or favicon, so we should not update it
+                            return;
+
+                        if (existingValue == newValue) // No change, do not update
+                            return;
+                    }
+
+                    _cachedHistory[normalizedAddress] = newValue;
                     File.WriteAllText(_navigationHistoryPath, JsonSerializer.Serialize(_cachedHistory, _jsonSerializerOptions));
                 }
             });
