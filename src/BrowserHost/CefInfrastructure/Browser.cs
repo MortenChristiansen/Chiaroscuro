@@ -70,8 +70,8 @@ public abstract class Browser : Browser<BrowserApi>
 {
     public override BrowserApi Api { get; }
 
-    protected Browser()
-        : base(null)
+    protected Browser(string? uiAddress = null)
+        : base(uiAddress)
     {
         Api = new BrowserApi(this);
     }

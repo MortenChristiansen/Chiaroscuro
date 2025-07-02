@@ -1,9 +1,8 @@
-using BrowserHost.CefInfrastructure;
+using BrowserHost.Features.Tabs;
 using BrowserHost.Utilities;
 using CefSharp;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -12,15 +11,13 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.FileDownload;
 
-public class FileDownloadFeature : Feature<FileDownloadBrowserApi>
+public class FileDownloadFeature : Feature<ActionsHostBrowserApi>
 {
     private readonly ConcurrentDictionary<int, DownloadInfo> _activeDownloads = new();
     private readonly Timer _progressTimer;
-    private readonly FileDownloadBrowser _downloadBrowser;
 
-    public FileDownloadFeature(MainWindow window) : base(window, new FileDownloadBrowser().Api)
+    public FileDownloadFeature(MainWindow window) : base(window, window.ActionsHost.Api)
     {
-        _downloadBrowser = new FileDownloadBrowser();
         _progressTimer = new Timer(SendProgressUpdate, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
@@ -28,7 +25,7 @@ public class FileDownloadFeature : Feature<FileDownloadBrowserApi>
     {
         // Subscribe to download events
         PubSub.Subscribe<DownloadCancelledEvent>(e => CancelDownload(e.DownloadId));
-        
+
         // Subscribe to CefSharp download events would go here
         // This would typically be done through a custom download handler
     }
@@ -43,7 +40,7 @@ public class FileDownloadFeature : Feature<FileDownloadBrowserApi>
             {
                 downloadInfo.Callback?.Cancel();
                 downloadInfo.IsCancelled = true;
-                
+
                 // Clean up temporary files if needed
                 if (File.Exists(downloadInfo.FilePath))
                 {
@@ -69,7 +66,7 @@ public class FileDownloadFeature : Feature<FileDownloadBrowserApi>
             if (downloads.Length > 0)
             {
                 // Send to frontend through the browser
-                _downloadBrowser.UpdateDownloads(downloads);
+                Window.ActionsHost.UpdateDownloads(downloads);
             }
         }
         catch (Exception ex)
@@ -90,13 +87,13 @@ public class FileDownloadFeature : Feature<FileDownloadBrowserApi>
 
         downloadInfo.Progress = (int)downloadItem.PercentComplete;
         downloadInfo.IsCompleted = downloadItem.IsComplete;
-        
+
         if (downloadItem.IsComplete || downloadItem.IsCancelled)
         {
             // Keep completed downloads for 10 seconds (handled by frontend)
             Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ =>
             {
-                _activeDownloads.TryRemove(downloadId, out _);
+                _activeDownloads.TryRemove(downloadId, out var _);
             });
         }
     }

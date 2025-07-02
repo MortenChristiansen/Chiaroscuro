@@ -8,7 +8,7 @@ namespace BrowserHost.Features.Tabs;
 
 public record TabStateDto(string Address, string? Title, string? Favicon, bool IsActive);
 
-public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.Tabs.Api)
+public class TabsFeature(MainWindow window) : Feature<ActionsHostBrowserApi>(window, window.ActionsHost.Api)
 {
     private readonly List<TabBrowser> _tabBrowsers = [];
 
@@ -45,7 +45,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
     {
         var tabs = TabStateManager.RestoreTabsFromDisk();
         var browsers = tabs.Select(t => (Browser: AddExistingTab(t.Address, activate: t.IsActive, t.Title, t.Favicon), Tab: t)).ToList();
-        Window.Tabs.SetTabs(
+        Window.ActionsHost.SetTabs(
             [.. browsers.Select(t => new TabDto(t.Browser.Id, t.Tab.Title, t.Tab.Favicon))],
             browsers.Find(t => t.Tab.IsActive).Browser?.Id
         );
@@ -64,7 +64,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     private TabBrowser AddNewTab(string address)
     {
-        var browser = new TabBrowser(address, Window.Tabs, isNewTab: true);
+        var browser = new TabBrowser(address, Window.ActionsHost, isNewTab: true);
         _tabBrowsers.Add(browser);
 
         RegisterNewTabWithFrontend(browser);
@@ -75,13 +75,13 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
     private void RegisterNewTabWithFrontend(TabBrowser browser)
     {
         var tab = new TabDto(browser.Id, browser.Title, null);
-        Window.Tabs.AddTab(tab, activate: true);
+        Window.ActionsHost.AddTab(tab, activate: true);
         Window.Dispatcher.Invoke(() => Window.SetCurrentTab(browser));
     }
 
     private TabBrowser AddExistingTab(string address, bool activate, string? title, string? favicon)
     {
-        var browser = new TabBrowser(address, Window.Tabs, isNewTab: false);
+        var browser = new TabBrowser(address, Window.ActionsHost, isNewTab: false);
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
 
@@ -95,7 +95,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         var tab = Window.CurrentTab;
         if (tab == null) return;
 
-        Window.Tabs.CloseTab(tab.Id);
+        Window.ActionsHost.CloseTab(tab.Id);
         PubSub.Publish(new TabClosedEvent(tab));
     }
 

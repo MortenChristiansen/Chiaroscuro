@@ -8,7 +8,7 @@ namespace BrowserHost.Features.Tabs;
 
 public class TabBrowser : Browser
 {
-    private readonly TabListBrowser _tabListBrowser;
+    private readonly ActionsHostBrowser _tabListBrowser;
 
     public string Id { get; } = $"{Guid.NewGuid()}";
     public string? Favicon { get; private set; }
@@ -16,7 +16,7 @@ public class TabBrowser : Browser
 
     public event EventHandler? FaviconChanged;
 
-    public TabBrowser(string address, TabListBrowser tabListBrowser, bool isNewTab)
+    public TabBrowser(string address, ActionsHostBrowser tabListBrowser, bool isNewTab)
     {
         Address = address;
         if (isNewTab)

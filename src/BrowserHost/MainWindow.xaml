@@ -24,7 +24,7 @@
                         <ColumnDefinition Width="5" />
                         <ColumnDefinition Width="*" MinWidth="200" />
                     </Grid.ColumnDefinitions>
-                    <tabs:TabListBrowser x:Name="Tabs" Grid.Column="0" />
+                    <tabs:ActionsHostBrowser x:Name="ActionsHost" Grid.Column="0" />
                     <GridSplitter
                         Grid.Column="1"
                         Width="5"

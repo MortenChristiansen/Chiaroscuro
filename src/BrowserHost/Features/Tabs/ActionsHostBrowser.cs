@@ -1,17 +1,18 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Features.FileDownload;
 using BrowserHost.Utilities;
 using CefSharp;
 
 namespace BrowserHost.Features.Tabs;
 
-public class TabListBrowser : Browser<TabListBrowserApi>
+public class ActionsHostBrowser : Browser<ActionsHostBrowserApi>
 {
-    public override TabListBrowserApi Api { get; }
+    public override ActionsHostBrowserApi Api { get; }
 
-    public TabListBrowser()
+    public ActionsHostBrowser()
         : base("/actions-host")
     {
-        Api = new TabListBrowserApi(this);
+        Api = new ActionsHostBrowserApi(this);
     }
 
     public void AddTab(TabDto tab, bool activate = true)
@@ -53,6 +54,15 @@ public class TabListBrowser : Browser<TabListBrowserApi>
         RunWhenSourceHasLoaded(() =>
         {
             this.ExecuteScriptAsync($"window.angularApi.closeTab({tabId.ToJsonString()})");
+        });
+    }
+
+    public void UpdateDownloads(DownloadItemDto[] downloads)
+    {
+        RunWhenSourceHasLoaded(() =>
+        {
+            var script = $"window.angularApi.downloadsChanged({downloads.ToJsonObject()})";
+            this.ExecuteScriptAsync(script);
         });
     }
 }
