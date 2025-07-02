@@ -1,4 +1,5 @@
 ﻿using BrowserHost.CefInfrastructure;
+using CefSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,7 @@ public class TabBrowser : Browser
     public string? Favicon { get; private set; }
     public string? ManualAddress { get; private set; }
 
-    public event EventHandler? FaviconChanged;
+    private event EventHandler? FaviconChanged;
 
     public TabBrowser(string address, TabListBrowser tabListBrowser, bool isNewTab)
     {
@@ -29,6 +30,8 @@ public class TabBrowser : Browser
 
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
+
+        BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
     }
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
