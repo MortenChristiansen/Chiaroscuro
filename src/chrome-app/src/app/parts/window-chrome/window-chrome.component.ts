@@ -143,6 +143,11 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
 })
 export default class WindowChromeComponent implements OnInit {
   async ngOnInit() {
+    // Skip initialization during server-side rendering
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     this.api = await loadBackendApi<WindowsChromeApi>();
 
     exposeApiToBackend({

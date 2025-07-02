@@ -95,6 +95,11 @@ export default class ActionDialogComponent implements OnInit {
   }
 
   async ngOnInit() {
+    // Skip initialization during server-side rendering
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     this.api = await loadBackendApi<ActionDialogApi>();
 
     exposeApiToBackend({

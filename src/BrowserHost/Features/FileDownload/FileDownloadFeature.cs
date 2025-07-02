@@ -23,11 +23,8 @@ public class FileDownloadFeature : Feature<ActionsHostBrowserApi>
 
     public override void Register()
     {
-        // Subscribe to download events
+        // Subscribe to download cancellation events from frontend
         PubSub.Subscribe<DownloadCancelledEvent>(e => CancelDownload(e.DownloadId));
-
-        // Subscribe to CefSharp download events would go here
-        // This would typically be done through a custom download handler
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e) => false;

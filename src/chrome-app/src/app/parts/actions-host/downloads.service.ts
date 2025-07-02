@@ -14,6 +14,11 @@ export class DownloadsService {
   async initialize() {
     if (this.api) return;
     
+    // Skip initialization during server-side rendering
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     try {
       this.api = await loadBackendApi<FileDownloadApi>();
       
