@@ -1,4 +1,5 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Features.FileDownloads;
 using BrowserHost.Features.Tabs;
 
 namespace BrowserHost.Features.ActionContext;
@@ -13,6 +14,7 @@ public class ActionContextBrowser : Browser
         TabListApi = new TabListBrowserApi(this);
 
         RegisterSecondaryApi(new TabListBrowserApi(this), "tabsApi");
+        RegisterSecondaryApi(new FileDownloadsBrowserApi(this), "fileDownloadsApi");
     }
 }
 
