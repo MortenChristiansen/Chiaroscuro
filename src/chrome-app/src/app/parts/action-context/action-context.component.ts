@@ -6,10 +6,21 @@ import DownloadsListComponent from './downloads-list.component';
   selector: 'action-context',
   imports: [TabsListComponent, DownloadsListComponent],
   template: `
-    <div class="actions-host flex flex-col h-full">
+    <div class="flex flex-col h-full">
       <tabs-list class="flex-shrink-0"></tabs-list>
-      <downloads-list class="flex-shrink-0 mt-auto"></downloads-list>
+      <div class="flex-1 flex flex-col justify-end">
+        <downloads-list class="flex-shrink-0"></downloads-list>
+      </div>
     </div>
+  `,
+  styles: `
+    :host {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
   `,
 })
 export default class ActionContextComponent {}
