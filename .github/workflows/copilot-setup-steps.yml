@@ -40,6 +40,7 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
+          cache-dependency-path: 'src/chrome-app/package-lock.json'
 
       - name: Install Angular dependencies
         working-directory: ./src/chrome-app
