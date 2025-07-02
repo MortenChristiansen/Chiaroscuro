@@ -14,7 +14,7 @@ public class TabBrowser : Browser
     public string? Favicon { get; private set; }
     public string? ManualAddress { get; private set; }
 
-    public event EventHandler? FaviconChanged;
+    private event EventHandler? FaviconChanged;
 
     public TabBrowser(string address, TabListBrowser tabListBrowser, bool isNewTab)
     {

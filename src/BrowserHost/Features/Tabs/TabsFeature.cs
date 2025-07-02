@@ -35,6 +35,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             _tabBrowsers.Remove(e.Tab);
             if (e.Tab == Window.CurrentTab)
                 Window.SetCurrentTab(null);
+            e.Tab.Dispose();
         });
         PubSub.Subscribe<TabsChangedEvent>(e =>
             TabStateManager.SaveTabsToDisk(e.Tabs.Select(t => new TabStateDto(_tabBrowsers.Find(b => b.Id == t.Id)?.Address ?? "", t.Title, t.Favicon, t.IsActive)))
