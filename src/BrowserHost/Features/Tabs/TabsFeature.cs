@@ -33,6 +33,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         PubSub.Subscribe<TabClosedEvent>(e =>
         {
             _tabBrowsers.Remove(e.Tab);
+            e.Tab.Dispose();
             if (e.Tab == Window.CurrentTab)
                 Window.SetCurrentTab(null);
         });
