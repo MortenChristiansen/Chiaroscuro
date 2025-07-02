@@ -1,4 +1,5 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Features.ActionContext;
 using CefSharp;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ namespace BrowserHost.Features.Tabs;
 
 public class TabBrowser : Browser
 {
-    private readonly TabListBrowser _tabListBrowser;
+    private readonly ActionContextBrowser _actionContextBrowser;
 
     public string Id { get; } = $"{Guid.NewGuid()}";
     public string? Favicon { get; private set; }
@@ -17,7 +18,7 @@ public class TabBrowser : Browser
 
     private event EventHandler? FaviconChanged;
 
-    public TabBrowser(string address, TabListBrowser tabListBrowser, bool isNewTab)
+    public TabBrowser(string address, ActionContextBrowser actionContextBrowser, bool isNewTab)
     {
         Address = address;
         if (isNewTab)
@@ -26,7 +27,7 @@ public class TabBrowser : Browser
         TitleChanged += OnTitleChanged;
 
         DisplayHandler = new FaviconDisplayHandler(OnFaviconAddressesChanged);
-        _tabListBrowser = tabListBrowser;
+        _actionContextBrowser = actionContextBrowser;
 
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
@@ -36,13 +37,13 @@ public class TabBrowser : Browser
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        _tabListBrowser.UpdateTabTitle(Id, (string)e.NewValue);
+        _actionContextBrowser.UpdateTabTitle(Id, (string)e.NewValue);
     }
 
     private void OnFaviconAddressesChanged(IList<string> addresses)
     {
         Favicon = addresses.FirstOrDefault();
-        Dispatcher.BeginInvoke(() => _tabListBrowser.UpdateTabFavicon(Id, Favicon));
+        Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
         FaviconChanged?.Invoke(this, EventArgs.Empty);
     }
 

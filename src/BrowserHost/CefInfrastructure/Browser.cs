@@ -70,10 +70,15 @@ public abstract class Browser : Browser<BrowserApi>
 {
     public override BrowserApi Api { get; }
 
-    protected Browser()
-        : base(null)
+    protected Browser(string? uiAddress = null)
+        : base(uiAddress)
     {
         Api = new BrowserApi(this);
+    }
+
+    protected void RegisterSecondaryApi<TApi>(TApi api, string name) where TApi : BrowserApi
+    {
+        JavascriptObjectRepository.Register(name, api);
     }
 }
 
@@ -109,7 +114,7 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
         _isUiLoaded = true;
     }
 
-    protected void RunWhenSourceHasLoaded(Action action)
+    public void RunWhenSourceHasLoaded(Action action)
     {
         if (_isUiLoaded)
         {

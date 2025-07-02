@@ -8,7 +8,7 @@ namespace BrowserHost.Features.Tabs;
 
 public record TabStateDto(string Address, string? Title, string? Favicon, bool IsActive);
 
-public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.Tabs.Api)
+public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.Tabs.TabListApi)
 {
     private readonly List<TabBrowser> _tabBrowsers = [];
 

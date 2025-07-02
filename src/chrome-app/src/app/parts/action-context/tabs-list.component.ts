@@ -131,7 +131,7 @@ export default class TabsListComponent implements OnInit {
   }
 
   async ngOnInit() {
-    this.api = await loadBackendApi<TabListApi>();
+    this.api = await loadBackendApi<TabListApi>('tabsApi');
 
     exposeApiToBackend({
       addTab: (tab: Tab, activate: boolean) => {
