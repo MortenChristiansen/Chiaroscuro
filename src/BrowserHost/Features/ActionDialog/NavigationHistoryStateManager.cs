@@ -131,18 +131,12 @@ public static class NavigationHistoryStateManager
         var normalizedUrl = NormalizeAddress(url);
         var searchLower = searchText.ToLowerInvariant();
 
-        int matchingChars = 0;
+        // For strict prefix matching, search text must be a prefix of the URL
+        if (!normalizedUrl.StartsWith(searchLower))
+            return 0;
 
-        for (int i = 0; i < normalizedUrl.Length && i < searchLower.Length; i++)
-        {
-            if (normalizedUrl[i] == searchLower[i])
-            {
-                matchingChars++;
-            }
-        }
-
-        // Return the number of matching characters
-        return matchingChars;
+        // Return the length of the search text as the score
+        return searchLower.Length;
     }
 }
 
