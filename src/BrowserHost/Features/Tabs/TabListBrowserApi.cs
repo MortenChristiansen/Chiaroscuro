@@ -1,5 +1,4 @@
 ﻿using BrowserHost.CefInfrastructure;
-using BrowserHost.Features.ActionContext;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
@@ -14,7 +13,7 @@ public record TabsChangedEvent(TabUiStateDto[] Tabs);
 
 public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive);
 
-public class TabListBrowserApi(ActionContextBrowser browser) : BrowserApi(browser)
+public class TabListBrowserApi : BrowserApi
 {
     public void ActivateTab(string tabId) =>
         PubSub.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));

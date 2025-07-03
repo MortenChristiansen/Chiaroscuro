@@ -177,8 +177,6 @@ export default class TabsListComponent implements OnInit {
       },
       closeTab: (tabId: TabId) => this.close(tabId, false),
     });
-
-    await this.api.uiLoaded();
   }
 
   api!: TabListApi;

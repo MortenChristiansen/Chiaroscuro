@@ -2,6 +2,6 @@
 
 namespace BrowserHost.Features.FileDownloads;
 
-public class FileDownloadsBrowserApi(IBaseBrowser browser) : BrowserApi(browser)
+public class FileDownloadsBrowserApi : BrowserApi
 {
 }

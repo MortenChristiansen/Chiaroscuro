@@ -1,6 +1,6 @@
 ﻿using BrowserHost.CefInfrastructure;
-using CefSharp;
 using BrowserHost.Utilities;
+using CefSharp;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
@@ -8,7 +8,7 @@ public record WindowMinimizedEvent();
 public record WindowStateToggledEvent();
 public record AddressCopyRequestedEvent();
 
-public class CustomWindowChromeBrowserApi(CustomWindowChromeBrowser browser) : BrowserApi(browser)
+public class CustomWindowChromeBrowserApi : BrowserApi
 {
     public bool CanGoForward() =>
         MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.CanGoForward ?? false);

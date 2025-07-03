@@ -1,6 +1,4 @@
-export interface Api {
-  uiLoaded: () => Promise<void>;
-}
+export interface Api {}
 
 export async function loadBackendApi<TApi extends Api>(
   apiName?: string
@@ -17,5 +15,5 @@ export async function loadBackendApi<TApi extends Api>(
 
 export function exposeApiToBackend(api: any) {
   const currentApi = (window as any).angularApi || {};
-  (window as any).angularApi = { ...currentApi, api };
+  (window as any).angularApi = { ...currentApi, ...api };
 }

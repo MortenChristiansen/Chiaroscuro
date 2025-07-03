@@ -12,8 +12,8 @@ public class ActionContextBrowser : Browser
     public ActionContextBrowser()
         : base("/action-context")
     {
-        TabListApi = new TabListBrowserApi(this);
-        FileDownloadsApi = new FileDownloadsBrowserApi(this);
+        TabListApi = new TabListBrowserApi();
+        FileDownloadsApi = new FileDownloadsBrowserApi();
 
         RegisterSecondaryApi(TabListApi, "tabsApi");
         RegisterSecondaryApi(FileDownloadsApi, "fileDownloadsApi");

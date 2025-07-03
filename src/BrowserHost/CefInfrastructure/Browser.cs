@@ -9,7 +9,6 @@ namespace BrowserHost.CefInfrastructure;
 
 public interface IBaseBrowser
 {
-    void RegisterUiLoaded();
 }
 
 public abstract class BaseBrowser : ChromiumWebBrowser
@@ -65,15 +64,9 @@ public abstract class BaseBrowser : ChromiumWebBrowser
     }
 }
 
-public abstract class Browser : Browser<BrowserApi>
+public abstract class Browser(string? uiAddress = null) : Browser<BrowserApi>(uiAddress)
 {
-    public override BrowserApi Api { get; }
-
-    protected Browser(string? uiAddress = null)
-        : base(uiAddress)
-    {
-        Api = new BrowserApi(this);
-    }
+    public override BrowserApi Api { get; } = new BrowserApi();
 
     protected void RegisterSecondaryApi<TApi>(TApi api, string name) where TApi : BrowserApi
     {
@@ -114,7 +107,7 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
     {
     }
 
-    public void CallClientApi(string api, string arguments)
+    public void CallClientApi(string api, string? arguments = null)
     {
         var modifiedScript =
             $$"""
@@ -142,10 +135,6 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
     }
 }
 
-public class BrowserApi(IBaseBrowser browser)
+public class BrowserApi()
 {
-    public void UiLoaded()
-    {
-        browser.RegisterUiLoaded();
-    }
 }

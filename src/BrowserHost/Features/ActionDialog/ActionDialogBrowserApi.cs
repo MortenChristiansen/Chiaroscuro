@@ -7,7 +7,7 @@ public record ActionDialogDismissedEvent();
 public record NavigationStartedEvent(string Address, bool UseCurrentTab);
 public record ActionDialogValueChangedEvent(string Value);
 
-public class ActionDialogBrowserApi(ActionDialogBrowser browser) : BrowserApi(browser)
+public class ActionDialogBrowserApi : BrowserApi
 {
     public void Navigate(string url, bool useCurrentTab) =>
         PubSub.Publish(new NavigationStartedEvent(url, useCurrentTab));
