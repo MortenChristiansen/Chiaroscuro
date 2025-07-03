@@ -101,9 +101,12 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
         JavascriptObjectRepository.Register("api", Api);
         if (_uiAddress != null)
             Address = ContentServer.GetUiAddress(_uiAddress);
+
         ConsoleMessage += (sender, e) =>
         {
             Debug.WriteLine($"{GetType().Name}: {e.Message}");
+            if (e.Message.Contains("ERROR") && Debugger.IsAttached)
+                this.GetBrowserHost().ShowDevTools();
         };
 
         base.BeginInit();
