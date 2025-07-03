@@ -16,5 +16,6 @@ export async function loadBackendApi<TApi extends Api>(
 }
 
 export function exposeApiToBackend(api: any) {
-  (window as any).angularApi = api;
+  const currentApi = (window as any).angularApi || {};
+  (window as any).angularApi = { ...currentApi, api };
 }
