@@ -1,6 +1,5 @@
 ﻿using CefSharp;
 using CefSharp.Wpf;
-using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -84,7 +83,6 @@ public abstract class Browser : Browser<BrowserApi>
 
 public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : BrowserApi
 {
-    private bool _isUiLoaded = false;
     private readonly string? _uiAddress;
 
     public abstract TApi Api { get; }
@@ -105,7 +103,7 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
         ConsoleMessage += (sender, e) =>
         {
             Debug.WriteLine($"{GetType().Name}: {e.Message}");
-            if (e.Message.Contains("ERROR") && Debugger.IsAttached)
+            if (e.Level == LogSeverity.Error && Debugger.IsAttached)
                 this.GetBrowserHost().ShowDevTools();
         };
 
@@ -114,25 +112,32 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
 
     public void RegisterUiLoaded()
     {
-        _isUiLoaded = true;
     }
 
-    public void RunWhenSourceHasLoaded(Action action)
+    public void CallClientApi(string api, string arguments)
     {
-        if (_isUiLoaded)
+        var modifiedScript =
+            $$"""
+               function tryRun_{{api}}() {
+                 if (window.angularApi && window.angularApi.{{api}}) {
+                    window.angularApi.{{api}}({{arguments}});
+                 } else {
+                   setTimeout(tryRun_{{api}}, 50);
+                 }
+               }
+               tryRun_{{api}}();
+               """;
+
+        if (IsBrowserInitialized)
         {
-            action();
+            this.ExecuteScriptAsync(modifiedScript);
         }
         else
         {
-            Task.Run(async () =>
+            IsBrowserInitializedChanged += (sender, e) =>
             {
-                while (!_isUiLoaded)
-                {
-                    await Task.Delay(100); // Wait until the source is loaded
-                }
-                Dispatcher.Invoke(action);
-            });
+                this.ExecuteScriptAsync(modifiedScript);
+            };
         }
     }
 }
