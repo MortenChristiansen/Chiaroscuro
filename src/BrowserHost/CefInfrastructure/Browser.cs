@@ -129,7 +129,8 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
         {
             IsBrowserInitializedChanged += (sender, e) =>
             {
-                this.ExecuteScriptAsync(modifiedScript);
+                if (!IsDisposed)
+                    this.ExecuteScriptAsync(modifiedScript);
             };
         }
     }
