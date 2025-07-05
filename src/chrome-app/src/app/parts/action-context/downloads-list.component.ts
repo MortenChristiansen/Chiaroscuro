@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { trigger, transition, style, animate } from '@angular/animations';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { DownloadItem, FileDownloadsApi } from './fileDownloadsApi';
 
@@ -16,6 +17,7 @@ import { DownloadItem, FileDownloadsApi } from './fileDownloadsApi';
         @for (download of downloads(); track download.id) {
         <div
           class="download-item flex items-center px-4 py-2 text-gray-300 font-sans text-sm hover:bg-white/5 transition-colors duration-200"
+          @fadeInOut
         >
           <div class="download-info flex-1 flex items-center gap-2 min-w-0">
             <span class="file-name truncate">{{
@@ -87,6 +89,15 @@ import { DownloadItem, FileDownloadsApi } from './fileDownloadsApi';
   `,
   styles: `
   `,
+  animations: [
+    trigger('fadeInOut', [
+      transition(':enter', [
+        style({ opacity: 0 }),
+        animate('200ms ease-in', style({ opacity: 1 })),
+      ]),
+      transition(':leave', [animate('200ms ease-out', style({ opacity: 0 }))]),
+    ]),
+  ],
 })
 export default class DownloadsListComponent implements OnInit {
   downloads = signal<DownloadItem[]>([]);
