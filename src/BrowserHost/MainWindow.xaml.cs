@@ -104,6 +104,28 @@ public partial class MainWindow : Window
         }
     }
 
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        var downloadsFeature = GetFeature<FileDownloadsFeature>();
+        if (downloadsFeature.HasActiveDownloads())
+        {
+            var result = MessageBox.Show(
+                this,
+                "There are active downloads. Are you sure you want to exit? All downloads will be cancelled.",
+                "Active Downloads",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning
+            );
+            if (result != MessageBoxResult.Yes)
+            {
+                e.Cancel = true;
+                return;
+            }
+            downloadsFeature.CancelAllActiveDownloads();
+        }
+        base.OnClosing(e);
+    }
+
     public void SetCurrentTab(TabBrowser? tab)
     {
         if (CurrentTab != null)

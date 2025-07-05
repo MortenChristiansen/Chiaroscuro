@@ -70,6 +70,23 @@ public class FileDownloadsFeature(MainWindow window) : Feature<FileDownloadsBrow
             Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ => _activeDownloads.TryRemove(downloadId, out var _));
         }
     }
+
+    public bool HasActiveDownloads()
+    {
+        return _activeDownloads.Values.Any(d => !d.IsCompleted && !d.IsCancelled);
+    }
+
+    public void CancelAllActiveDownloads()
+    {
+        foreach (var download in _activeDownloads.Values)
+        {
+            if (!download.IsCompleted && !download.IsCancelled)
+            {
+                download.Callback?.Cancel();
+                download.IsCancelled = true;
+            }
+        }
+    }
 }
 
 internal class DownloadInfo
