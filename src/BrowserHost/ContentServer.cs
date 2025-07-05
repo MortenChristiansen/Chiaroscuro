@@ -1,4 +1,12 @@
-﻿namespace BrowserHost;
+﻿#if !DEBUG
+using EmbedIO;
+using EmbedIO.Files;
+using System;
+using System.IO;
+using System.Threading.Tasks;
+#endif
+
+namespace BrowserHost;
 
 static class ContentServer
 {
