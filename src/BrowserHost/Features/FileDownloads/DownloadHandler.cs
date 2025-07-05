@@ -14,12 +14,28 @@ public class DownloadHandler(string downloadDirectory) : IDownloadHandler
     {
         if (!callback.IsDisposed)
         {
-            var filePath = Path.Combine(downloadDirectory, downloadItem.SuggestedFileName);
+            var filePath = GetDisambiguatedFilePath(downloadItem);
             callback.Continue(filePath, showDialog: false);
         }
 
         // Return true to indicate the event was handled
         return true;
+    }
+
+    private string GetDisambiguatedFilePath(DownloadItem downloadItem)
+    {
+        var fileName = downloadItem.SuggestedFileName;
+        var filePath = Path.Combine(downloadDirectory, fileName);
+        var baseName = Path.GetFileNameWithoutExtension(fileName);
+        var ext = Path.GetExtension(fileName);
+        int count = 1;
+        while (File.Exists(filePath))
+        {
+            fileName = $"{baseName} ({count++}){ext}";
+            filePath = Path.Combine(downloadDirectory, fileName);
+        }
+
+        return filePath;
     }
 
     public void OnDownloadUpdated(IWebBrowser chromiumWebBrowser, IBrowser browser, DownloadItem downloadItem, IDownloadItemCallback callback)
