@@ -1,5 +1,6 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.ActionContext;
+using BrowserHost.Features.FileDownloads;
 using CefSharp;
 using System;
 using System.Collections.Generic;

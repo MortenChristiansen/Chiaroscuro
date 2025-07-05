@@ -103,10 +103,6 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
         base.BeginInit();
     }
 
-    public void RegisterUiLoaded()
-    {
-    }
-
     public void CallClientApi(string api, string? arguments = null)
     {
         var modifiedScript =
@@ -121,18 +117,29 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
                tryRun_{{api}}();
                """;
 
-        if (IsBrowserInitialized)
+        Dispatcher.BeginInvoke(() =>
         {
-            this.ExecuteScriptAsync(modifiedScript);
-        }
-        else
-        {
-            IsBrowserInitializedChanged += (sender, e) =>
+            if (IsBrowserInitialized)
             {
-                if (!IsDisposed)
-                    this.ExecuteScriptAsync(modifiedScript);
-            };
-        }
+                this.ExecuteScriptAsync(modifiedScript);
+            }
+            else
+            {
+                IsBrowserInitializedChanged += (sender, e) =>
+                {
+                    if (!IsDisposed)
+                        ExecuteScriptOnDispatcher(modifiedScript);
+                };
+            }
+        });
+    }
+
+    private void ExecuteScriptOnDispatcher(string script)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            this.ExecuteScriptAsync(script);
+        });
     }
 }
 

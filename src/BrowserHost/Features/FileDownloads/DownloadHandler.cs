@@ -1,7 +1,7 @@
 using CefSharp;
 using System.IO;
 
-namespace BrowserHost.CefInfrastructure;
+namespace BrowserHost.Features.FileDownloads;
 
 public class DownloadHandler(string downloadDirectory) : IDownloadHandler
 {
@@ -24,5 +24,7 @@ public class DownloadHandler(string downloadDirectory) : IDownloadHandler
 
     public void OnDownloadUpdated(IWebBrowser chromiumWebBrowser, IBrowser browser, DownloadItem downloadItem, IDownloadItemCallback callback)
     {
+        var fileDownloadFeature = MainWindow.Instance.GetFeature<FileDownloadsFeature>();
+        fileDownloadFeature.OnDownloadUpdated(downloadItem.Id, downloadItem, callback);
     }
 }
