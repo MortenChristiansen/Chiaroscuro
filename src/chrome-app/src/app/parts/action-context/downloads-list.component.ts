@@ -7,7 +7,7 @@ import { DownloadItem, FileDownloadsApi } from './fileDownloadsApi';
   selector: 'downloads-list',
   template: `
     @if (downloads().length > 0) {
-    <div class="downloads-container" @fadeInOut>
+    <div class="downloads-container py-3" @fadeInOut>
       <h3
         class="downloads-title text-white font-sans text-sm font-semibold mb-2 px-4"
       >
@@ -16,7 +16,7 @@ import { DownloadItem, FileDownloadsApi } from './fileDownloadsApi';
       <div class="downloads-list flex flex-col gap-1">
         @for (download of downloads(); track download.id) {
         <div
-          class="download-item flex items-center px-4 py-2 text-gray-300 font-sans text-sm hover:bg-white/5 transition-colors duration-200"
+          class="download-item flex items-center px-4 text-gray-300 font-sans text-sm"
           @fadeInOut
         >
           <div class="download-info flex-1 flex items-center gap-2 min-w-0">
@@ -28,7 +28,7 @@ import { DownloadItem, FileDownloadsApi } from './fileDownloadsApi';
               <div
                 class="spinner w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
               ></div>
-              <span>{{ download.progress }}%</span>
+              <span class="text-gray-500">{{ download.progress }}%</span>
             </div>
             } @else if (download.isCompleted) {
             <div class="completed-indicator">
@@ -93,10 +93,16 @@ import { DownloadItem, FileDownloadsApi } from './fileDownloadsApi';
     trigger('fadeInOut', [
       transition(':enter', [
         style({ opacity: 0, transform: 'scale(0.8)' }),
-        animate('200ms cubic-bezier(0.4,0,0.2,1)', style({ opacity: 1, transform: 'scale(1)' })),
+        animate(
+          '200ms cubic-bezier(0.4,0,0.2,1)',
+          style({ opacity: 1, transform: 'scale(1)' })
+        ),
       ]),
       transition(':leave', [
-        animate('200ms cubic-bezier(0.4,0,0.2,1)', style({ opacity: 0, transform: 'scale(0.8)' })),
+        animate(
+          '200ms cubic-bezier(0.4,0,0.2,1)',
+          style({ opacity: 0, transform: 'scale(0.8)' })
+        ),
       ]),
     ]),
   ],
