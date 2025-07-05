@@ -12,11 +12,9 @@ public class FileDownloadsFeature(MainWindow window) : Feature<FileDownloadsBrow
 {
     private readonly ConcurrentDictionary<int, DownloadInfo> _activeDownloads = new();
     private Timer? _progressTimer;
-    private int? _lastDownloadCount;
 
     public override void Register()
     {
-        _progressTimer = new Timer(SendProgressUpdate, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
         PubSub.Subscribe<DownloadCancelledEvent>(HandleFileDownloadCancelled);
     }
@@ -27,25 +25,10 @@ public class FileDownloadsFeature(MainWindow window) : Feature<FileDownloadsBrow
             downloadInfo.Callback?.Cancel();
     }
 
-    private void SendProgressUpdate(object? state)
-    {
-        var downloads = _activeDownloads.Values
-            .Select(d => new DownloadItemDto(
-                d.Id,
-                d.FileName,
-                d.Progress,
-                d.IsCompleted,
-                d.IsCancelled))
-            .ToArray();
-
-        if (downloads.Length > 0 || _lastDownloadCount != 0)
-            Window.ActionContext.UpdateDownloads(downloads);
-
-        _lastDownloadCount = downloads.Length;
-    }
-
     public void OnDownloadUpdated(int downloadId, DownloadItem downloadItem, IDownloadItemCallback callback)
     {
+        _progressTimer ??= new Timer(SendProgressUpdate, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+
         var fileName = !string.IsNullOrWhiteSpace(downloadItem.SuggestedFileName) ?
             downloadItem.SuggestedFileName :
             downloadItem.ContentDisposition.Split("filename=").Last();
@@ -67,8 +50,31 @@ public class FileDownloadsFeature(MainWindow window) : Feature<FileDownloadsBrow
         if (downloadItem.IsComplete || downloadItem.IsCancelled)
         {
             // Keep completed downloads for 10 seconds
-            Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ => _activeDownloads.TryRemove(downloadId, out var _));
+            Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ =>
+            {
+                _activeDownloads.TryRemove(downloadId, out var _);
+                if (_activeDownloads.Count == 0)
+                {
+                    _progressTimer?.Dispose();
+                    _progressTimer = null;
+                    SendProgressUpdate(null);
+                }
+            });
         }
+    }
+
+    private void SendProgressUpdate(object? state)
+    {
+        var downloads = _activeDownloads.Values
+            .Select(d => new DownloadItemDto(
+                d.Id,
+                d.FileName,
+                d.Progress,
+                d.IsCompleted,
+                d.IsCancelled))
+            .ToArray();
+
+        Window.ActionContext.UpdateDownloads(downloads);
     }
 
     public bool HasActiveDownloads()

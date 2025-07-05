@@ -18,6 +18,7 @@ and uses Angular for the window chrome parts of the UI.
 ## Angular Guidelines
 1. Use new newest Angular features and syntax.
 2. Make sure there are no type errors in the code.
+3. Components are standalone by deautl.
 
 ## C# Features
 1. Use new language features where applicable.
