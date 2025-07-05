@@ -7,7 +7,7 @@ Pop-Location
 
 # Copy Angular build output to BrowserHost/chrome-app
 $chromeAppDist = "..\chrome-app\dist\chrome-app\browser"
-$targetDir = "..\publish\chrome-app"
+$targetDir = "chrome-app"
 if (Test-Path $targetDir) { Remove-Item $targetDir -Recurse -Force }
 Copy-Item $chromeAppDist $targetDir -Recurse
 
