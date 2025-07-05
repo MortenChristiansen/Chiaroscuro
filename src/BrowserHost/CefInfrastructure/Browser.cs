@@ -1,6 +1,5 @@
 ﻿using CefSharp;
 using CefSharp.Wpf;
-using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -10,7 +9,6 @@ namespace BrowserHost.CefInfrastructure;
 
 public interface IBaseBrowser
 {
-    void RegisterUiLoaded();
 }
 
 public abstract class BaseBrowser : ChromiumWebBrowser
@@ -66,20 +64,18 @@ public abstract class BaseBrowser : ChromiumWebBrowser
     }
 }
 
-public abstract class Browser : Browser<BrowserApi>
+public abstract class Browser(string? uiAddress = null) : Browser<BrowserApi>(uiAddress)
 {
-    public override BrowserApi Api { get; }
+    public override BrowserApi Api { get; } = new BrowserApi();
 
-    protected Browser()
-        : base(null)
+    protected void RegisterSecondaryApi<TApi>(TApi api, string name) where TApi : BrowserApi
     {
-        Api = new BrowserApi(this);
+        JavascriptObjectRepository.Register(name, api);
     }
 }
 
 public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : BrowserApi
 {
-    private bool _isUiLoaded = false;
     private readonly string? _uiAddress;
 
     public abstract TApi Api { get; }
@@ -96,43 +92,57 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
         JavascriptObjectRepository.Register("api", Api);
         if (_uiAddress != null)
             Address = ContentServer.GetUiAddress(_uiAddress);
+
         ConsoleMessage += (sender, e) =>
         {
             Debug.WriteLine($"{GetType().Name}: {e.Message}");
+            if (e.Level == LogSeverity.Error && Debugger.IsAttached)
+                this.GetBrowserHost().ShowDevTools();
         };
 
         base.BeginInit();
     }
 
-    public void RegisterUiLoaded()
+    public void CallClientApi(string api, string? arguments = null)
     {
-        _isUiLoaded = true;
+        var modifiedScript =
+            $$"""
+               function tryRun_{{api}}() {
+                 if (window.angularApi && window.angularApi.{{api}}) {
+                    window.angularApi.{{api}}({{arguments}});
+                 } else {
+                   setTimeout(tryRun_{{api}}, 50);
+                 }
+               }
+               tryRun_{{api}}();
+               """;
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (IsBrowserInitialized)
+            {
+                this.ExecuteScriptAsync(modifiedScript);
+            }
+            else
+            {
+                IsBrowserInitializedChanged += (sender, e) =>
+                {
+                    if (!IsDisposed)
+                        ExecuteScriptOnDispatcher(modifiedScript);
+                };
+            }
+        });
     }
 
-    protected void RunWhenSourceHasLoaded(Action action)
+    private void ExecuteScriptOnDispatcher(string script)
     {
-        if (_isUiLoaded)
+        Dispatcher.BeginInvoke(() =>
         {
-            action();
-        }
-        else
-        {
-            Task.Run(async () =>
-            {
-                while (!_isUiLoaded)
-                {
-                    await Task.Delay(100); // Wait until the source is loaded
-                }
-                Dispatcher.Invoke(action);
-            });
-        }
+            this.ExecuteScriptAsync(script);
+        });
     }
 }
 
-public class BrowserApi(IBaseBrowser browser)
+public class BrowserApi()
 {
-    public void UiLoaded()
-    {
-        browser.RegisterUiLoaded();
-    }
 }

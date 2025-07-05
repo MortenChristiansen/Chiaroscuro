@@ -1,6 +1,5 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Utilities;
-using CefSharp;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
@@ -11,9 +10,9 @@ public class CustomWindowChromeBrowser : Browser<CustomWindowChromeBrowserApi>
     public CustomWindowChromeBrowser()
         : base("/")
     {
-        Api = new CustomWindowChromeBrowserApi(this);
+        Api = new CustomWindowChromeBrowserApi();
     }
 
     public void ChangeAddress(string? address) =>
-        this.ExecuteScriptAsync($"window.angularApi.changeAddress({address.ToJsonString()})");
+        CallClientApi("changeAddress", address.ToJsonString());
 }

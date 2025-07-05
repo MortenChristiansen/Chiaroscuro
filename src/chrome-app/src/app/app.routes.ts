@@ -12,7 +12,8 @@ export const routes: Routes = [
       import('./parts/action-dialog/action-dialog.component'),
   },
   {
-    path: 'tabs',
-    loadComponent: () => import('./parts/tabs/tabs-list.component'),
+    path: 'action-context',
+    loadComponent: () =>
+      import('./parts/action-context/action-context.component'),
   },
 ];

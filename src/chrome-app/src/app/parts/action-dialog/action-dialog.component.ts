@@ -110,8 +110,6 @@ export default class ActionDialogComponent implements OnInit {
         this.suggestions.set(suggestions);
       },
     });
-
-    await this.api.uiLoaded();
   }
 
   api!: ActionDialogApi;

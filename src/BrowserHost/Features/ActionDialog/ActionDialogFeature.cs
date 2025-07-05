@@ -1,6 +1,5 @@
 using BrowserHost.Features.Tabs;
 using BrowserHost.Utilities;
-using CefSharp;
 using System;
 using System.Linq;
 using System.Windows;
@@ -75,7 +74,7 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
         Window.ActionDialog.Opacity = 0;
         Window.ActionDialog.Visibility = Visibility.Visible;
         Window.ActionDialog.Focus();
-        Window.ActionDialog.ExecuteScriptAsync("window.angularApi.showDialog()");
+        Window.ActionDialog.CallClientApi("showDialog");
 
         if (Window.ActionDialog.RenderTransform is not ScaleTransform)
         {

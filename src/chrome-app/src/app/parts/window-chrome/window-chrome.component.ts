@@ -152,8 +152,6 @@ export default class WindowChromeComponent implements OnInit {
         this.canGoForward.set(await this.api.canGoForward());
       },
     });
-
-    await this.api.uiLoaded();
   }
   canGoBack = signal(false);
   canGoForward = signal(false);
