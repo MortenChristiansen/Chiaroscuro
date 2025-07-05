@@ -14,7 +14,7 @@
     <TargetFrameworks>net9.0-windows</TargetFrameworks>
     <UseWPF>true</UseWPF>
 	  <RootNamespace>BrowserHost</RootNamespace>
-	  <ApplicationIcon>chromium-256.ico</ApplicationIcon>
+	  <ApplicationIcon>logo.ico</ApplicationIcon>
 	  <ApplicationManifest>app.manifest</ApplicationManifest>
 	  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 	  <Platforms>x64</Platforms>
