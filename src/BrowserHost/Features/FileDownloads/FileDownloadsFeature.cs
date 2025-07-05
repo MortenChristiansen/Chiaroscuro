@@ -55,10 +55,14 @@ public class FileDownloadsFeature(MainWindow window) : Feature<FileDownloadsBrow
             Id = downloadId,
             FileName = fileName,
             Callback = callback,
-            Progress = downloadItem.PercentComplete,
-            IsCompleted = downloadItem.IsComplete,
-            IsCancelled = downloadItem.IsCancelled
+            IsCancelled = false,
+            IsCompleted = false,
+            Progress = 0
         });
+
+        downloadInfo.Progress = downloadItem.PercentComplete;
+        downloadInfo.IsCompleted = downloadItem.IsComplete;
+        downloadInfo.IsCancelled = downloadItem.IsCancelled;
 
         if (downloadItem.IsComplete || downloadItem.IsCancelled)
         {

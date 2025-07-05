@@ -15,17 +15,18 @@ import { DownloadItem, FileDownloadsApi } from './fileDownloadsApi';
       <div class="downloads-list flex flex-col gap-1">
         @for (download of downloads(); track download.id) {
         <div
-          class="download-item flex items-center px-4 py-2 text-white font-sans text-sm hover:bg-white/5 transition-colors duration-200"
+          class="download-item flex items-center px-4 py-2 text-gray-300 font-sans text-sm hover:bg-white/5 transition-colors duration-200"
         >
           <div class="download-info flex-1 flex items-center gap-2 min-w-0">
             <span class="file-name truncate">{{
               download.fileName ? download.fileName : 'Unnamed'
             }}</span>
             @if (!download.isCompleted && !download.isCancelled) {
-            <div class="loading-indicator">
+            <div class="loading-indicator flex items-center gap-2">
               <div
                 class="spinner w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
               ></div>
+              <span>{{ download.progress }}%</span>
             </div>
             } @else if (download.isCompleted) {
             <div class="completed-indicator">
