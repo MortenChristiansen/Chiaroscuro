@@ -97,7 +97,7 @@ export default class TabsListComponent implements OnInit {
   fallbackFavicon =
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" rx="4" fill="%23bbb"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="white" font-family="Arial">★</text></svg>';
   private saveTabsDebounceDelay = 1000;
-  private tabStack: TabId[] = [];
+  private tabActivationOrderStack: TabId[] = [];
 
   constructor() {
     effect(() => {
@@ -110,8 +110,8 @@ export default class TabsListComponent implements OnInit {
       const activeTab = this.selectedTab();
       if (!activeTab) return;
 
-      this.tabStack = [
-        ...this.tabStack.filter((id) => id !== activeTab.id),
+      this.tabActivationOrderStack = [
+        ...this.tabActivationOrderStack.filter((id) => id !== activeTab.id),
         activeTab.id,
       ];
     });
@@ -169,7 +169,7 @@ export default class TabsListComponent implements OnInit {
           console.log('Activated tab:', JSON.stringify(activeTab));
         }
         this.tabsInitialized.set(true);
-        this.tabStack = [
+        this.tabActivationOrderStack = [
           ...tabs.filter((t) => t.id !== activeTabId).map((t) => t.id),
           activeTabId,
         ];
@@ -197,7 +197,9 @@ export default class TabsListComponent implements OnInit {
   api!: TabListApi;
 
   close(tabId: TabId, updateBackend = true) {
-    this.tabStack = this.tabStack.filter((id) => id !== tabId);
+    this.tabActivationOrderStack = this.tabActivationOrderStack.filter(
+      (id) => id !== tabId
+    );
     this.tabs.update((currentTabs) =>
       currentTabs.filter((t) => t.id !== tabId)
     );
@@ -206,7 +208,9 @@ export default class TabsListComponent implements OnInit {
       const newSelectedTabId =
         this.tabs().length == 0
           ? null
-          : this.tabStack[this.tabStack.length - 1];
+          : this.tabActivationOrderStack[
+              this.tabActivationOrderStack.length - 1
+            ];
       const newSelectedTab =
         this.tabs().find((t) => t.id === newSelectedTabId) || null;
       this.selectedTab.set(newSelectedTab);
