@@ -2,6 +2,7 @@ using BrowserHost.Features.Tabs;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
+using System.Net;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -9,21 +10,57 @@ using System.Windows.Media.Animation;
 
 namespace BrowserHost.Features.ActionDialog;
 
+public record SearchProvider(string Name, string Key, string Pattern);
+public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory);
+
 public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowserApi>(window, window.ActionDialog.Api)
 {
     public override void Register()
     {
         PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
+        PubSub.Subscribe<CommandExecutedEvent>(HandleCommandExecuted);
         PubSub.Subscribe<NavigationStartedEvent>(HandleNavigationStarted);
         PubSub.Subscribe<ActionDialogValueChangedEvent>(HandleValueChanged);
         PubSub.Subscribe<TabsChangedEvent>(HandleTabsChanged);
+    }
+
+    private static readonly SearchProvider[] _searchProviders =
+    [
+        new SearchProvider("Google", "g", "https://www.google.com/search?q={0}"),
+        new SearchProvider("GitHub", "gh", "https://github.com/search?q={0}"),
+        new SearchProvider("ChatGPT", "gpt", "https://chat.openai.com/?q={0}"),
+    ];
+
+    private void HandleCommandExecuted(CommandExecutedEvent e)
+    {
+        if (e.Command.StartsWith("!"))
+        {
+            var pair = e.Command.Substring(1).Split(' ', 2);
+            if (pair.Length < 2)
+                return;
+
+            var key = pair[0];
+            var query = pair[1];
+
+            var provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+            if (provider == null)
+                return;
+
+            var urlEncodedQuery = WebUtility.UrlEncode(query);
+            var url = string.Format(provider.Pattern, urlEncodedQuery);
+            PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
+            return;
+        }
+
+        PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
     }
 
     private void HandleNavigationStarted(NavigationStartedEvent e)
     {
         // For now, save the address with basic info
         // The title and favicon will be updated when the page loads
-        NavigationHistoryStateManager.SaveNavigationEntry(e.Address, null, null);
+        if (e.SaveInHistory)
+            NavigationHistoryStateManager.SaveNavigationEntry(e.Address, null, null);
     }
 
     private void HandleTabsChanged(TabsChangedEvent e)

@@ -243,8 +243,8 @@ export default class ActionDialogComponent implements OnInit {
     this.executeAction(suggestion.address, false);
   }
 
-  private async executeAction(value: string, useCurrentTab: boolean) {
-    await this.api.navigate(value, useCurrentTab);
+  private async executeAction(value: string, ctrl: boolean) {
+    await this.api.execute(value, ctrl);
     await this.api.dismissActionDialog();
   }
 }
