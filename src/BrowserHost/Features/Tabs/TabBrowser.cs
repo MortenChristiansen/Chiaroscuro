@@ -19,10 +19,10 @@ public class TabBrowser : Browser
 
     private event EventHandler? FaviconChanged;
 
-    public TabBrowser(string address, ActionContextBrowser actionContextBrowser, bool isNewTab)
+    public TabBrowser(string address, ActionContextBrowser actionContextBrowser, bool setManualAddress)
     {
         Address = address;
-        if (isNewTab)
+        if (setManualAddress)
             ManualAddress = address;
 
         TitleChanged += OnTitleChanged;
@@ -48,9 +48,10 @@ public class TabBrowser : Browser
         FaviconChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public void SetManuallyNavigatedAddress(string address)
+    public void SetAddress(string address, bool setManualAddress)
     {
         Address = address;
-        ManualAddress = address;
+        if (setManualAddress)
+            ManualAddress = address;
     }
 }

@@ -7,7 +7,7 @@ export interface NavigationSuggestion {
 }
 
 export interface ActionDialogApi extends Api {
-  navigate: (url: string, useCurrentTab: boolean) => Promise<void>;
+  execute: (command: string, ctrl: boolean) => Promise<void>;
   dismissActionDialog: () => Promise<void>;
   notifyValueChanged: (value: string) => Promise<void>;
 }

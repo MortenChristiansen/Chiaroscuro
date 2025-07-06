@@ -20,11 +20,11 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         {
             if (Window.CurrentTab != null && e.UseCurrentTab)
             {
-                Window.CurrentTab.SetManuallyNavigatedAddress(e.Address);
+                Window.CurrentTab.SetAddress(e.Address, setManualAddress: e.SaveInHistory);
             }
             else
             {
-                AddNewTab(e.Address);
+                AddNewTab(e.Address, e.SaveInHistory);
             }
         });
         PubSub.Subscribe<TabActivatedEvent>(e =>
@@ -63,9 +63,9 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         return base.HandleOnPreviewKeyDown(e);
     }
 
-    private TabBrowser AddNewTab(string address)
+    private TabBrowser AddNewTab(string address, bool saveInHistory)
     {
-        var browser = new TabBrowser(address, Window.ActionContext, isNewTab: true);
+        var browser = new TabBrowser(address, Window.ActionContext, setManualAddress: saveInHistory);
         _tabBrowsers.Add(browser);
 
         RegisterNewTabWithFrontend(browser);
@@ -82,7 +82,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     private TabBrowser AddExistingTab(string address, bool activate, string? title, string? favicon)
     {
-        var browser = new TabBrowser(address, Window.ActionContext, isNewTab: false);
+        var browser = new TabBrowser(address, Window.ActionContext, setManualAddress: false);
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
 
