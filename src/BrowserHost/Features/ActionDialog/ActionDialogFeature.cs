@@ -42,7 +42,7 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
             var key = pair[0];
             var query = pair[1];
 
-            var provider = _searchProviders.FirstOrDefault(x => x.Key == key);
+            var provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
             if (provider == null)
                 return;
 
