@@ -97,12 +97,23 @@ export default class TabsListComponent implements OnInit {
   fallbackFavicon =
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" rx="4" fill="%23bbb"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="white" font-family="Arial">★</text></svg>';
   private saveTabsDebounceDelay = 1000;
+  private tabActivationOrderStack: TabId[] = [];
 
   constructor() {
     effect(() => {
       const activeTab = this.selectedTab();
       if (!activeTab) return;
       this.api.activateTab(activeTab.id);
+    });
+
+    effect(() => {
+      const activeTab = this.selectedTab();
+      if (!activeTab) return;
+
+      this.tabActivationOrderStack = [
+        ...this.tabActivationOrderStack.filter((id) => id !== activeTab.id),
+        activeTab.id,
+      ];
     });
 
     effect(() => {
@@ -158,6 +169,10 @@ export default class TabsListComponent implements OnInit {
           console.log('Activated tab:', JSON.stringify(activeTab));
         }
         this.tabsInitialized.set(true);
+        this.tabActivationOrderStack = [
+          ...tabs.filter((t) => t.id !== activeTabId).map((t) => t.id),
+          activeTabId,
+        ];
       },
       updateTitle: (tabId: TabId, title: string | null) => {
         this.tabs.update((currentTabs) => {
@@ -182,16 +197,22 @@ export default class TabsListComponent implements OnInit {
   api!: TabListApi;
 
   close(tabId: TabId, updateBackend = true) {
-    const currentTabIndex = this.tabs().findIndex((t) => t.id === tabId);
+    this.tabActivationOrderStack = this.tabActivationOrderStack.filter(
+      (id) => id !== tabId
+    );
     this.tabs.update((currentTabs) =>
       currentTabs.filter((t) => t.id !== tabId)
     );
 
     if (this.selectedTab()?.id === tabId) {
-      const newSelectedTab =
+      const newSelectedTabId =
         this.tabs().length == 0
           ? null
-          : this.tabs()[Math.max(0, currentTabIndex - 1)];
+          : this.tabActivationOrderStack[
+              this.tabActivationOrderStack.length - 1
+            ];
+      const newSelectedTab =
+        this.tabs().find((t) => t.id === newSelectedTabId) || null;
       this.selectedTab.set(newSelectedTab);
     }
 
