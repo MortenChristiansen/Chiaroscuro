@@ -35,7 +35,7 @@ interface Tab {
         cdkDrag
         [cdkDragData]="tab"
       >
-        <app-favicon [src]="tab.favicon" cssClass="w-4 h-4 mr-2" />
+        <favicon [src]="tab.favicon" class="w-4 h-4 mr-2" />
         <span class="truncate flex-1">{{ tab.title ?? 'Loading...' }}</span>
         <button
           class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"

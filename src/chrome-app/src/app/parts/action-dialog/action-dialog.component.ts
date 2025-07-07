@@ -42,7 +42,10 @@ import { FaviconComponent } from '../../shared/favicon.component';
           [class.bg-blue-50]="$index === activeSuggestionIndex()"
           (click)="selectSuggestion(suggestion)"
         >
-          <app-favicon [src]="suggestion.favicon" cssClass="w-4 h-4 mr-3 flex-shrink-0" />
+          <favicon
+            [src]="suggestion.favicon"
+            class="w-4 h-4 mr-3 flex-shrink-0"
+          />
           <div class="flex-1 min-w-0">
             <div class="font-medium text-gray-900 truncate">
               {{ suggestion.title }}
