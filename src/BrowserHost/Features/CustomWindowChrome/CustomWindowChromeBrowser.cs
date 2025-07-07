@@ -17,5 +17,5 @@ public class CustomWindowChromeBrowser : Browser<CustomWindowChromeBrowserApi>
         CallClientApi("changeAddress", address.ToJsonString());
 
     public void UpdateLoadingState(bool isLoading) =>
-        CallClientApi("updateLoadingState", isLoading.ToJsonString());
+        CallClientApi("updateLoadingState", isLoading.ToJsonBoolean());
 }

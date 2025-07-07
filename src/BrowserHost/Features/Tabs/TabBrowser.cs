@@ -51,7 +51,7 @@ public class TabBrowser : Browser
         FaviconChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void OnLoadingStateChanged(object sender, LoadingStateChangedEventArgs e)
+    private void OnLoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)
     {
         PubSub.Publish(new TabLoadingStateChangedEvent(Id, e.IsLoading));
     }
