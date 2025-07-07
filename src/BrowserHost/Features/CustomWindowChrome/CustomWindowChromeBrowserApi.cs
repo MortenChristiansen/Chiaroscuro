@@ -7,6 +7,7 @@ namespace BrowserHost.Features.CustomWindowChrome;
 public record WindowMinimizedEvent();
 public record WindowStateToggledEvent();
 public record AddressCopyRequestedEvent();
+public record TabLoadingStateChangedEvent(string TabId, bool IsLoading);
 
 public class CustomWindowChromeBrowserApi : BrowserApi
 {
@@ -36,4 +37,7 @@ public class CustomWindowChromeBrowserApi : BrowserApi
 
     public void CopyAddress() =>
         PubSub.Publish(new AddressCopyRequestedEvent());
+
+    public bool IsLoading() =>
+        MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.IsLoading ?? false);
 }

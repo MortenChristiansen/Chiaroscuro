@@ -1,6 +1,8 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.ActionContext;
+using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.FileDownloads;
+using BrowserHost.Utilities;
 using CefSharp;
 using System;
 using System.Collections.Generic;
@@ -26,6 +28,7 @@ public class TabBrowser : Browser
             ManualAddress = address;
 
         TitleChanged += OnTitleChanged;
+        LoadingStateChanged += OnLoadingStateChanged;
 
         DisplayHandler = new FaviconDisplayHandler(OnFaviconAddressesChanged);
         _actionContextBrowser = actionContextBrowser;
@@ -46,6 +49,11 @@ public class TabBrowser : Browser
         Favicon = addresses.FirstOrDefault();
         Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
         FaviconChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnLoadingStateChanged(object sender, LoadingStateChangedEventArgs e)
+    {
+        PubSub.Publish(new TabLoadingStateChangedEvent(Id, e.IsLoading));
     }
 
     public void SetAddress(string address, bool setManualAddress)

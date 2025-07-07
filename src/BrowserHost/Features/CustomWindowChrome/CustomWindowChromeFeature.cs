@@ -1,4 +1,5 @@
-﻿using BrowserHost.Utilities;
+﻿using BrowserHost.Features.Tabs;
+using BrowserHost.Utilities;
 using CefSharp;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -33,6 +34,8 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindow
             if (!string.IsNullOrEmpty(address))
                 Clipboard.SetText(address);
         });
+        PubSub.Subscribe<TabLoadingStateChangedEvent>(e => OnTabLoadingStateChanged(e));
+        PubSub.Subscribe<TabActivatedEvent>(e => OnTabActivated(e));
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -291,4 +294,21 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindow
     }
 
     #endregion
+
+    private void OnTabLoadingStateChanged(TabLoadingStateChangedEvent e)
+    {
+        // Only send loading state updates for the current active tab
+        if (Window.CurrentTab?.Id == e.TabId)
+        {
+            Window.ChromeUI.UpdateLoadingState(e.IsLoading);
+        }
+    }
+
+    private void OnTabActivated(TabActivatedEvent e)
+    {
+        // Send loading state for the newly activated tab
+        var currentTab = e.CurrentTab;
+        var isLoading = currentTab?.IsLoading ?? false;
+        Window.ChromeUI.UpdateLoadingState(isLoading);
+    }
 }

@@ -91,6 +91,12 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
           <span>{{ url }}</span>
           }
         </span>
+        @if (isLoading()) {
+        <div
+          class="loading-indicator w-4 h-4 rounded-full bg-blue-400 animate-pulse mr-2"
+          aria-label="Loading page"
+        ></div>
+        }
       </div>
       <div class="window-controls flex gap-1 ml-auto">
         <icon-button (onClick)="min()">
@@ -150,12 +156,17 @@ export default class WindowChromeComponent implements OnInit {
         this.address.set(url);
         this.canGoBack.set(await this.api.canGoBack());
         this.canGoForward.set(await this.api.canGoForward());
+        this.isLoading.set(await this.api.isLoading());
+      },
+      updateLoadingState: (isLoading: boolean) => {
+        this.isLoading.set(isLoading);
       },
     });
   }
   canGoBack = signal(false);
   canGoForward = signal(false);
   address = signal<string | null>(null);
+  isLoading = signal(false);
 
   api!: WindowsChromeApi;
 
