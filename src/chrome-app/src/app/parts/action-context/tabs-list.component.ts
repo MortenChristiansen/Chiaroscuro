@@ -7,6 +7,7 @@ import {
   DragDropModule,
 } from '@angular/cdk/drag-drop';
 import { debounce } from '../../shared/utils';
+import { FaviconComponent } from '../../shared/favicon.component';
 
 export type TabId = string;
 
@@ -18,7 +19,7 @@ interface Tab {
 
 @Component({
   selector: 'tabs-list',
-  imports: [DragDropModule],
+  imports: [DragDropModule, FaviconComponent],
   template: `
     <div
       class="flex flex-col gap-2"
@@ -34,11 +35,7 @@ interface Tab {
         cdkDrag
         [cdkDragData]="tab"
       >
-        @if (tab.favicon) {
-        <img class="w-4 h-4 mr-2" [src]="tab.favicon" />
-        } @else {
-        <img class="w-4 h-4 mr-2" [src]="fallbackFavicon" />
-        }
+        <app-favicon [src]="tab.favicon" cssClass="w-4 h-4 mr-2" />
         <span class="truncate flex-1">{{ tab.title ?? 'Loading...' }}</span>
         <button
           class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
@@ -94,8 +91,6 @@ export default class TabsListComponent implements OnInit {
   tabs = signal<Tab[]>([]);
   tabsInitialized = signal(false);
   selectedTab = signal<Tab | null>(null);
-  fallbackFavicon =
-    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" rx="4" fill="%23bbb"/><text x="8" y="12" text-anchor="middle" font-size="10" fill="white" font-family="Arial">★</text></svg>';
   private saveTabsDebounceDelay = 1000;
   private tabActivationOrderStack: TabId[] = [];
 

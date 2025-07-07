@@ -10,10 +10,11 @@ import { ActionDialogApi, NavigationSuggestion } from './actionDialogApi';
 import { loadBackendApi, exposeApiToBackend } from '../interfaces/api';
 import { CommonModule } from '@angular/common';
 import { debounce } from '../../shared/utils';
+import { FaviconComponent } from '../../shared/favicon.component';
 
 @Component({
   selector: 'action-dialog',
-  imports: [CommonModule],
+  imports: [CommonModule, FaviconComponent],
   template: `
     <div
       class="fixed inset-0 bg-transparent z-[1000]"
@@ -41,15 +42,7 @@ import { debounce } from '../../shared/utils';
           [class.bg-blue-50]="$index === activeSuggestionIndex()"
           (click)="selectSuggestion(suggestion)"
         >
-          @if (suggestion.favicon) {
-          <img
-            [src]="suggestion.favicon"
-            class="w-4 h-4 mr-3 flex-shrink-0"
-            alt=""
-          />
-          } @else {
-          <div class="w-4 h-4 mr-3 flex-shrink-0 bg-gray-300 rounded"></div>
-          }
+          <app-favicon [src]="suggestion.favicon" cssClass="w-4 h-4 mr-3 flex-shrink-0" />
           <div class="flex-1 min-w-0">
             <div class="font-medium text-gray-900 truncate">
               {{ suggestion.title }}
