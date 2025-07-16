@@ -15,4 +15,5 @@ public abstract class Feature(MainWindow window)
     public abstract void Register();
 
     public virtual bool HandleOnPreviewKeyDown(KeyEventArgs e) => false;
+    public virtual bool HandleOnPreviewMouseWheel(MouseWheelEventArgs e) => false;
 }
