@@ -12,6 +12,7 @@ In browser:
 - **Ctrl-X**: Close current tab.
 - **F12**: Toggle dev tools.
 - **Ctrl-MouseWheel**: Change zoom level.
+- **Ctrl-Backspace**: Reset zoom level.
 
 In action dialog:
 
