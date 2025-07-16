@@ -1,4 +1,5 @@
-﻿using BrowserHost.Utilities;
+﻿using BrowserHost.Features.Tabs;
+using BrowserHost.Utilities;
 using CefSharp;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -33,6 +34,8 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindow
             if (!string.IsNullOrEmpty(address))
                 Clipboard.SetText(address);
         });
+        PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
+        PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -81,6 +84,18 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindow
     {
         if (e.LeftButton == MouseButtonState.Pressed && _isDraggingToDetach)
             HandleDragToDetachFromMaximizedState(e);
+    }
+
+    private void OnTabLoadingStateChanged(TabLoadingStateChangedEvent e)
+    {
+        if (Window.CurrentTab?.Id == e.TabId)
+            Window.ChromeUI.UpdateLoadingState(e.IsLoading);
+    }
+
+    private void OnTabActivated(TabActivatedEvent e)
+    {
+        var isLoading = e.CurrentTab?.IsLoading ?? false;
+        Window.ChromeUI.UpdateLoadingState(isLoading);
     }
 
     #region Minimize/Maximize
