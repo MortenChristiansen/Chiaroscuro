@@ -19,8 +19,6 @@ public class TabBrowser : Browser
     public string? Favicon { get; private set; }
     public string? ManualAddress { get; private set; }
 
-    private event EventHandler? FaviconChanged;
-
     public TabBrowser(string address, ActionContextBrowser actionContextBrowser, bool setManualAddress)
     {
         Address = address;
@@ -48,7 +46,6 @@ public class TabBrowser : Browser
     {
         Favicon = addresses.FirstOrDefault();
         Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
-        FaviconChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnLoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)
