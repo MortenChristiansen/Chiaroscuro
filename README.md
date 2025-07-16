@@ -1,3 +1,20 @@
 # Chiaroscuro
 
 A simple web browser built on the CefSharp library. It runs on Windows only and is built to meet my own particular needs in a browser.
+
+## Shortcuts
+
+In browser:
+
+- **Ctrl-T**: Show action dialog.
+- **F5**: Reload page.
+- **Ctrl-F5**: Reload page, ignoring cache.
+- **Ctrl-X**: Close current tab.
+- **F12**: Toggle dev tools.
+- **Ctrl-MouseWheel**: Change zoom level.
+- **Ctrl-Backspace**: Reset zoom level.
+
+In action dialog:
+
+- **Enter**: Navigate to page in new tab.
+- **Ctrl-Enter**: Navigate to page in current tab.

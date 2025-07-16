@@ -4,6 +4,7 @@ using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
 using BrowserHost.Features.FileDownloads;
 using BrowserHost.Features.Tabs;
+using BrowserHost.Features.Zoom;
 using CefSharp;
 using CefSharp.Wpf;
 using System;
@@ -39,6 +40,7 @@ public partial class MainWindow : Window
             new TabsFeature(this),
             new DevToolFeature(this),
             new FileDownloadsFeature(this),
+            new ZoomFeature(this)
         ];
         _features.ForEach(f => f.Register());
 
@@ -97,10 +99,25 @@ public partial class MainWindow : Window
             }
         }
 
+        // Too small to be handled by features, handle here
         if (e.Key == Key.F5)
         {
             var ignoreCache = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
             CurrentTab.Reload(ignoreCache);
+        }
+    }
+
+    protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
+    {
+        base.OnPreviewMouseWheel(e);
+
+        foreach (var feature in _features)
+        {
+            if (feature.HandleOnPreviewMouseWheel(e))
+            {
+                e.Handled = true;
+                return;
+            }
         }
     }
 
