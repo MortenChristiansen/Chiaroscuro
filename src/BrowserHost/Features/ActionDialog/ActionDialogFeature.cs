@@ -35,24 +35,29 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
     {
         if (e.Command.StartsWith("!"))
         {
-            var pair = e.Command.Substring(1).Split(' ', 2);
-            if (pair.Length < 2)
-                return;
-
-            var key = pair[0];
-            var query = pair[1];
-
-            var provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
-            if (provider == null)
-                return;
-
-            var urlEncodedQuery = WebUtility.UrlEncode(query);
-            var url = string.Format(provider.Pattern, urlEncodedQuery);
-            PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
+            HandleSearchProviderCommand(e);
             return;
         }
 
         PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
+    }
+
+    private static void HandleSearchProviderCommand(CommandExecutedEvent e)
+    {
+        var pair = e.Command.Substring(1).Split(' ', 2);
+        if (pair.Length < 2)
+            return;
+
+        var key = pair[0];
+        var query = pair[1];
+
+        var provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+        if (provider == null)
+            return;
+
+        var urlEncodedQuery = WebUtility.UrlEncode(query);
+        var url = string.Format(provider.Pattern, urlEncodedQuery);
+        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
     }
 
     private void HandleNavigationStarted(NavigationStartedEvent e)
