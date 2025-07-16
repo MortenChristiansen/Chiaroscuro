@@ -33,6 +33,7 @@ public class TabBrowser : Browser
 
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
+        RequestHandler = new RequestHandler(Id);
 
         BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
     }
@@ -45,6 +46,7 @@ public class TabBrowser : Browser
     private void OnFaviconAddressesChanged(IList<string> addresses)
     {
         Favicon = addresses.FirstOrDefault();
+        PubSub.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
         Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
     }
 

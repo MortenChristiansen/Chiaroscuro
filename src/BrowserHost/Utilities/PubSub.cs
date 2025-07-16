@@ -34,7 +34,7 @@ public static class PubSub
             {
                 if (action is Action<T> typedAction)
                 {
-                    MainWindow.Instance.Dispatcher.Invoke(() =>
+                    MainWindow.Instance?.Dispatcher.Invoke(() =>
                     {
                         try
                         {

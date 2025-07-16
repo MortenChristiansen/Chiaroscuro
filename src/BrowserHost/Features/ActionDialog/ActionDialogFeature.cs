@@ -19,9 +19,9 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
     {
         PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
         PubSub.Subscribe<CommandExecutedEvent>(HandleCommandExecuted);
-        PubSub.Subscribe<NavigationStartedEvent>(HandleNavigationStarted);
         PubSub.Subscribe<ActionDialogValueChangedEvent>(HandleValueChanged);
-        PubSub.Subscribe<TabsChangedEvent>(HandleTabsChanged);
+        PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => HandlePageHistoryChange(e.TabId));
+        PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => HandlePageHistoryChange(e.TabId));
     }
 
     private static readonly SearchProvider[] _searchProviders =
@@ -60,27 +60,13 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
         PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
     }
 
-    private void HandleNavigationStarted(NavigationStartedEvent e)
+    private void HandlePageHistoryChange(string tabId)
     {
-        // For now, save the address with basic info
-        // The title and favicon will be updated when the page loads
-        if (e.SaveInHistory)
-            NavigationHistoryStateManager.SaveNavigationEntry(e.Address, null, null);
-    }
+        var currentTab = Window.CurrentTab;
+        if (currentTab == null || currentTab.Id != tabId || string.IsNullOrEmpty(currentTab.ManualAddress))
+            return;
 
-    private void HandleTabsChanged(TabsChangedEvent e)
-    {
-        // Update navigation history with current tab information
-        var currentTab = e.Tabs.FirstOrDefault(t => t.IsActive);
-        if (currentTab != null)
-        {
-            var tabFeature = Window.GetFeature<TabsFeature>();
-            var tabBrowser = tabFeature.GetTabById(currentTab.Id);
-            if (tabBrowser != null && !string.IsNullOrEmpty(tabBrowser.ManualAddress))
-            {
-                NavigationHistoryStateManager.SaveNavigationEntry(tabBrowser.ManualAddress, currentTab.Title, currentTab.Favicon);
-            }
-        }
+        NavigationHistoryStateManager.SaveNavigationEntry(currentTab.ManualAddress, currentTab.Title, currentTab.Favicon);
     }
 
     private void HandleValueChanged(ActionDialogValueChangedEvent e)
