@@ -19,9 +19,9 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
     {
         PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
         PubSub.Subscribe<CommandExecutedEvent>(HandleCommandExecuted);
-        PubSub.Subscribe<NavigationStartedEvent>(HandleNavigationStarted);
         PubSub.Subscribe<ActionDialogValueChangedEvent>(HandleValueChanged);
-        PubSub.Subscribe<TabsChangedEvent>(HandleTabsChanged);
+        PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => HandlePageHistoryChange(e.TabId));
+        PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => HandlePageHistoryChange(e.TabId));
     }
 
     private static readonly SearchProvider[] _searchProviders =
@@ -35,47 +35,38 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
     {
         if (e.Command.StartsWith("!"))
         {
-            var pair = e.Command.Substring(1).Split(' ', 2);
-            if (pair.Length < 2)
-                return;
-
-            var key = pair[0];
-            var query = pair[1];
-
-            var provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
-            if (provider == null)
-                return;
-
-            var urlEncodedQuery = WebUtility.UrlEncode(query);
-            var url = string.Format(provider.Pattern, urlEncodedQuery);
-            PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
+            HandleSearchProviderCommand(e);
             return;
         }
 
         PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
     }
 
-    private void HandleNavigationStarted(NavigationStartedEvent e)
+    private static void HandleSearchProviderCommand(CommandExecutedEvent e)
     {
-        // For now, save the address with basic info
-        // The title and favicon will be updated when the page loads
-        if (e.SaveInHistory)
-            NavigationHistoryStateManager.SaveNavigationEntry(e.Address, null, null);
+        var pair = e.Command.Substring(1).Split(' ', 2);
+        if (pair.Length < 2)
+            return;
+
+        var key = pair[0];
+        var query = pair[1];
+
+        var provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+        if (provider == null)
+            return;
+
+        var urlEncodedQuery = WebUtility.UrlEncode(query);
+        var url = string.Format(provider.Pattern, urlEncodedQuery);
+        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
     }
 
-    private void HandleTabsChanged(TabsChangedEvent e)
+    private void HandlePageHistoryChange(string tabId)
     {
-        // Update navigation history with current tab information
-        var currentTab = e.Tabs.FirstOrDefault(t => t.IsActive);
-        if (currentTab != null)
-        {
-            var tabFeature = Window.GetFeature<TabsFeature>();
-            var tabBrowser = tabFeature.GetTabById(currentTab.Id);
-            if (tabBrowser != null && !string.IsNullOrEmpty(tabBrowser.ManualAddress))
-            {
-                NavigationHistoryStateManager.SaveNavigationEntry(tabBrowser.ManualAddress, currentTab.Title, currentTab.Favicon);
-            }
-        }
+        var currentTab = Window.CurrentTab;
+        if (currentTab == null || currentTab.Id != tabId || string.IsNullOrEmpty(currentTab.ManualAddress))
+            return;
+
+        NavigationHistoryStateManager.SaveNavigationEntry(currentTab.ManualAddress, currentTab.Title, currentTab.Favicon);
     }
 
     private void HandleValueChanged(ActionDialogValueChangedEvent e)

@@ -10,6 +10,8 @@ public record TabActivatedEvent(string TabId, TabBrowser? CurrentTab);
 public record TabClosedEvent(TabBrowser Tab);
 public record TabPositionChangedEvent(string TabId, int NewIndex);
 public record TabsChangedEvent(TabUiStateDto[] Tabs);
+public record TabUrlLoadedSuccessfullyEvent(string TabId);
+public record TabFaviconUrlChangedEvent(string TabId, string? NewFaviconUrl);
 
 public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive);
 

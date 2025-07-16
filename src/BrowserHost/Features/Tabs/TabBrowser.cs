@@ -19,8 +19,6 @@ public class TabBrowser : Browser
     public string? Favicon { get; private set; }
     public string? ManualAddress { get; private set; }
 
-    private event EventHandler? FaviconChanged;
-
     public TabBrowser(string address, ActionContextBrowser actionContextBrowser, bool setManualAddress)
     {
         Address = address;
@@ -35,6 +33,7 @@ public class TabBrowser : Browser
 
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
+        RequestHandler = new RequestHandler(Id);
 
         BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
     }
@@ -47,8 +46,8 @@ public class TabBrowser : Browser
     private void OnFaviconAddressesChanged(IList<string> addresses)
     {
         Favicon = addresses.FirstOrDefault();
+        PubSub.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
         Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
-        FaviconChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnLoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)
