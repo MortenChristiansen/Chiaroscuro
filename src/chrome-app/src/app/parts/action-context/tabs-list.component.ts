@@ -8,6 +8,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { debounce } from '../../shared/utils';
 import { FaviconComponent } from '../../shared/favicon.component';
+import { CommonModule } from '@angular/common';
 
 export type TabId = string;
 
@@ -20,19 +21,26 @@ interface Tab {
 
 @Component({
   selector: 'tabs-list',
-  imports: [DragDropModule, FaviconComponent],
+  imports: [DragDropModule, FaviconComponent, CommonModule],
   template: `
+    @let ephemeralIndex = ephemeralTabStartIndex();
+    <span
+      class="bookmark-label text-gray-500 text-xs px-4"
+      style="pointer-events: none;"
+    >
+      Bookmarks
+    </span>
+
     <div
       class="flex flex-col gap-2"
       cdkDropList
       (cdkDropListDropped)="drop($event)"
     >
-      @let ephemeralIndex = ephemeralTabStartIndex(); @for (tab of tabs(); track
-      tab.id) { @if ($index === ephemeralIndex) {
+      @for (tab of tabs(); track tab.id) { @if ($index === ephemeralIndex) {
       <div
-        class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
         cdkDrag
         style="pointer-events: none;"
+        class="w-full h-0.5 my-2 bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-60 rounded-full"
       ></div>
       }
 
