@@ -18,30 +18,45 @@ public static class TabStateManager
     private const int _currentVersion = 1;
     private const int _ephemeralTabExpirationHours = 16;
     private static readonly TabsDataDtoV1 _emptyTabs = new([], 0);
+    private static TabsDataDtoV1? _lastSavedTabsData;
 
     public static void SaveTabsToDisk(IEnumerable<TabStateDtoV1> tabs, int ephemeralTabStartIndex)
     {
-        try
+        var newTabsData = new TabsDataDtoV1([.. tabs], ephemeralTabStartIndex);
+
+        // Check if the new data is the same as what we last saved
+        if (_lastSavedTabsData != null && TabsDataEqual(_lastSavedTabsData, newTabsData))
         {
-            MainWindow.Instance?.Dispatcher.Invoke(() =>
+            Debug.WriteLine("Skipping tabs state save - no changes detected.");
+            return;
+        }
+
+        MainWindow.Instance?.Dispatcher.Invoke(() =>
+        {
+            try
             {
                 Debug.WriteLine("Saving tabs state to disk...");
                 var versionedData = new PersistentData<TabsDataDtoV1>
                 {
                     Version = _currentVersion,
-                    Data = new TabsDataDtoV1([.. tabs], ephemeralTabStartIndex)
+                    Data = newTabsData
                 };
                 File.WriteAllText(_tabsStatePath, JsonSerializer.Serialize(versionedData, _jsonSerializerOptions));
-            });
-        }
-        catch (Exception e)
-        {
-            Debug.WriteLine($"Failed to save tabs state: {e.Message}");
-        }
+
+                // Update the cache after successful save
+                _lastSavedTabsData = newTabsData;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Failed to save tabs state: {e.Message}");
+            }
+        });
     }
 
     public static TabsDataDtoV1 RestoreTabsFromDisk()
     {
+        TabsDataDtoV1 result = _emptyTabs;
+
         try
         {
             if (File.Exists(_tabsStatePath))
@@ -52,12 +67,15 @@ public static class TabStateManager
                 {
                     var versionedData = JsonSerializer.Deserialize<PersistentData>(json);
                     if (versionedData?.Version == _currentVersion)
-                        return FilterExpiredEphemeralTabs(JsonSerializer.Deserialize<PersistentData<TabsDataDtoV1>>(json)?.Data ?? _emptyTabs);
+                    {
+                        var rawData = JsonSerializer.Deserialize<PersistentData<TabsDataDtoV1>>(json)?.Data ?? _emptyTabs;
+                        result = FilterExpiredEphemeralTabs(rawData);
+                    }
                 }
                 catch (Exception e)
                 {
                     Debug.WriteLine($"Failed to restore tabs state: {e.Message}");
-                    return _emptyTabs;
+                    result = _emptyTabs;
                 }
             }
         }
@@ -66,7 +84,9 @@ public static class TabStateManager
             Debug.WriteLine($"Failed to restore tabs state: {e2.Message}");
         }
 
-        return _emptyTabs;
+        // Update the cache with the restored data (after filtering expired tabs)
+        _lastSavedTabsData = result;
+        return result;
     }
 
     private static TabsDataDtoV1 FilterExpiredEphemeralTabs(TabsDataDtoV1 tabsData)
@@ -76,5 +96,22 @@ public static class TabStateManager
         var ephemeralTabs = tabsData.EphemeralTabStartIndex < tabsData.Tabs.Length ? tabsData.Tabs[tabsData.EphemeralTabStartIndex..] : [];
         ephemeralTabs = [.. ephemeralTabs.Where(t => (now - t.Created).TotalHours < _ephemeralTabExpirationHours)];
         return new TabsDataDtoV1([.. persistentTabs, .. ephemeralTabs], tabsData.EphemeralTabStartIndex);
+    }
+
+    private static bool TabsDataEqual(TabsDataDtoV1 data1, TabsDataDtoV1 data2)
+    {
+        if (data1.EphemeralTabStartIndex != data2.EphemeralTabStartIndex)
+            return false;
+
+        if (data1.Tabs.Length != data2.Tabs.Length)
+            return false;
+
+        for (int i = 0; i < data1.Tabs.Length; i++)
+        {
+            if (!data1.Tabs[i].Equals(data2.Tabs[i]))
+                return false;
+        }
+
+        return true;
     }
 }
