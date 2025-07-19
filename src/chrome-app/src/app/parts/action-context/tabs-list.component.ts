@@ -8,6 +8,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { debounce } from '../../shared/utils';
 import { FaviconComponent } from '../../shared/favicon.component';
+import { CommonModule } from '@angular/common';
 
 export type TabId = string;
 
@@ -15,18 +16,34 @@ interface Tab {
   id: TabId;
   title: string | null;
   favicon: string | null;
+  created: Date;
 }
 
 @Component({
   selector: 'tabs-list',
-  imports: [DragDropModule, FaviconComponent],
+  imports: [DragDropModule, FaviconComponent, CommonModule],
   template: `
+    @let ephemeralIndex = ephemeralTabStartIndex();
+    <span
+      class="bookmark-label text-gray-500 text-xs px-4"
+      style="pointer-events: none;"
+    >
+      Bookmarks
+    </span>
+
     <div
       class="flex flex-col gap-2"
       cdkDropList
       (cdkDropListDropped)="drop($event)"
     >
-      @for (tab of tabs(); track tab.id) {
+      @for (tab of tabs(); track tab.id) { @if ($index === ephemeralIndex) {
+      <div
+        cdkDrag
+        style="pointer-events: none;"
+        class="w-full h-0.5 my-2 bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-60 rounded-full"
+      ></div>
+      }
+
       <div
         class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
           tab.id === selectedTab()?.id ? 'bg-white/20 hover:bg-white/30' : ''
@@ -58,7 +75,14 @@ interface Tab {
           </svg>
         </button>
       </div>
-      }
+
+      @if ($index === tabs().length - 1 && $index +1 === ephemeralIndex) {
+      <div
+        class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
+        cdkDrag
+        style="pointer-events: none;"
+      ></div>
+      } }
     </div>
   `,
   styles: `
@@ -89,6 +113,7 @@ interface Tab {
 })
 export default class TabsListComponent implements OnInit {
   tabs = signal<Tab[]>([]);
+  ephemeralTabStartIndex = signal<number>(0);
   tabsInitialized = signal(false);
   selectedTab = signal<Tab | null>(null);
   private saveTabsDebounceDelay = 1000;
@@ -125,15 +150,61 @@ export default class TabsListComponent implements OnInit {
         Title: tab.title,
         Favicon: tab.favicon,
         IsActive: tab.id === selectedTabId,
-      }))
+        Created: tab.created,
+      })),
+      this.ephemeralTabStartIndex()
     );
   }, this.saveTabsDebounceDelay);
 
   drop(event: CdkDragDrop<any>) {
     const currentTabs = [...this.tabs()];
-    moveItemInArray(currentTabs, event.previousIndex, event.currentIndex);
+    const ephemeralIndex = this.ephemeralTabStartIndex();
+
+    const { adjustedCurrentIndex, adjustedPreviousIndex } =
+      this.adjustDragIndices(
+        event.currentIndex,
+        event.previousIndex,
+        ephemeralIndex
+      );
+
+    moveItemInArray(currentTabs, adjustedPreviousIndex, adjustedCurrentIndex);
     this.tabs.set(currentTabs);
-    this.api.reorderTab(event.item.data.id, event.currentIndex);
+
+    // If the item was dragged past the separator, update ephemeralTabStartIndex
+    if (
+      event.previousIndex < ephemeralIndex &&
+      event.currentIndex >= ephemeralIndex
+    ) {
+      // Moved from persistent to ephemeral
+      this.ephemeralTabStartIndex.set(ephemeralIndex - 1);
+    } else if (
+      event.previousIndex > ephemeralIndex &&
+      event.currentIndex <= ephemeralIndex
+    ) {
+      // Moved from ephemeral to persistent
+      this.ephemeralTabStartIndex.set(ephemeralIndex + 1);
+    }
+  }
+
+  private adjustDragIndices(
+    currentIndex: number,
+    previousIndex: number,
+    ephemeralIndex: number
+  ) {
+    let adjustedCurrentIndex =
+      currentIndex - (currentIndex > ephemeralIndex ? 1 : 0);
+    const adjustedPreviousIndex =
+      previousIndex - (previousIndex > ephemeralIndex ? 1 : 0);
+
+    // I cannot explain the nature of this condition but it solves an edge case when dragging a persistent tab to the top of the ephemeral tabs
+    if (
+      currentIndex == ephemeralIndex &&
+      adjustedCurrentIndex == ephemeralIndex &&
+      currentIndex > previousIndex
+    )
+      adjustedCurrentIndex--;
+
+    return { adjustedCurrentIndex, adjustedPreviousIndex };
   }
 
   async ngOnInit() {
@@ -141,27 +212,23 @@ export default class TabsListComponent implements OnInit {
 
     exposeApiToBackend({
       addTab: (tab: Tab, activate: boolean) => {
-        console.log('Adding tab:', JSON.stringify(tab), 'Activate:', activate);
         this.tabs.update((currentTabs) => [...currentTabs, tab]);
 
         if (activate) {
           this.selectedTab.set(tab);
-          console.log('Activated tab:', JSON.stringify(tab));
         }
       },
-      setTabs: (tabs: Tab[], activeTabId: TabId) => {
-        console.log(
-          'Setting tabs:',
-          JSON.stringify(tabs),
-          'Active tab ID:',
-          activeTabId
-        );
+      setTabs: (
+        tabs: Tab[],
+        activeTabId: TabId,
+        ephemeralTabStartIndex: number
+      ) => {
         this.tabs.set(tabs);
+        this.ephemeralTabStartIndex.set(ephemeralTabStartIndex);
 
         const activeTab = tabs.find((t) => t.id === activeTabId);
         if (activeTab) {
           this.selectedTab.set(activeTab);
-          console.log('Activated tab:', JSON.stringify(activeTab));
         }
         this.tabsInitialized.set(true);
         this.tabActivationOrderStack = [
