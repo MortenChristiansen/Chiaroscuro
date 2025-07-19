@@ -10,7 +10,7 @@ public class ActionContextBrowser : Browser
     public FileDownloadsBrowserApi FileDownloadsApi { get; }
 
     public ActionContextBrowser()
-        : base("/action-context")
+        : base("/action-context", disableContextMenu: true)
     {
         TabListApi = new TabListBrowserApi();
         FileDownloadsApi = new FileDownloadsBrowserApi();
