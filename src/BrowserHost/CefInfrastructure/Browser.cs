@@ -96,9 +96,7 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
             Address = ContentServer.GetUiAddress(_uiAddress);
 
         if (_disableContextMenu)
-        {
-            this.MenuHandler = new DisabledContextMenuHandler();
-        }
+            MenuHandler = new DisabledContextMenuHandler();
 
         ConsoleMessage += (sender, e) =>
         {
