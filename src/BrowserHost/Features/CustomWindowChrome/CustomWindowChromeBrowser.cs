@@ -8,7 +8,7 @@ public class CustomWindowChromeBrowser : Browser<CustomWindowChromeBrowserApi>
     public override CustomWindowChromeBrowserApi Api { get; }
 
     public CustomWindowChromeBrowser()
-        : base("/")
+        : base("/", disableContextMenu: true)
     {
         Api = new CustomWindowChromeBrowserApi();
     }
