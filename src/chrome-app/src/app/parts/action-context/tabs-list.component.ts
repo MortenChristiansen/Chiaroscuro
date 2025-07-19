@@ -160,11 +160,12 @@ export default class TabsListComponent implements OnInit {
     const currentTabs = [...this.tabs()];
     const ephemeralIndex = this.ephemeralTabStartIndex();
 
-    const { adjustedCurrentIndex, adjustedPreviousIndex } = this.adjustDragIndices(
-      event.currentIndex,
-      event.previousIndex,
-      ephemeralIndex
-    );
+    const { adjustedCurrentIndex, adjustedPreviousIndex } =
+      this.adjustDragIndices(
+        event.currentIndex,
+        event.previousIndex,
+        ephemeralIndex
+      );
 
     moveItemInArray(currentTabs, adjustedPreviousIndex, adjustedCurrentIndex);
     this.tabs.set(currentTabs);
@@ -183,6 +184,27 @@ export default class TabsListComponent implements OnInit {
       // Moved from ephemeral to persistent
       this.ephemeralTabStartIndex.set(ephemeralIndex + 1);
     }
+  }
+
+  private adjustDragIndices(
+    currentIndex: number,
+    previousIndex: number,
+    ephemeralIndex: number
+  ) {
+    let adjustedCurrentIndex =
+      currentIndex - (currentIndex > ephemeralIndex ? 1 : 0);
+    const adjustedPreviousIndex =
+      previousIndex - (previousIndex > ephemeralIndex ? 1 : 0);
+
+    // I cannot explain the nature of this condition but it solves an edge case when dragging a persistent tab to the top of the ephemeral tabs
+    if (
+      currentIndex == ephemeralIndex &&
+      adjustedCurrentIndex == ephemeralIndex &&
+      currentIndex > previousIndex
+    )
+      adjustedCurrentIndex--;
+
+    return { adjustedCurrentIndex, adjustedPreviousIndex };
   }
 
   async ngOnInit() {
