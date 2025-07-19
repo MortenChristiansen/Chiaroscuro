@@ -6,6 +6,7 @@ using BrowserHost.Utilities;
 using CefSharp;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 
@@ -24,6 +25,14 @@ public class TabBrowser : Browser
         Address = address;
         if (setManualAddress)
             ManualAddress = address;
+
+        // Set initial title for file URLs
+        if (IsFileUrl(address))
+        {
+            var fileName = GetFileNameFromUrl(address);
+            if (!string.IsNullOrEmpty(fileName))
+                Title = fileName;
+        }
 
         TitleChanged += OnTitleChanged;
         LoadingStateChanged += OnLoadingStateChanged;
@@ -60,5 +69,27 @@ public class TabBrowser : Browser
         Address = address;
         if (setManualAddress)
             ManualAddress = address;
+    }
+
+    private static bool IsFileUrl(string url)
+    {
+        return url.StartsWith("file://", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? GetFileNameFromUrl(string url)
+    {
+        if (!IsFileUrl(url))
+            return null;
+
+        try
+        {
+            var uri = new Uri(url);
+            var localPath = uri.LocalPath;
+            return Path.GetFileName(localPath);
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
