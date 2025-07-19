@@ -26,14 +26,6 @@ public class TabBrowser : Browser
         if (setManualAddress)
             ManualAddress = address;
 
-        // Set initial title for file URLs
-        if (IsFileUrl(address))
-        {
-            var fileName = GetFileNameFromUrl(address);
-            if (!string.IsNullOrEmpty(fileName))
-                Title = fileName;
-        }
-
         TitleChanged += OnTitleChanged;
         LoadingStateChanged += OnLoadingStateChanged;
 
@@ -69,6 +61,17 @@ public class TabBrowser : Browser
         Address = address;
         if (setManualAddress)
             ManualAddress = address;
+    }
+
+    public void SetInitialTitle()
+    {
+        // Set initial title for file URLs
+        if (IsFileUrl(Address))
+        {
+            var fileName = GetFileNameFromUrl(Address);
+            if (!string.IsNullOrEmpty(fileName))
+                Title = fileName;
+        }
     }
 
     private static bool IsFileUrl(string url)
