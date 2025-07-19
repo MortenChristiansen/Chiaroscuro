@@ -299,10 +299,11 @@ export default class TabsListComponent implements OnInit {
     
     if (isCurrentlyEphemeral) {
       // Moving from ephemeral to persistent (bookmark the tab)
-      // Insert at the end of persistent tabs (just before the separator)
-      const insertIndex = ephemeralIndex - 1;
+      // Insert at the end of persistent tabs (which is now at ephemeralIndex after removal)
+      const insertIndex = ephemeralIndex;
       currentTabs.splice(insertIndex, 0, tab);
-      // No need to update ephemeralIndex as the ephemeral section didn't change size
+      // Update ephemeralIndex as persistent section grew by 1
+      this.ephemeralTabStartIndex.set(ephemeralIndex + 1);
     } else {
       // Moving from persistent to ephemeral (unbookmark the tab)
       // Insert at the end of all tabs (end of ephemeral section)
