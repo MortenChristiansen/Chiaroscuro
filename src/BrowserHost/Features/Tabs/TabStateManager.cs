@@ -15,9 +15,9 @@ public static class TabStateManager
 {
     private static readonly string _tabsStatePath = AppDataPathManager.GetAppDataFilePath("tabs.json");
     private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
-
-    private const int CurrentVersion = 1;
-    private const int EphemeralTabExpirationHours = 16;
+    private const int _currentVersion = 1;
+    private const int _ephemeralTabExpirationHours = 16;
+    private static readonly TabsDataDtoV1 _emptyTabs = new([], 0);
 
     public static void SaveTabsToDisk(IEnumerable<TabStateDtoV1> tabs, int ephemeralTabStartIndex)
     {
@@ -28,7 +28,7 @@ public static class TabStateManager
                 Debug.WriteLine("Saving tabs state to disk...");
                 var versionedData = new PersistentData<TabsDataDtoV1>
                 {
-                    Version = CurrentVersion,
+                    Version = _currentVersion,
                     Data = new TabsDataDtoV1([.. tabs], ephemeralTabStartIndex)
                 };
                 File.WriteAllText(_tabsStatePath, JsonSerializer.Serialize(versionedData, _jsonSerializerOptions));
@@ -51,13 +51,13 @@ public static class TabStateManager
                 try
                 {
                     var versionedData = JsonSerializer.Deserialize<PersistentData>(json);
-                    if (versionedData?.Version == CurrentVersion)
-                        return FilterExpiredEphemeralTabs(JsonSerializer.Deserialize<PersistentData<TabsDataDtoV1>>(json)?.Data ?? new([], 0));
+                    if (versionedData?.Version == _currentVersion)
+                        return FilterExpiredEphemeralTabs(JsonSerializer.Deserialize<PersistentData<TabsDataDtoV1>>(json)?.Data ?? _emptyTabs);
                 }
                 catch (Exception e)
                 {
                     Debug.WriteLine($"Failed to restore tabs state: {e.Message}");
-                    return new([], 0);
+                    return _emptyTabs;
                 }
             }
         }
@@ -66,7 +66,7 @@ public static class TabStateManager
             Debug.WriteLine($"Failed to restore tabs state: {e2.Message}");
         }
 
-        return new([], 0);
+        return _emptyTabs;
     }
 
     private static TabsDataDtoV1 FilterExpiredEphemeralTabs(TabsDataDtoV1 tabsData)
@@ -74,7 +74,7 @@ public static class TabStateManager
         var now = DateTimeOffset.UtcNow;
         var persistentTabs = tabsData.EphemeralTabStartIndex > 0 ? tabsData.Tabs[..tabsData.EphemeralTabStartIndex] : [];
         var ephemeralTabs = tabsData.EphemeralTabStartIndex < tabsData.Tabs.Length ? tabsData.Tabs[tabsData.EphemeralTabStartIndex..] : [];
-        ephemeralTabs = [.. ephemeralTabs.Where(t => (now - t.Created).TotalHours < EphemeralTabExpirationHours)];
+        ephemeralTabs = [.. ephemeralTabs.Where(t => (now - t.Created).TotalHours < _ephemeralTabExpirationHours)];
         return new TabsDataDtoV1([.. persistentTabs, .. ephemeralTabs], tabsData.EphemeralTabStartIndex);
     }
 }
