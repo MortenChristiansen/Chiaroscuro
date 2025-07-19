@@ -60,6 +60,12 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             return true;
         }
 
+        if (e.Key == Key.B && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            ToggleCurrentTabBookmark();
+            return true;
+        }
+
         return base.HandleOnPreviewKeyDown(e);
     }
 
@@ -98,6 +104,14 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
         Window.ActionContext.CloseTab(tab.Id);
         PubSub.Publish(new TabClosedEvent(tab));
+    }
+
+    private void ToggleCurrentTabBookmark()
+    {
+        var tab = Window.CurrentTab;
+        if (tab == null) return;
+
+        Window.ActionContext.ToggleTabBookmark(tab.Id);
     }
 
     public TabBrowser? GetTabById(string tabId)

@@ -10,6 +10,7 @@ In browser:
 - **F5**: Reload page.
 - **Ctrl-F5**: Reload page, ignoring cache.
 - **Ctrl-X**: Close current tab.
+- **Ctrl-B**: Toggle tab as bookmark.
 - **F12**: Toggle dev tools.
 - **Ctrl-MouseWheel**: Change zoom level.
 - **Ctrl-Backspace**: Reset zoom level.

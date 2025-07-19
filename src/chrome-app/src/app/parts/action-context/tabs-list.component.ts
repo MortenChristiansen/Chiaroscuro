@@ -253,6 +253,7 @@ export default class TabsListComponent implements OnInit {
         });
       },
       closeTab: (tabId: TabId) => this.close(tabId, false),
+      toggleTabBookmark: (tabId: TabId) => this.toggleBookmark(tabId),
     });
   }
 
@@ -281,5 +282,35 @@ export default class TabsListComponent implements OnInit {
     if (updateBackend) {
       this.api.closeTab(tabId);
     }
+  }
+
+  toggleBookmark(tabId: TabId) {
+    const currentTabs = [...this.tabs()];
+    const ephemeralIndex = this.ephemeralTabStartIndex();
+    const tabIndex = currentTabs.findIndex(t => t.id === tabId);
+    
+    if (tabIndex === -1) return; // Tab not found
+    
+    const tab = currentTabs[tabIndex];
+    const isCurrentlyEphemeral = tabIndex >= ephemeralIndex;
+    
+    // Remove tab from current position
+    currentTabs.splice(tabIndex, 1);
+    
+    if (isCurrentlyEphemeral) {
+      // Moving from ephemeral to persistent (bookmark the tab)
+      // Insert at the end of persistent tabs (just before the separator)
+      const insertIndex = ephemeralIndex - 1;
+      currentTabs.splice(insertIndex, 0, tab);
+      // No need to update ephemeralIndex as the ephemeral section didn't change size
+    } else {
+      // Moving from persistent to ephemeral (unbookmark the tab)
+      // Insert at the end of all tabs (end of ephemeral section)
+      currentTabs.push(tab);
+      // Update ephemeralIndex to account for one less persistent tab
+      this.ephemeralTabStartIndex.set(ephemeralIndex - 1);
+    }
+    
+    this.tabs.set(currentTabs);
   }
 }
