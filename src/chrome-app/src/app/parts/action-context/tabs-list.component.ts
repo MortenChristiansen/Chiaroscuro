@@ -156,7 +156,6 @@ export default class TabsListComponent implements OnInit {
 
     moveItemInArray(currentTabs, adjustedPreviousIndex, adjustedCurrentIndex);
     this.tabs.set(currentTabs);
-    this.api.reorderTab(event.item.data.id, adjustedCurrentIndex); // TODO: Send the new ephemeral index to the backend
 
     // If the item was dragged past the separator, update ephemeralTabStartIndex
     if (

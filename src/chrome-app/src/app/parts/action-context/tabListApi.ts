@@ -11,6 +11,5 @@ export interface TabStateDto {
 export interface TabListApi extends Api {
   activateTab: (tabId: TabId) => Promise<void>;
   closeTab: (tabId: TabId) => Promise<void>;
-  reorderTab: (tabId: TabId, newIndex: number) => Promise<void>;
   tabsChanged: (tabs: TabStateDto[]) => void;
 }
