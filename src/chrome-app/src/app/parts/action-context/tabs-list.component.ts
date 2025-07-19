@@ -66,7 +66,14 @@ interface Tab {
           </svg>
         </button>
       </div>
-      }
+
+      @if ($index === tabs().length - 1 && $index +1 === ephemeralIndex) {
+      <div
+        class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
+        cdkDrag
+        style="pointer-events: none;"
+      ></div>
+      } }
     </div>
   `,
   styles: `
@@ -134,7 +141,8 @@ export default class TabsListComponent implements OnInit {
         Title: tab.title,
         Favicon: tab.favicon,
         IsActive: tab.id === selectedTabId,
-      }))
+      })),
+      this.ephemeralTabStartIndex()
     );
   }, this.saveTabsDebounceDelay);
 
@@ -178,27 +186,23 @@ export default class TabsListComponent implements OnInit {
 
     exposeApiToBackend({
       addTab: (tab: Tab, activate: boolean) => {
-        console.log('Adding tab:', JSON.stringify(tab), 'Activate:', activate);
         this.tabs.update((currentTabs) => [...currentTabs, tab]);
 
         if (activate) {
           this.selectedTab.set(tab);
-          console.log('Activated tab:', JSON.stringify(tab));
         }
       },
-      setTabs: (tabs: Tab[], activeTabId: TabId) => {
-        console.log(
-          'Setting tabs:',
-          JSON.stringify(tabs),
-          'Active tab ID:',
-          activeTabId
-        );
+      setTabs: (
+        tabs: Tab[],
+        activeTabId: TabId,
+        ephemeralTabStartIndex: number
+      ) => {
         this.tabs.set(tabs);
+        this.ephemeralTabStartIndex.set(ephemeralTabStartIndex);
 
         const activeTab = tabs.find((t) => t.id === activeTabId);
         if (activeTab) {
           this.selectedTab.set(activeTab);
-          console.log('Activated tab:', JSON.stringify(activeTab));
         }
         this.tabsInitialized.set(true);
         this.tabActivationOrderStack = [
