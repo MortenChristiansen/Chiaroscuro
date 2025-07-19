@@ -1,3 +1,5 @@
-﻿namespace BrowserHost.Features.Tabs;
+﻿using System;
 
-public record TabDto(string Id, string? Title, string? Favicon);
+namespace BrowserHost.Features.Tabs;
+
+public record TabDto(string Id, string? Title, string? Favicon, DateTimeOffset Created);

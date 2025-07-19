@@ -6,6 +6,7 @@ export interface TabStateDto {
   Title: string | null;
   Favicon: string | null;
   IsActive: boolean;
+  Created: Date;
 }
 
 export interface TabListApi extends Api {

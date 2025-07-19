@@ -15,6 +15,7 @@ interface Tab {
   id: TabId;
   title: string | null;
   favicon: string | null;
+  created: Date;
 }
 
 @Component({
@@ -141,6 +142,7 @@ export default class TabsListComponent implements OnInit {
         Title: tab.title,
         Favicon: tab.favicon,
         IsActive: tab.id === selectedTabId,
+        Created: tab.created,
       })),
       this.ephemeralTabStartIndex()
     );

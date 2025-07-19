@@ -3,12 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 
 namespace BrowserHost.Features.Tabs;
 
 public record TabsDataDtoV1(TabStateDtoV1[] Tabs, int EphemeralTabStartIndex);
-public record TabStateDtoV1(string Address, string? Title, string? Favicon, bool IsActive);
+public record TabStateDtoV1(string Address, string? Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 
 public static class TabStateManager
 {
@@ -16,6 +17,7 @@ public static class TabStateManager
     private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
 
     private const int CurrentVersion = 1;
+    private const int EphemeralTabExpirationHours = 16;
 
     public static void SaveTabsToDisk(IEnumerable<TabStateDtoV1> tabs, int ephemeralTabStartIndex)
     {
@@ -50,7 +52,7 @@ public static class TabStateManager
                 {
                     var versionedData = JsonSerializer.Deserialize<PersistentData>(json);
                     if (versionedData?.Version == CurrentVersion)
-                        return JsonSerializer.Deserialize<PersistentData<TabsDataDtoV1>>(json)?.Data ?? new([], 0);
+                        return FilterExpiredEphemeralTabs(JsonSerializer.Deserialize<PersistentData<TabsDataDtoV1>>(json)?.Data ?? new([], 0));
                 }
                 catch (Exception e)
                 {
@@ -65,5 +67,14 @@ public static class TabStateManager
         }
 
         return new([], 0);
+    }
+
+    private static TabsDataDtoV1 FilterExpiredEphemeralTabs(TabsDataDtoV1 tabsData)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var persistentTabs = tabsData.EphemeralTabStartIndex > 0 ? tabsData.Tabs[..tabsData.EphemeralTabStartIndex] : [];
+        var ephemeralTabs = tabsData.EphemeralTabStartIndex < tabsData.Tabs.Length ? tabsData.Tabs[tabsData.EphemeralTabStartIndex..] : [];
+        ephemeralTabs = [.. ephemeralTabs.Where(t => (now - t.Created).TotalHours < EphemeralTabExpirationHours)];
+        return new TabsDataDtoV1([.. persistentTabs, .. ephemeralTabs], tabsData.EphemeralTabStartIndex);
     }
 }

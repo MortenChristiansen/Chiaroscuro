@@ -1,5 +1,6 @@
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
@@ -36,7 +37,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             e.Tab.Dispose();
         });
         PubSub.Subscribe<TabsChangedEvent>(e =>
-            TabStateManager.SaveTabsToDisk(e.Tabs.Select(t => new TabStateDtoV1(_tabBrowsers.Find(b => b.Id == t.Id)?.Address ?? "", t.Title, t.Favicon, t.IsActive)), e.EphemeralTabStartIndex)
+            TabStateManager.SaveTabsToDisk(e.Tabs.Select(t => new TabStateDtoV1(_tabBrowsers.Find(b => b.Id == t.Id)?.Address ?? "", t.Title, t.Favicon, t.IsActive, t.Created)), e.EphemeralTabStartIndex)
         );
     }
 
@@ -45,7 +46,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         var tabs = TabStateManager.RestoreTabsFromDisk();
         var browsers = tabs.Tabs.Select(t => (Browser: AddExistingTab(t.Address, activate: t.IsActive, t.Title, t.Favicon), Tab: t)).ToList();
         Window.ActionContext.SetTabs(
-            [.. browsers.Select(t => new TabDto(t.Browser.Id, t.Tab.Title, t.Tab.Favicon))],
+            [.. browsers.Select(t => new TabDto(t.Browser.Id, t.Tab.Title, t.Tab.Favicon, t.Tab.Created))],
             browsers.Find(t => t.Tab.IsActive).Browser?.Id,
             tabs.EphemeralTabStartIndex
         );
@@ -74,7 +75,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     private void RegisterNewTabWithFrontend(TabBrowser browser)
     {
-        var tab = new TabDto(browser.Id, browser.Title, null);
+        var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.Now);
         Window.ActionContext.AddTab(tab, activate: true);
         Window.Dispatcher.Invoke(() => Window.SetCurrentTab(browser));
     }

@@ -12,7 +12,7 @@ public record TabsChangedEvent(TabUiStateDto[] Tabs, int EphemeralTabStartIndex)
 public record TabUrlLoadedSuccessfullyEvent(string TabId);
 public record TabFaviconUrlChangedEvent(string TabId, string? NewFaviconUrl);
 
-public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive);
+public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 
 public class TabListBrowserApi : BrowserApi
 {
@@ -24,7 +24,7 @@ public class TabListBrowserApi : BrowserApi
 
     public void TabsChanged(List<object> tabs, int ephemeralTabStartIndex) =>
         PubSub.Publish(new TabsChangedEvent(
-            [.. tabs.Select((dynamic tab) => new TabUiStateDto(tab.Id, tab.Title, tab.Favicon, tab.IsActive))],
+            [.. tabs.Select((dynamic tab) => new TabUiStateDto(tab.Id, tab.Title, tab.Favicon, tab.IsActive, DateTimeOffset.Parse(tab.Created)))],
             ephemeralTabStartIndex
         ));
 }
