@@ -22,3 +22,8 @@ and uses Angular for the window chrome parts of the UI.
 
 ## C# Features
 1. Use new language features where applicable.
+
+## General PR Review Guidelines
+- When suggesting code changes, you MUST include the entire change. For example, if you
+are suggesting extracting code to a method, you must include the new method, not just update the call
+site as if the method exists.
