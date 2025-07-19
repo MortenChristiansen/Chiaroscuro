@@ -26,7 +26,15 @@ interface Tab {
       cdkDropList
       (cdkDropListDropped)="drop($event)"
     >
-      @for (tab of tabs(); track tab.id) {
+      @let ephemeralIndex = ephemeralTabStartIndex(); @for (tab of tabs(); track
+      tab.id) { @if ($index === ephemeralIndex) {
+      <div
+        class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
+        cdkDrag
+        style="pointer-events: none;"
+      ></div>
+      }
+
       <div
         class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
           tab.id === selectedTab()?.id ? 'bg-white/20 hover:bg-white/30' : ''
@@ -89,6 +97,7 @@ interface Tab {
 })
 export default class TabsListComponent implements OnInit {
   tabs = signal<Tab[]>([]);
+  ephemeralTabStartIndex = signal<number>(0);
   tabsInitialized = signal(false);
   selectedTab = signal<Tab | null>(null);
   private saveTabsDebounceDelay = 1000;
@@ -131,9 +140,38 @@ export default class TabsListComponent implements OnInit {
 
   drop(event: CdkDragDrop<any>) {
     const currentTabs = [...this.tabs()];
-    moveItemInArray(currentTabs, event.previousIndex, event.currentIndex);
+    const ephemeralIndex = this.ephemeralTabStartIndex();
+
+    var adjustedCurrentIndex =
+      event.currentIndex - (event.currentIndex > ephemeralIndex ? 1 : 0);
+    // I cannot explain the nature of this condition but it solves an edge case when dragging a persistent tab to the top of the ephemeral tabs
+    if (
+      event.currentIndex == ephemeralIndex &&
+      adjustedCurrentIndex == ephemeralIndex &&
+      event.currentIndex > event.previousIndex
+    )
+      adjustedCurrentIndex--;
+    const adjustedPreviousIndex =
+      event.previousIndex - (event.previousIndex > ephemeralIndex ? 1 : 0);
+
+    moveItemInArray(currentTabs, adjustedPreviousIndex, adjustedCurrentIndex);
     this.tabs.set(currentTabs);
-    this.api.reorderTab(event.item.data.id, event.currentIndex);
+    this.api.reorderTab(event.item.data.id, adjustedCurrentIndex); // TODO: Send the new ephemeral index to the backend
+
+    // If the item was dragged past the separator, update ephemeralTabStartIndex
+    if (
+      event.previousIndex < ephemeralIndex &&
+      event.currentIndex >= ephemeralIndex
+    ) {
+      // Moved from persistent to ephemeral
+      this.ephemeralTabStartIndex.set(ephemeralIndex - 1);
+    } else if (
+      event.previousIndex > ephemeralIndex &&
+      event.currentIndex <= ephemeralIndex
+    ) {
+      // Moved from ephemeral to persistent
+      this.ephemeralTabStartIndex.set(ephemeralIndex + 1);
+    }
   }
 
   async ngOnInit() {
