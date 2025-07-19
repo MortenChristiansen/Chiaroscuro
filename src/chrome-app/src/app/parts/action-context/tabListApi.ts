@@ -12,6 +12,5 @@ export interface TabStateDto {
 export interface TabListApi extends Api {
   activateTab: (tabId: TabId) => Promise<void>;
   closeTab: (tabId: TabId) => Promise<void>;
-  toggleTabBookmark: (tabId: TabId) => Promise<void>;
   tabsChanged: (tabs: TabStateDto[], ephemeralTabStartIndex: number) => void;
 }

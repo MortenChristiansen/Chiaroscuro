@@ -11,7 +11,6 @@ public record TabClosedEvent(TabBrowser Tab);
 public record TabsChangedEvent(TabUiStateDto[] Tabs, int EphemeralTabStartIndex);
 public record TabUrlLoadedSuccessfullyEvent(string TabId);
 public record TabFaviconUrlChangedEvent(string TabId, string? NewFaviconUrl);
-public record TabBookmarkToggledEvent(string TabId);
 
 public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 
@@ -22,9 +21,6 @@ public class TabListBrowserApi : BrowserApi
 
     public void CloseTab(string tabId) =>
         PubSub.Publish(new TabClosedEvent(MainWindow.Instance.GetFeature<TabsFeature>().GetTabById(tabId) ?? throw new ArgumentException("Tab does not exist")));
-
-    public void ToggleTabBookmark(string tabId) =>
-        PubSub.Publish(new TabBookmarkToggledEvent(tabId));
 
     public void TabsChanged(List<object> tabs, int ephemeralTabStartIndex) =>
         PubSub.Publish(new TabsChangedEvent(
