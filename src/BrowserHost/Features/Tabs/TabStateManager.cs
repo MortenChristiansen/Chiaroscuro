@@ -22,18 +22,18 @@ public static class TabStateManager
 
     public static void SaveTabsToDisk(IEnumerable<TabStateDtoV1> tabs, int ephemeralTabStartIndex)
     {
-        try
-        {
-            var newTabsData = new TabsDataDtoV1([.. tabs], ephemeralTabStartIndex);
-            
-            // Check if the new data is the same as what we last saved
-            if (_lastSavedTabsData != null && TabsDataEqual(_lastSavedTabsData, newTabsData))
-            {
-                Debug.WriteLine("Skipping tabs state save - no changes detected.");
-                return;
-            }
+        var newTabsData = new TabsDataDtoV1([.. tabs], ephemeralTabStartIndex);
 
-            MainWindow.Instance?.Dispatcher.Invoke(() =>
+        // Check if the new data is the same as what we last saved
+        if (_lastSavedTabsData != null && TabsDataEqual(_lastSavedTabsData, newTabsData))
+        {
+            Debug.WriteLine("Skipping tabs state save - no changes detected.");
+            return;
+        }
+
+        MainWindow.Instance?.Dispatcher.Invoke(() =>
+        {
+            try
             {
                 Debug.WriteLine("Saving tabs state to disk...");
                 var versionedData = new PersistentData<TabsDataDtoV1>
@@ -42,21 +42,21 @@ public static class TabStateManager
                     Data = newTabsData
                 };
                 File.WriteAllText(_tabsStatePath, JsonSerializer.Serialize(versionedData, _jsonSerializerOptions));
-                
+
                 // Update the cache after successful save
                 _lastSavedTabsData = newTabsData;
-            });
-        }
-        catch (Exception e)
-        {
-            Debug.WriteLine($"Failed to save tabs state: {e.Message}");
-        }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Failed to save tabs state: {e.Message}");
+            }
+        });
     }
 
     public static TabsDataDtoV1 RestoreTabsFromDisk()
     {
         TabsDataDtoV1 result = _emptyTabs;
-        
+
         try
         {
             if (File.Exists(_tabsStatePath))
