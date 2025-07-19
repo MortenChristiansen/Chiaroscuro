@@ -13,11 +13,11 @@ public class DragDropFeature(MainWindow window) : Feature(window)
 {
     private static readonly string[] SupportedExtensions = 
     [
-        // Images
+        // Images - widely supported by browsers
         ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".webp", ".ico",
-        // Documents
-        ".pdf", ".txt", ".html", ".htm", ".xml", ".json", ".md",
-        // Media (limited support)
+        // Documents - browser-supported formats
+        ".pdf", ".txt", ".html", ".htm", ".xml", ".json", ".md", ".css", ".js",
+        // Media - basic browser support
         ".mp4", ".webm", ".ogg", ".mp3", ".wav"
     ];
 
@@ -90,19 +90,37 @@ public class DragDropFeature(MainWindow window) : Feature(window)
 
     private static bool IsValidFile(string filePath)
     {
-        if (!File.Exists(filePath))
-            return false;
+        try
+        {
+            if (!File.Exists(filePath))
+                return false;
 
-        var extension = Path.GetExtension(filePath).ToLowerInvariant();
-        return SupportedExtensions.Contains(extension);
+            // Check if file is readable
+            using var stream = File.OpenRead(filePath);
+            
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            return SupportedExtensions.Contains(extension);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void HandleFileDropped(FileDroppedEvent e)
     {
         foreach (var filePath in e.FilePaths)
         {
-            var fileUri = new Uri(filePath).AbsoluteUri;
-            PubSub.Publish(new NavigationStartedEvent(fileUri, UseCurrentTab: false, SaveInHistory: true));
+            try
+            {
+                var fileUri = new Uri(filePath).AbsoluteUri;
+                PubSub.Publish(new NavigationStartedEvent(fileUri, UseCurrentTab: false, SaveInHistory: true));
+            }
+            catch (Exception ex)
+            {
+                // Log error and continue with other files
+                System.Diagnostics.Debug.WriteLine($"Failed to process dropped file {filePath}: {ex.Message}");
+            }
         }
     }
 }
