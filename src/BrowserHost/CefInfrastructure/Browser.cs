@@ -64,7 +64,7 @@ public abstract class BaseBrowser : ChromiumWebBrowser
     }
 }
 
-public abstract class Browser(string? uiAddress = null) : Browser<BrowserApi>(uiAddress)
+public abstract class Browser(string? uiAddress = null, bool disableContextMenu = false) : Browser<BrowserApi>(uiAddress, disableContextMenu)
 {
     public override BrowserApi Api { get; } = new BrowserApi();
 
@@ -77,14 +77,16 @@ public abstract class Browser(string? uiAddress = null) : Browser<BrowserApi>(ui
 public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : BrowserApi
 {
     private readonly string? _uiAddress;
+    private readonly bool _disableContextMenu;
 
     public abstract TApi Api { get; }
 
-    protected Browser(string? uiAddress)
+    protected Browser(string? uiAddress, bool disableContextMenu = false)
     {
         RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.HighQuality);
 
         _uiAddress = uiAddress;
+        _disableContextMenu = disableContextMenu;
     }
 
     public override void BeginInit()
@@ -92,6 +94,11 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
         JavascriptObjectRepository.Register("api", Api);
         if (_uiAddress != null)
             Address = ContentServer.GetUiAddress(_uiAddress);
+
+        if (_disableContextMenu)
+        {
+            this.MenuHandler = new DisabledContextMenuHandler();
+        }
 
         ConsoleMessage += (sender, e) =>
         {

@@ -20,6 +20,7 @@ public class TabBrowser : Browser
     public string? ManualAddress { get; private set; }
 
     public TabBrowser(string address, ActionContextBrowser actionContextBrowser, bool setManualAddress)
+        : base(null, disableContextMenu: false) // Explicitly keep context menus for tab browsers
     {
         Address = address;
         if (setManualAddress)
