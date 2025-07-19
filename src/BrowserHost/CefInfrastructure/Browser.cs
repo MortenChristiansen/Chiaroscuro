@@ -95,9 +95,6 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
         if (_uiAddress != null)
             Address = ContentServer.GetUiAddress(_uiAddress);
 
-        if (_disableContextMenu)
-            MenuHandler = new DisabledContextMenuHandler();
-
         ConsoleMessage += (sender, e) =>
         {
             Debug.WriteLine($"{GetType().Name}: {e.Message}");
@@ -106,6 +103,10 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
         };
 
         base.BeginInit();
+        
+        // Set the menu handler after base initialization
+        if (_disableContextMenu)
+            MenuHandler = new DisabledContextMenuHandler();
     }
 
     public void CallClientApi(string api, string? arguments = null)
