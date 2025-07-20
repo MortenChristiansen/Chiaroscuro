@@ -2,6 +2,7 @@ using BrowserHost.Features;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
+using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
 using BrowserHost.Features.Tabs;
 using BrowserHost.Features.Zoom;
@@ -40,7 +41,8 @@ public partial class MainWindow : Window
             new TabsFeature(this),
             new DevToolFeature(this),
             new FileDownloadsFeature(this),
-            new ZoomFeature(this)
+            new ZoomFeature(this),
+            new DragDropFeature(this)
         ];
         _features.ForEach(f => f.Register());
 

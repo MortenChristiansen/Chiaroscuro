@@ -62,6 +62,13 @@ public abstract class BaseBrowser : ChromiumWebBrowser
     {
         this.GetBrowserHost()?.Invalidate(PaintElementType.View);
     }
+
+    public override void BeginInit()
+    {
+        AllowDrop = false;
+
+        base.BeginInit();
+    }
 }
 
 public abstract class Browser(string? uiAddress = null, bool disableContextMenu = false) : Browser<BrowserApi>(uiAddress, disableContextMenu)
