@@ -1,4 +1,5 @@
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.Workspaces;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
@@ -10,10 +11,13 @@ namespace BrowserHost.Features.Tabs;
 public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.ActionContext.TabListApi)
 {
     private readonly List<TabBrowser> _tabBrowsers = [];
+    private WorkspacesFeature? _workspacesFeature;
 
     public override void Register()
     {
-        RestoreTabs();
+        // We'll initialize workspace-aware tab restoration after workspaces feature is ready
+        _workspacesFeature = Window.GetFeature<WorkspacesFeature>();
+        RestoreWorkspaceTabs();
 
         PubSub.Subscribe<NavigationStartedEvent>(e =>
         {
@@ -37,8 +41,33 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             e.Tab.Dispose();
         });
         PubSub.Subscribe<TabsChangedEvent>(e =>
-            TabStateManager.SaveTabsToDisk(e.Tabs.Select(t => new TabStateDtoV1(_tabBrowsers.Find(b => b.Id == t.Id)?.Address ?? "", t.Title, t.Favicon, t.IsActive, t.Created)), e.EphemeralTabStartIndex)
-        );
+        {
+            var currentWorkspaceId = _workspacesFeature?.GetActiveWorkspaceId();
+            if (currentWorkspaceId != null)
+            {
+                var tabs = e.Tabs.Select(t => new TabStateDtoV1(_tabBrowsers.Find(b => b.Id == t.Id)?.Address ?? "", t.Title, t.Favicon, t.IsActive, t.Created)).ToArray();
+                var activeTabId = e.Tabs.FirstOrDefault(t => t.IsActive)?.Id;
+                _workspacesFeature.UpdateWorkspaceTabs(currentWorkspaceId, tabs, activeTabId);
+            }
+        });
+    }
+
+    private void RestoreWorkspaceTabs()
+    {
+        var workspacesData = _workspacesFeature?.GetWorkspacesData();
+        if (workspacesData != null)
+        {
+            var activeWorkspace = workspacesData.Workspaces.FirstOrDefault(w => w.Id == workspacesData.ActiveWorkspaceId);
+            if (activeWorkspace != null)
+            {
+                LoadWorkspaceTabs(activeWorkspace.Tabs, activeWorkspace.LastActiveTabId);
+            }
+        }
+        else
+        {
+            // Fallback to legacy tab restoration if workspaces aren't available
+            RestoreTabs();
+        }
     }
 
     private void RestoreTabs()
@@ -49,6 +78,40 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             [.. browsers.Select(t => new TabDto(t.Browser.Id, t.Tab.Title, t.Tab.Favicon, t.Tab.Created))],
             browsers.Find(t => t.Tab.IsActive).Browser?.Id,
             tabs.EphemeralTabStartIndex
+        );
+    }
+
+    public void LoadWorkspaceTabs(TabStateDtoV1[] workspaceTabs, string? lastActiveTabId)
+    {
+        // Clear existing tabs
+        foreach (var browser in _tabBrowsers.ToList())
+        {
+            browser.Dispose();
+        }
+        _tabBrowsers.Clear();
+
+        // Load workspace tabs
+        var browsers = workspaceTabs.Select(t => AddExistingTab(t.Address, activate: false, t.Title, t.Favicon)).ToList();
+        
+        // Find the last active tab or pick the first ephemeral one
+        string? activeTabId = null;
+        if (!string.IsNullOrEmpty(lastActiveTabId))
+        {
+            activeTabId = browsers.FirstOrDefault(b => _tabBrowsers.Any(tb => tb.Id == b.Id && tb.Address == lastActiveTabId))?.Id;
+        }
+        
+        // If no last active tab found, activate the topmost ephemeral tab
+        if (activeTabId == null && browsers.Any())
+        {
+            // For now, assume ephemeral tabs start from the end - this logic can be refined
+            var ephemeralTabs = browsers.Where(b => !workspaceTabs.Any(t => t.Address == _tabBrowsers.First(tb => tb.Id == b.Id).Address)).ToList();
+            activeTabId = ephemeralTabs.FirstOrDefault()?.Id ?? browsers.FirstOrDefault()?.Id;
+        }
+
+        Window.ActionContext.SetTabs(
+            [.. browsers.Select(b => new TabDto(b.Id, b.Title, null, DateTimeOffset.Now))],
+            activeTabId,
+            workspaceTabs.Length // For now, assume all restored tabs are persistent
         );
     }
 

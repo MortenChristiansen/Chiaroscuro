@@ -5,6 +5,7 @@ using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
 using BrowserHost.Features.Tabs;
+using BrowserHost.Features.Workspaces;
 using BrowserHost.Features.Zoom;
 using CefSharp;
 using CefSharp.Wpf;
@@ -38,6 +39,7 @@ public partial class MainWindow : Window
         [
             new CustomWindowChromeFeature(this),
             new ActionDialogFeature(this),
+            new WorkspacesFeature(this),
             new TabsFeature(this),
             new DevToolFeature(this),
             new FileDownloadsFeature(this),
