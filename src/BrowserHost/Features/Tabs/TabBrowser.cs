@@ -1,5 +1,6 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.ActionContext;
+using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
@@ -33,6 +34,7 @@ public class TabBrowser : Browser
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
         RequestHandler = new RequestHandler(Id);
+        LifeSpanHandler = new LifeSpanHandler(OnNewTabRequested);
 
         BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
     }
@@ -75,5 +77,11 @@ public class TabBrowser : Browser
         {
             base.OnAddressChanged(oldValue, newValue);
         }
+    }
+
+    private void OnNewTabRequested(string url)
+    {
+        // Publish event to request a new tab (similar to how drag and drop works)
+        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: false, SaveInHistory: true));
     }
 }
