@@ -78,9 +78,6 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.Now);
         Window.ActionContext.AddTab(tab, activate: true);
         Window.Dispatcher.Invoke(() => Window.SetCurrentTab(browser));
-        
-        // Set initial title after tab is registered to avoid updating wrong tab
-        browser.SetInitialTitle();
     }
 
     private TabBrowser AddExistingTab(string address, bool activate, string? title, string? favicon)
