@@ -69,6 +69,7 @@ public class PIPFeature(MainWindow window) : Feature(window)
             var tabsFeature = Window.GetFeature<TabsFeature>();
             Window.Dispatcher.Invoke(() =>
             {
+                // Check current tab and all background tabs for video
                 var currentTab = Window.CurrentTab;
                 if (currentTab != null)
                 {

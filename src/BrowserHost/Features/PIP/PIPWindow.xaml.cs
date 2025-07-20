@@ -12,8 +12,8 @@ public partial class PIPWindow : Window
 {
     private readonly TabBrowser _videoTab;
     private readonly PIPFeature _pipFeature;
-    private ChromiumWebBrowser? _pipBrowser;
     private DispatcherTimer? _hideControlsTimer;
+    private DispatcherTimer? _videoSyncTimer;
     private bool _isVideoPlaying = true;
 
     public PIPWindow(TabBrowser videoTab, PIPFeature pipFeature)
@@ -37,129 +37,89 @@ public partial class PIPWindow : Window
             HideControls();
             _hideControlsTimer.Stop();
         };
+
+        // Sync timer to check video state
+        _videoSyncTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _videoSyncTimer.Tick += SyncVideoState;
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        SetupPIPBrowser();
+        SetupPIPContent();
         HideControls();
+        _videoSyncTimer?.Start();
     }
 
-    private void SetupPIPBrowser()
+    private void SetupPIPContent()
     {
-        // Create a new browser instance that mirrors the video tab
-        _pipBrowser = new ChromiumWebBrowser(_videoTab.Address)
+        // Instead of creating a new browser, we'll inject a small preview into the original tab
+        // and capture that. For now, we'll show a placeholder and rely on the controls
+        
+        // Set a dark background to indicate video area
+        VideoBorder.Background = System.Windows.Media.Brushes.Black;
+        
+        // Add a text overlay to show this is a PIP preview
+        var textBlock = new System.Windows.Controls.TextBlock
         {
-            BrowserSettings = new BrowserSettings
-            {
-                BackgroundColor = Cef.ColorSetARGB(255, 0, 0, 0)
-            }
+            Text = "📹 Video Playing",
+            Foreground = System.Windows.Media.Brushes.White,
+            FontSize = 16,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Opacity = 0.7
         };
-
-        // Inject CSS to hide everything except video elements and make them fullscreen
-        _pipBrowser.FrameLoadEnd += (sender, args) =>
-        {
-            if (args.Frame.IsMain)
-            {
-                var script = @"
-                    (function() {
-                        // Hide all elements except videos
-                        const style = document.createElement('style');
-                        style.textContent = `
-                            * { display: none !important; }
-                            video { 
-                                display: block !important; 
-                                position: fixed !important;
-                                top: 0 !important;
-                                left: 0 !important;
-                                width: 100vw !important;
-                                height: 100vh !important;
-                                object-fit: contain !important;
-                                z-index: 999999 !important;
-                                background: black !important;
-                            }
-                            body, html {
-                                margin: 0 !important;
-                                padding: 0 !important;
-                                overflow: hidden !important;
-                                background: black !important;
-                                display: block !important;
-                            }
-                        `;
-                        document.head.appendChild(style);
-                        
-                        // Find and configure video elements
-                        const videos = document.querySelectorAll('video');
-                        videos.forEach(video => {
-                            video.controls = false;
-                            video.style.display = 'block';
-                            video.style.position = 'fixed';
-                            video.style.top = '0';
-                            video.style.left = '0';
-                            video.style.width = '100vw';
-                            video.style.height = '100vh';
-                            video.style.objectFit = 'contain';
-                            video.style.zIndex = '999999';
-                            video.style.background = 'black';
-                        });
-                        
-                        // Sync playback state with original video
-                        const originalVideos = window.parent ? 
-                            window.parent.document.querySelectorAll('video') : [];
-                        
-                        if (originalVideos.length > 0 && videos.length > 0) {
-                            const originalVideo = originalVideos[0];
-                            const pipVideo = videos[0];
-                            
-                            // Sync time
-                            pipVideo.currentTime = originalVideo.currentTime;
-                            
-                            // Sync play state
-                            if (originalVideo.paused) {
-                                pipVideo.pause();
-                            } else {
-                                pipVideo.play().catch(() => {});
-                            }
-                        }
-                    })();
-                ";
-                
-                args.Frame.ExecuteJavaScriptAsync(script);
-                
-                // Update play/pause button state
-                CheckVideoPlayState();
-            }
-        };
-
-        VideoBorder.Child = _pipBrowser;
+        
+        var grid = new System.Windows.Controls.Grid();
+        grid.Children.Add(textBlock);
+        VideoBorder.Child = grid;
     }
 
-    private async void CheckVideoPlayState()
+    private async void SyncVideoState(object? sender, EventArgs e)
     {
-        if (_pipBrowser?.IsBrowserInitialized == true)
+        if (_videoTab?.IsBrowserInitialized == true && !_videoTab.IsDisposed)
         {
             try
             {
                 var script = @"
                     (function() {
                         const videos = document.querySelectorAll('video');
-                        return videos.length > 0 ? !videos[0].paused : false;
+                        if (videos.length > 0) {
+                            const video = videos[0];
+                            return {
+                                playing: !video.paused && !video.ended,
+                                currentTime: video.currentTime,
+                                duration: video.duration,
+                                title: document.title
+                            };
+                        }
+                        return null;
                     })();
                 ";
                 
-                var result = await _pipBrowser.EvaluateScriptAsync(script);
-                if (result.Success && result.Result is bool isPlaying)
+                var result = await _videoTab.EvaluateScriptAsync(script);
+                if (result.Success && result.Result != null)
                 {
-                    _isVideoPlaying = isPlaying;
-                    Dispatcher.Invoke(() =>
+                    // For now, just update the play/pause button state
+                    // In a full implementation, you would extract the video data
+                    var videoData = result.Result.ToString();
+                    if (videoData?.Contains("\"playing\":true") == true)
                     {
-                        PlayPauseIcon.Text = _isVideoPlaying ? "⏸" : "▶";
-                    });
+                        _isVideoPlaying = true;
+                        Dispatcher.Invoke(() => PlayPauseIcon.Text = "⏸");
+                    }
+                    else if (videoData?.Contains("\"playing\":false") == true)
+                    {
+                        _isVideoPlaying = false;
+                        Dispatcher.Invoke(() => PlayPauseIcon.Text = "▶");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error checking video play state: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error syncing video state: {ex.Message}");
             }
         }
     }
@@ -208,30 +168,12 @@ public partial class PIPWindow : Window
         // Toggle local state for immediate UI feedback
         _isVideoPlaying = !_isVideoPlaying;
         PlayPauseIcon.Text = _isVideoPlaying ? "⏸" : "▶";
-        
-        // Also control local PIP video
-        if (_pipBrowser?.IsBrowserInitialized == true)
-        {
-            var script = @"
-                (function() {
-                    const videos = document.querySelectorAll('video');
-                    videos.forEach(video => {
-                        if (video.paused) {
-                            video.play().catch(() => {});
-                        } else {
-                            video.pause();
-                        }
-                    });
-                })();
-            ";
-            _pipBrowser.ExecuteScriptAsync(script);
-        }
     }
 
     protected override void OnClosed(EventArgs e)
     {
         _hideControlsTimer?.Stop();
-        _pipBrowser?.Dispose();
+        _videoSyncTimer?.Stop();
         base.OnClosed(e);
     }
 }
