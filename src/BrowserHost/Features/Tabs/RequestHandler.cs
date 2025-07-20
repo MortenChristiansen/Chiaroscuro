@@ -13,7 +13,12 @@ public class RequestHandler(string tabId) : CefSharp.Handler.RequestHandler
 
     protected override bool OnOpenUrlFromTab(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, string targetUrl, WindowOpenDisposition targetDisposition, bool userGesture)
     {
-        PubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true));
-        return true;
+        if (targetDisposition == WindowOpenDisposition.NewBackgroundTab)
+        {
+            PubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true));
+            return true;
+        }
+
+        return false;
     }
 }
