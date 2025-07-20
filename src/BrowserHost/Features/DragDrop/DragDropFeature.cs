@@ -55,9 +55,6 @@ public class DragDropFeature(MainWindow window) : Feature(window)
             if (!File.Exists(filePath))
                 return false;
 
-            // Check if file is readable
-            using var stream = File.OpenRead(filePath);
-
             var extension = Path.GetExtension(filePath).ToLowerInvariant();
             return SupportedExtensions.Contains(extension);
         }
