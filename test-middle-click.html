@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Middle Mouse Click Test - Chiaroscuro Browser</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+        }
+        .test-link {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f0f0f0;
+            text-decoration: none;
+            color: #0066cc;
+            border-radius: 5px;
+        }
+        .test-link:hover {
+            background: #e0e0e0;
+        }
+        .instructions {
+            background: #ffffcc;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .expected-behavior {
+            background: #e6f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Middle Mouse Click Test - Chiaroscuro Browser</h1>
+    
+    <div class="instructions">
+        <strong>Instructions:</strong>
+        <ol>
+            <li>Open this page in the Chiaroscuro browser</li>
+            <li>Try middle-clicking (mouse wheel button) on the links below</li>
+            <li>Each middle-click should open the link in a new tab</li>
+            <li>Regular left-clicks should still work normally</li>
+            <li>Right-clicks should still show the context menu</li>
+        </ol>
+    </div>
+
+    <div class="expected-behavior">
+        <strong>Expected Behavior:</strong>
+        <ul>
+            <li><strong>Middle Mouse Click:</strong> Opens link in new tab without navigating current tab</li>
+            <li><strong>Left Mouse Click:</strong> Navigates to link in current tab (normal behavior)</li>
+            <li><strong>Right Mouse Click:</strong> Shows context menu (normal behavior)</li>
+        </ul>
+    </div>
+
+    <h2>Test Links</h2>
+    
+    <a href="https://www.google.com" class="test-link">Google (External Link)</a>
+    <a href="https://www.github.com" class="test-link">GitHub (External Link)</a>
+    <a href="https://developer.mozilla.org" class="test-link">MDN Web Docs</a>
+    <a href="#section1" class="test-link">Local Anchor Link</a>
+    <a href="javascript:alert('JavaScript link clicked')" class="test-link">JavaScript Link</a>
+    
+    <div style="margin-top: 50px;">
+        <h2 id="section1">Section 1</h2>
+        <p>This is a test section to verify anchor links work correctly.</p>
+        
+        <a href="https://www.stackoverflow.com" class="test-link">Stack Overflow</a>
+        <a href="https://www.wikipedia.org" class="test-link">Wikipedia</a>
+    </div>
+
+    <div style="margin-top: 50px;">
+        <h2>Nested Element Test</h2>
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 5px;">
+            <a href="https://www.example.com" class="test-link">
+                <strong>Bold text inside link</strong>
+                <br>
+                <em>This tests middle-clicking on nested elements</em>
+                <br>
+                <span style="color: red;">Click on any part of this link area</span>
+            </a>
+        </div>
+    </div>
+
+    <div style="margin-top: 50px;">
+        <h2>Special Link Types</h2>
+        <a href="mailto:test@example.com" class="test-link">Email Link (mailto:)</a>
+        <a href="file:///C:/" class="test-link">File Link (should work on Windows)</a>
+        <a href="https://www.example.com?query=test&param=value" class="test-link">Link with Query Parameters</a>
+        <a href="https://www.example.com#anchor" class="test-link">Link with Fragment/Anchor</a>
+    </div>
+
+    <script>
+        // Log mouse events for debugging
+        document.addEventListener('mousedown', function(e) {
+            console.log('Mouse button pressed:', e.button, 'on element:', e.target.tagName, 'href:', e.target.href || 'none');
+        });
+        
+        document.addEventListener('click', function(e) {
+            console.log('Click event on:', e.target.tagName, 'href:', e.target.href || 'none');
+        });
+        
+        // Test if navigationApi is available
+        setTimeout(function() {
+            if (window.navigationApi) {
+                console.log('✓ navigationApi is available');
+            } else {
+                console.warn('✗ navigationApi is NOT available - middle click may not work');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

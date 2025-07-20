@@ -93,42 +93,51 @@ public class TabBrowser : Browser
         {
             var middleClickScript = @"
                 (function() {
-                    // Add event listener for middle mouse clicks on links
-                    document.addEventListener('mousedown', function(event) {
-                        // Check if middle mouse button (button 1) was clicked
-                        if (event.button === 1) {
-                            // Find the closest anchor tag
-                            var target = event.target;
-                            while (target && target.tagName !== 'A') {
-                                target = target.parentElement;
-                                // Prevent infinite loop if we reach document
-                                if (target === document) {
-                                    target = null;
-                                    break;
-                                }
-                            }
-                            
-                            // If we found an anchor tag with an href
-                            if (target && target.href && target.href !== '') {
-                                // Prevent default behavior (following the link)
-                                event.preventDefault();
-                                event.stopPropagation();
-                                
-                                // Call the C# method to open in new tab
-                                try {
-                                    if (window.navigationApi && window.navigationApi.OpenLinkInNewTab) {
-                                        window.navigationApi.OpenLinkInNewTab(target.href);
-                                    } else {
-                                        console.warn('navigationApi not available for middle click');
+                    function installMiddleClickHandler() {
+                        // Add event listener for middle mouse clicks on links
+                        document.addEventListener('mousedown', function(event) {
+                            // Check if middle mouse button (button 1) was clicked
+                            if (event.button === 1) {
+                                // Find the closest anchor tag
+                                var target = event.target;
+                                while (target && target.tagName !== 'A') {
+                                    target = target.parentElement;
+                                    // Prevent infinite loop if we reach document
+                                    if (target === document) {
+                                        target = null;
+                                        break;
                                     }
-                                } catch (error) {
-                                    console.error('Error opening link in new tab:', error);
+                                }
+                                
+                                // If we found an anchor tag with an href
+                                if (target && target.href && target.href !== '') {
+                                    // Prevent default behavior (following the link)
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    
+                                    // Call the C# method to open in new tab
+                                    try {
+                                        if (window.navigationApi && window.navigationApi.OpenLinkInNewTab) {
+                                            window.navigationApi.OpenLinkInNewTab(target.href);
+                                        } else {
+                                            console.warn('navigationApi not available for middle click');
+                                        }
+                                    } catch (error) {
+                                        console.error('Error opening link in new tab:', error);
+                                    }
                                 }
                             }
-                        }
-                    }, true);
+                        }, true);
+                        
+                        console.log('Middle mouse click handler installed');
+                    }
                     
-                    console.log('Middle mouse click handler installed');
+                    // Install immediately if DOM is ready, otherwise wait
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', installMiddleClickHandler);
+                    } else {
+                        installMiddleClickHandler();
+                    }
                 })();
             ";
             
