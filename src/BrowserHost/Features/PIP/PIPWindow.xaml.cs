@@ -13,22 +13,21 @@ public partial class PIPWindow : Window
     private readonly TabBrowser _videoTab;
     private readonly PIPFeature _pipFeature;
     private DispatcherTimer? _hideControlsTimer;
-    private DispatcherTimer? _videoSyncTimer;
     private bool _isVideoPlaying = true;
     private ChromiumWebBrowser? _pipBrowser;
 
     public PIPWindow(TabBrowser videoTab, PIPFeature pipFeature)
     {
         InitializeComponent();
-        
+
         _videoTab = videoTab;
         _pipFeature = pipFeature;
-        
+
         // Position window at bottom-right of screen
         var workingArea = SystemParameters.WorkArea;
         Left = workingArea.Right - Width - 20;
         Top = workingArea.Bottom - Height - 20;
-        
+
         _hideControlsTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(3)
@@ -38,20 +37,12 @@ public partial class PIPWindow : Window
             HideControls();
             _hideControlsTimer.Stop();
         };
-
-        // Sync timer to check video state
-        _videoSyncTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(1)
-        };
-        _videoSyncTimer.Tick += SyncVideoState;
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
         SetupPIPContent();
         HideControls();
-        _videoSyncTimer?.Start();
     }
 
     private void SetupPIPContent()
@@ -90,7 +81,7 @@ public partial class PIPWindow : Window
     {
         // Set a dark background to indicate video area
         VideoBorder.Background = System.Windows.Media.Brushes.Black;
-        
+
         // Add a text overlay to show this is a PIP preview
         var textBlock = new System.Windows.Controls.TextBlock
         {
@@ -101,7 +92,7 @@ public partial class PIPWindow : Window
             VerticalAlignment = VerticalAlignment.Center,
             Opacity = 0.7
         };
-        
+
         var grid = new System.Windows.Controls.Grid();
         grid.Children.Add(textBlock);
         VideoBorder.Child = grid;
@@ -161,7 +152,7 @@ public partial class PIPWindow : Window
                     }
                 })();
             ";
-            
+
             _pipBrowser.ExecuteScriptAsync(script);
         }
     }
@@ -187,7 +178,7 @@ public partial class PIPWindow : Window
                         return null;
                     })();
                 ";
-                
+
                 var result = await _videoTab.EvaluateScriptAsync(script);
                 if (result.Success && result.Result != null)
                 {
@@ -253,7 +244,7 @@ public partial class PIPWindow : Window
     private void PlayPauseButton_Click(object sender, RoutedEventArgs e)
     {
         _pipFeature.ToggleVideoPlayback();
-        
+
         // Toggle local state for immediate UI feedback
         _isVideoPlaying = !_isVideoPlaying;
         PlayPauseIcon.Text = _isVideoPlaying ? "⏸" : "▶";
@@ -262,7 +253,6 @@ public partial class PIPWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _hideControlsTimer?.Stop();
-        _videoSyncTimer?.Stop();
         _pipBrowser?.Dispose();
         base.OnClosed(e);
     }

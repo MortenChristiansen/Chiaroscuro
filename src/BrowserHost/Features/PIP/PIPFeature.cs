@@ -1,9 +1,8 @@
-using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.Tabs;
 using BrowserHost.Utilities;
 using CefSharp;
 using System;
-using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace BrowserHost.Features.PIP;
 
@@ -11,32 +10,27 @@ public class PIPFeature(MainWindow window) : Feature(window)
 {
     private PIPWindow? _pipWindow;
     private TabBrowser? _currentVideoTab;
-    private bool _isVideoPlaying = false;
-    private TabBrowser? _previousTab;
 
     public override void Register()
     {
         PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
         PubSub.Subscribe<TabClosedEvent>(OnTabClosed);
-        PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
     }
 
     private void OnTabActivated(TabActivatedEvent e)
     {
         // If switching back to the video tab, hide PIP
-        if (e.CurrentTab == _currentVideoTab && _pipWindow != null)
+        if (e.TabId == _currentVideoTab?.Id && _pipWindow != null)
         {
             HidePIP();
+            ToggleVideoPlayback();
         }
 
         // If we have a previous tab that was just deactivated, check if it has playing video
-        if (_previousTab != null && _previousTab != e.CurrentTab)
+        if (e.PreviousTab != null)
         {
-            CheckSpecificTabForVideo(_previousTab.Id, true);
+            CheckSpecificTabForVideo(e.PreviousTab.Id, true);
         }
-
-        // Update previous tab for next time
-        _previousTab = e.CurrentTab;
     }
 
     private void OnTabClosed(TabClosedEvent e)
@@ -45,21 +39,12 @@ public class PIPFeature(MainWindow window) : Feature(window)
         {
             HidePIP();
             _currentVideoTab = null;
-            _isVideoPlaying = false;
-        }
-    }
-
-    private void OnTabLoadingStateChanged(TabLoadingStateChangedEvent e)
-    {
-        // Check for video a bit after page loads
-        if (!e.IsLoading)
-        {
-            _ = Task.Delay(3000).ContinueWith(_ => CheckSpecificTabForVideo(e.TabId, false));
         }
     }
 
     private void CheckSpecificTabForVideo(string tabId, bool isTabBecomingInactive)
     {
+        Debug.WriteLine("Checking for video in tab " + tabId);
         try
         {
             var tabsFeature = Window.GetFeature<TabsFeature>();
@@ -87,40 +72,23 @@ public class PIPFeature(MainWindow window) : Feature(window)
                     var result = await tab.EvaluateScriptAsync(script);
                     if (result.Success && result.Result is bool isPlaying)
                     {
-                        var wasPlaying = _isVideoPlaying && _currentVideoTab == tab;
-
-                        if (isPlaying && (!wasPlaying || _currentVideoTab != tab))
+                        if (isPlaying && isTabBecomingInactive)
                         {
-                            // Video started playing or different tab started playing
                             _currentVideoTab = tab;
-                            _isVideoPlaying = true;
-
-                            // Show PIP if this tab is becoming inactive (user switched away)
-                            if (isTabBecomingInactive)
-                            {
-                                ShowPIP(tab);
-                            }
-                        }
-                        else if (!isPlaying && wasPlaying)
-                        {
-                            // Video stopped playing
-                            _isVideoPlaying = false;
-                            if (_currentVideoTab == tab)
-                            {
-                                HidePIP();
-                            }
+                            ToggleVideoPlayback();
+                            ShowPIP(tab);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error checking for video in tab {tabId}: {ex.Message}");
+                    Debug.WriteLine($"Error checking for video in tab {tabId}: {ex.Message}");
                 }
             });
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in CheckSpecificTabForVideo: {ex.Message}");
+            Debug.WriteLine($"Error in CheckSpecificTabForVideo: {ex.Message}");
         }
     }
 
@@ -137,7 +105,7 @@ public class PIPFeature(MainWindow window) : Feature(window)
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error showing PIP window: {ex.Message}");
+                Debug.WriteLine($"Error showing PIP window: {ex.Message}");
             }
         });
     }
@@ -155,7 +123,7 @@ public class PIPFeature(MainWindow window) : Feature(window)
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error hiding PIP window: {ex.Message}");
+                Debug.WriteLine($"Error hiding PIP window: {ex.Message}");
             }
         });
     }
@@ -173,6 +141,7 @@ public class PIPFeature(MainWindow window) : Feature(window)
     {
         if (_currentVideoTab == null) return;
 
+        // TODO: It should not toggle, but set a specific state
         var script = @"
             (function() {
                 const videos = document.querySelectorAll('video');

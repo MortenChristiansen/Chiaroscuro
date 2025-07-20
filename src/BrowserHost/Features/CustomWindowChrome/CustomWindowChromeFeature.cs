@@ -94,7 +94,7 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindow
 
     private void OnTabActivated(TabActivatedEvent e)
     {
-        var isLoading = e.CurrentTab?.IsLoading ?? false;
+        var isLoading = e.PreviousTab?.IsLoading ?? false;
         Window.ChromeUI.UpdateLoadingState(isLoading);
     }
 
