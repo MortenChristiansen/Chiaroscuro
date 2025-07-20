@@ -1,6 +1,7 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.CustomWindowChrome;
+using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
 using BrowserHost.Utilities;
 using CefSharp;
@@ -22,9 +23,7 @@ public class TabBrowser : Browser
 
     public TabBrowser(string address, ActionContextBrowser actionContextBrowser, bool setManualAddress)
     {
-        Address = address;
-        if (setManualAddress)
-            ManualAddress = address;
+        SetAddress(address, setManualAddress);
 
         TitleChanged += OnTitleChanged;
         LoadingStateChanged += OnLoadingStateChanged;
@@ -61,6 +60,22 @@ public class TabBrowser : Browser
         Address = address;
         if (setManualAddress)
             ManualAddress = address;
+    }
+
+    protected override void OnAddressChanged(string oldValue, string newValue)
+    {
+        if (DragDropFeature.IsDragging && oldValue != null && newValue.StartsWith("file://"))
+        {
+            // This is a workaround to prevent the current address from being set
+            // when dragging and dropping files into the browser. Instead, we want
+            // open a new tab with the file URL. This is not directly possible,
+            // so we have to revert the change 
+            GetBrowser().GoBack();
+        }
+        else
+        {
+            base.OnAddressChanged(oldValue, newValue);
+        }
     }
 
     public void SetInitialTitle()

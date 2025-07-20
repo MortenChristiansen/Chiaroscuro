@@ -11,7 +11,9 @@ public record FileDroppedEvent(string[] FilePaths);
 
 public class DragDropFeature(MainWindow window) : Feature(window)
 {
-    private static readonly string[] SupportedExtensions = 
+    public static bool IsDragging { get; private set; }
+
+    private static readonly string[] SupportedExtensions =
     [
         // Images - widely supported by browsers
         ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".webp", ".ico",
@@ -27,12 +29,14 @@ public class DragDropFeature(MainWindow window) : Feature(window)
         Window.DragEnter += OnDragEnter;
         Window.DragOver += OnDragOver;
         Window.Drop += OnDrop;
+        Window.DragLeave += (sender, e) => IsDragging = false;
 
         PubSub.Subscribe<FileDroppedEvent>(HandleFileDropped);
     }
 
     private void OnDragEnter(object sender, DragEventArgs e)
     {
+        IsDragging = true;
         if (e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
@@ -75,12 +79,13 @@ public class DragDropFeature(MainWindow window) : Feature(window)
 
     private void OnDrop(object sender, DragEventArgs e)
     {
+
         if (e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
             var validFiles = files.Where(IsValidFile).ToArray();
-            
-            if (validFiles.Any())
+
+            if (validFiles.Length != 0)
             {
                 PubSub.Publish(new FileDroppedEvent(validFiles));
             }
@@ -97,7 +102,7 @@ public class DragDropFeature(MainWindow window) : Feature(window)
 
             // Check if file is readable
             using var stream = File.OpenRead(filePath);
-            
+
             var extension = Path.GetExtension(filePath).ToLowerInvariant();
             return SupportedExtensions.Contains(extension);
         }
