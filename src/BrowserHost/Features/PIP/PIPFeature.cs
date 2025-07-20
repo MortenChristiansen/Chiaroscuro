@@ -55,9 +55,9 @@ public class PIPFeature(MainWindow window) : Feature(window)
                 (function() {
                     const videos = document.querySelectorAll('video');
                     for (let video of videos) {
-                        if (!video.paused && !video.ended && video.readyState >= 2) {
+                        //if (!video.paused && !video.ended && video.readyState >= 2) {
                             return true;
-                        }
+                        //}
                     }
                     return false;
                 })();

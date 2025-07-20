@@ -46,6 +46,7 @@ static class ContentServer
         .WithStaticFolder("/", chromeAppRoot, true, m => m.WithContentCaching())
         .WithStaticFolder("/action-dialog", chromeAppActionDialog, true, m => m.WithContentCaching())
         .WithStaticFolder("/action-context", tabs, true, m => m.WithContentCaching())
+        .WithStaticFolder("/pip-player", tabs, true, m => m.WithContentCaching())
         ;
     }
 #endif

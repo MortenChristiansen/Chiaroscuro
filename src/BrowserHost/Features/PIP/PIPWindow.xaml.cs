@@ -1,6 +1,5 @@
 using BrowserHost.Features.Tabs;
 using CefSharp;
-using CefSharp.Wpf;
 using System;
 using System.Windows;
 using System.Windows.Media.Animation;
@@ -14,7 +13,7 @@ public partial class PIPWindow : Window
     private readonly PIPFeature _pipFeature;
     private DispatcherTimer? _hideControlsTimer;
     private bool _isVideoPlaying = true;
-    private ChromiumWebBrowser? _pipBrowser;
+    private PIPBrowser? _pipBrowser;
 
     public PIPWindow(TabBrowser videoTab, PIPFeature pipFeature)
     {
@@ -45,12 +44,66 @@ public partial class PIPWindow : Window
         HideControls();
     }
 
-    private void SetupPIPContent()
+    private async void SetupPIPContent()
     {
         try
         {
-            // Create a new browser instance to display the same page
-            _pipBrowser = new ChromiumWebBrowser(_videoTab.Address)
+            // Get direct video stream URL and timestamp from the original tab
+            string videoUrl = string.Empty;
+            double timestamp = 0;
+
+            if (_videoTab.IsBrowserInitialized)
+            {
+                var script = @"
+                    (function() {
+                        const video = document.querySelector('video');
+                        return video ? { src: video.currentSrc || video.src, time: video.currentTime } : null;
+                    })();
+                ";
+                var result = await _videoTab.EvaluateScriptAsync(script);
+                if (result.Success && result.Result != null)
+                {
+                    // Try to extract src and time from result.Result as a dynamic object or dictionary
+                    string? src = null;
+                    double time = 0;
+                    var dict = result.Result as System.Collections.IDictionary;
+                    if (dict != null)
+                    {
+                        src = dict["src"]?.ToString();
+                        double.TryParse(dict["time"]?.ToString(), out time);
+                    }
+                    else
+                    {
+                        // Fallback: try to use reflection for anonymous type
+                        var type = result.Result.GetType();
+                        var srcProp = type.GetProperty("src");
+                        var timeProp = type.GetProperty("time");
+                        if (srcProp != null)
+                            src = srcProp.GetValue(result.Result)?.ToString();
+                        if (timeProp != null)
+                        {
+                            var val = timeProp.GetValue(result.Result);
+                            if (val != null)
+                                double.TryParse(val.ToString(), out time);
+                        }
+                    }
+                    if (!string.IsNullOrEmpty(src))
+                        videoUrl = src;
+                    timestamp = time;
+                }
+            }
+
+            if (string.IsNullOrEmpty(videoUrl))
+            {
+                // Fallback to tab address if no video src found
+                videoUrl = _videoTab.Address;
+            }
+
+            // Base64 encode the direct video stream URL
+            string base64Url = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(videoUrl));
+
+            // Create a new browser instance to display the custom player
+            _pipBrowser = new PIPBrowser(base64Url, timestamp)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
@@ -58,16 +111,6 @@ public partial class PIPWindow : Window
 
             // Add the browser to the video border
             VideoBorder.Child = _pipBrowser;
-
-            // Wait for the browser to load and then inject script to show only video
-            _pipBrowser.LoadingStateChanged += (sender, args) =>
-            {
-                if (!args.IsLoading)
-                {
-                    // Inject script to hide everything except the video
-                    Dispatcher.BeginInvoke(() => InjectVideoOnlyScript());
-                }
-            };
         }
         catch (Exception ex)
         {
@@ -157,52 +200,52 @@ public partial class PIPWindow : Window
         }
     }
 
-    private async void SyncVideoState(object? sender, EventArgs e)
-    {
-        if (_videoTab?.IsBrowserInitialized == true && !_videoTab.IsDisposed)
-        {
-            try
-            {
-                var script = @"
-                    (function() {
-                        const videos = document.querySelectorAll('video');
-                        if (videos.length > 0) {
-                            const video = videos[0];
-                            return {
-                                playing: !video.paused && !video.ended,
-                                currentTime: video.currentTime,
-                                duration: video.duration,
-                                title: document.title
-                            };
-                        }
-                        return null;
-                    })();
-                ";
+    //private async void SyncVideoState(object? sender, EventArgs e)
+    //{
+    //    if (_videoTab?.IsBrowserInitialized == true && !_videoTab.IsDisposed)
+    //    {
+    //        try
+    //        {
+    //            var script = @"
+    //                (function() {
+    //                    const videos = document.querySelectorAll('video');
+    //                    if (videos.length > 0) {
+    //                        const video = videos[0];
+    //                        return {
+    //                            playing: !video.paused && !video.ended,
+    //                            currentTime: video.currentTime,
+    //                            duration: video.duration,
+    //                            title: document.title
+    //                        };
+    //                    }
+    //                    return null;
+    //                })();
+    //            ";
 
-                var result = await _videoTab.EvaluateScriptAsync(script);
-                if (result.Success && result.Result != null)
-                {
-                    // For now, just update the play/pause button state
-                    // In a full implementation, you would extract the video data
-                    var videoData = result.Result.ToString();
-                    if (videoData?.Contains("\"playing\":true") == true)
-                    {
-                        _isVideoPlaying = true;
-                        Dispatcher.Invoke(() => PlayPauseIcon.Text = "⏸");
-                    }
-                    else if (videoData?.Contains("\"playing\":false") == true)
-                    {
-                        _isVideoPlaying = false;
-                        Dispatcher.Invoke(() => PlayPauseIcon.Text = "▶");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error syncing video state: {ex.Message}");
-            }
-        }
-    }
+    //            var result = await _videoTab.EvaluateScriptAsync(script);
+    //            if (result.Success && result.Result != null)
+    //            {
+    //                // For now, just update the play/pause button state
+    //                // In a full implementation, you would extract the video data
+    //                var videoData = result.Result.ToString();
+    //                if (videoData?.Contains("\"playing\":true") == true)
+    //                {
+    //                    _isVideoPlaying = true;
+    //                    Dispatcher.Invoke(() => PlayPauseIcon.Text = "⏸");
+    //                }
+    //                else if (videoData?.Contains("\"playing\":false") == true)
+    //                {
+    //                    _isVideoPlaying = false;
+    //                    Dispatcher.Invoke(() => PlayPauseIcon.Text = "▶");
+    //                }
+    //            }
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            System.Diagnostics.Debug.WriteLine($"Error syncing video state: {ex.Message}");
+    //        }
+    //    }
+    //}
 
     private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
     {

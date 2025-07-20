@@ -16,4 +16,8 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./parts/action-context/action-context.component'),
   },
+  {
+    path: 'pip-player',
+    loadComponent: () => import('./parts/pip-player/pip-player.component'),
+  },
 ];
