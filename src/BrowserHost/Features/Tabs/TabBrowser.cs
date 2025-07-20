@@ -16,6 +16,7 @@ namespace BrowserHost.Features.Tabs;
 public class TabBrowser : Browser
 {
     private readonly ActionContextBrowser _actionContextBrowser;
+    private readonly NavigationBrowserApi _navigationApi;
 
     public string Id { get; } = $"{Guid.NewGuid()}";
     public string? Favicon { get; private set; }
@@ -23,6 +24,7 @@ public class TabBrowser : Browser
 
     public TabBrowser(string address, ActionContextBrowser actionContextBrowser, bool setManualAddress)
     {
+        _navigationApi = new NavigationBrowserApi();
         SetAddress(address, setManualAddress);
 
         TitleChanged += OnTitleChanged;
@@ -34,9 +36,14 @@ public class TabBrowser : Browser
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
         RequestHandler = new RequestHandler(Id);
-        LifeSpanHandler = new LifeSpanHandler(OnNewTabRequested);
 
         BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
+        
+        // Register the navigation API for middle mouse click handling
+        RegisterSecondaryApi(_navigationApi, "navigationApi");
+        
+        // Inject JavaScript to handle middle mouse clicks after the page loads
+        FrameLoadEnd += OnFrameLoadEnd;
     }
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -79,9 +86,53 @@ public class TabBrowser : Browser
         }
     }
 
-    private void OnNewTabRequested(string url)
+    private void OnFrameLoadEnd(object? sender, FrameLoadEndEventArgs e)
     {
-        // Publish event to request a new tab (similar to how drag and drop works)
-        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: false, SaveInHistory: true));
+        // Only inject into the main frame to avoid duplicate handlers
+        if (e.Frame.IsMain)
+        {
+            var middleClickScript = @"
+                (function() {
+                    // Add event listener for middle mouse clicks on links
+                    document.addEventListener('mousedown', function(event) {
+                        // Check if middle mouse button (button 1) was clicked
+                        if (event.button === 1) {
+                            // Find the closest anchor tag
+                            var target = event.target;
+                            while (target && target.tagName !== 'A') {
+                                target = target.parentElement;
+                                // Prevent infinite loop if we reach document
+                                if (target === document) {
+                                    target = null;
+                                    break;
+                                }
+                            }
+                            
+                            // If we found an anchor tag with an href
+                            if (target && target.href && target.href !== '') {
+                                // Prevent default behavior (following the link)
+                                event.preventDefault();
+                                event.stopPropagation();
+                                
+                                // Call the C# method to open in new tab
+                                try {
+                                    if (window.navigationApi && window.navigationApi.OpenLinkInNewTab) {
+                                        window.navigationApi.OpenLinkInNewTab(target.href);
+                                    } else {
+                                        console.warn('navigationApi not available for middle click');
+                                    }
+                                } catch (error) {
+                                    console.error('Error opening link in new tab:', error);
+                                }
+                            }
+                        }
+                    }, true);
+                    
+                    console.log('Middle mouse click handler installed');
+                })();
+            ";
+            
+            this.ExecuteScriptAsync(middleClickScript);
+        }
     }
 }
