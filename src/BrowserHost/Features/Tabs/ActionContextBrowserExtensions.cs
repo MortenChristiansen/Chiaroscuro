@@ -29,6 +29,11 @@ public static class ActionContextBrowserExtensions
         browser.CallClientApi("closeTab", tabId.ToJsonString());
     }
 
+    public static void ActivateTab(this ActionContextBrowser browser, string tabId)
+    {
+        browser.CallClientApi("activateTab", tabId.ToJsonString());
+    }
+
     public static void ToggleTabBookmark(this ActionContextBrowser browser, string tabId)
     {
         browser.CallClientApi("toggleTabBookmark", tabId.ToJsonString());

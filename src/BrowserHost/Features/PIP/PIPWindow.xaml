@@ -1,0 +1,137 @@
+﻿<Window x:Class="BrowserHost.Features.PIP.PIPWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PIPWindow"
+        Width="320" 
+        Height="180"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="CanResize"
+        MinWidth="200"
+        MinHeight="120"
+        Loaded="Window_Loaded"
+        MouseEnter="Window_MouseEnter"
+        MouseLeave="Window_MouseLeave">
+    
+    <Grid x:Name="MainGrid">
+        <Border x:Name="VideoBorder" 
+                CornerRadius="8" 
+                Background="Black"
+                BorderBrush="#404654" 
+                BorderThickness="1">
+            <!-- Video content will be injected here -->
+        </Border>
+        
+        <!-- Control overlay -->
+        <Grid x:Name="ControlOverlay" 
+              Background="#33000000"
+              Opacity="0"
+              VerticalAlignment="Stretch"
+              HorizontalAlignment="Stretch">
+            <Grid.Triggers>
+                <EventTrigger RoutedEvent="Grid.Loaded">
+                    <BeginStoryboard>
+                        <Storyboard x:Name="FadeInStoryboard">
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity" 
+                                           To="1" 
+                                           Duration="0:0:0.2"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Grid.Triggers>
+            
+            <!-- Close button -->
+            <Button x:Name="CloseButton"
+                    Width="24" 
+                    Height="24"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="8"
+                    Background="#E74C3C"
+                    BorderThickness="0"
+                    Style="{DynamicResource RoundButtonStyle}"
+                    Click="CloseButton_Click"
+                    ToolTip="Close PIP">
+                <TextBlock Text="✕" 
+                          Foreground="White" 
+                          FontSize="12" 
+                          HorizontalAlignment="Center" 
+                          VerticalAlignment="Center"/>
+            </Button>
+            
+            <!-- Activate tab button -->
+            <Button x:Name="ActivateTabButton"
+                    Width="24" 
+                    Height="24"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="40,8,8,8"
+                    Background="#3498DB"
+                    BorderThickness="0"
+                    Style="{DynamicResource RoundButtonStyle}"
+                    Click="ActivateTabButton_Click"
+                    ToolTip="Switch to tab">
+                <TextBlock Text="↗" 
+                          Foreground="White" 
+                          FontSize="12" 
+                          HorizontalAlignment="Center" 
+                          VerticalAlignment="Center"/>
+            </Button>
+            
+            <!-- Play/Pause button -->
+            <Button x:Name="PlayPauseButton"
+                    Width="48" 
+                    Height="48"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="#2C3E50"
+                    BorderThickness="0"
+                    Style="{DynamicResource RoundButtonStyle}"
+                    Click="PlayPauseButton_Click"
+                    ToolTip="Play/Pause">
+                <TextBlock x:Name="PlayPauseIcon"
+                          Text="▶" 
+                          Foreground="White" 
+                          FontSize="18" 
+                          HorizontalAlignment="Center" 
+                          VerticalAlignment="Center"/>
+            </Button>
+        </Grid>
+    </Grid>
+    
+    <Window.Resources>
+        <Style x:Key="RoundButtonStyle" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="12"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Storyboard x:Key="FadeOutStoryboard">
+            <DoubleAnimation Storyboard.TargetName="ControlOverlay"
+                           Storyboard.TargetProperty="Opacity" 
+                           To="0" 
+                           Duration="0:0:0.2"/>
+        </Storyboard>
+    </Window.Resources>
+</Window>

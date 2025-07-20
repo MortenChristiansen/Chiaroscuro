@@ -4,6 +4,7 @@ using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
+using BrowserHost.Features.PIP;
 using BrowserHost.Features.Tabs;
 using BrowserHost.Features.Zoom;
 using CefSharp;
@@ -42,7 +43,8 @@ public partial class MainWindow : Window
             new DevToolFeature(this),
             new FileDownloadsFeature(this),
             new ZoomFeature(this),
-            new DragDropFeature(this)
+            new DragDropFeature(this),
+            new PIPFeature(this)
         ];
         _features.ForEach(f => f.Register());
 
