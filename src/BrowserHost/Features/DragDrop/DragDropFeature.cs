@@ -26,60 +26,15 @@ public class DragDropFeature(MainWindow window) : Feature(window)
     public override void Register()
     {
         Window.AllowDrop = true;
-        Window.DragEnter += OnDragEnter;
-        Window.DragOver += OnDragOver;
-        Window.Drop += OnDrop;
+        Window.DragEnter += (sender, e) => IsDragging = true;
         Window.DragLeave += (sender, e) => IsDragging = false;
+        Window.Drop += OnDrop;
 
         PubSub.Subscribe<FileDroppedEvent>(HandleFileDropped);
     }
 
-    private void OnDragEnter(object sender, DragEventArgs e)
-    {
-        IsDragging = true;
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
-        {
-            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-            if (files.Any(IsValidFile))
-            {
-                e.Effects = DragDropEffects.Copy;
-            }
-            else
-            {
-                e.Effects = DragDropEffects.None;
-            }
-        }
-        else
-        {
-            e.Effects = DragDropEffects.None;
-        }
-        e.Handled = true;
-    }
-
-    private void OnDragOver(object sender, DragEventArgs e)
-    {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
-        {
-            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-            if (files.Any(IsValidFile))
-            {
-                e.Effects = DragDropEffects.Copy;
-            }
-            else
-            {
-                e.Effects = DragDropEffects.None;
-            }
-        }
-        else
-        {
-            e.Effects = DragDropEffects.None;
-        }
-        e.Handled = true;
-    }
-
     private void OnDrop(object sender, DragEventArgs e)
     {
-
         if (e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
