@@ -24,68 +24,105 @@ interface Tab {
   imports: [DragDropModule, FaviconComponent, CommonModule],
   template: `
     @let ephemeralIndex = ephemeralTabStartIndex();
-    <span
-      class="bookmark-label text-gray-500 text-xs px-4"
-      style="pointer-events: none;"
-    >
-      Bookmarks
-    </span>
-
-    <div
-      class="flex flex-col gap-2"
-      cdkDropList
-      (cdkDropListDropped)="drop($event)"
-    >
-      @for (tab of tabs(); track tab.id) { @if ($index === ephemeralIndex) {
-      <div
-        cdkDrag
+    <div class="workspace-slide-container {{ slideDirection() }}">
+      <span
+        class="bookmark-label text-gray-500 text-xs px-4"
         style="pointer-events: none;"
-        class="w-full h-0.5 my-2 bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-60 rounded-full"
-      ></div>
-      }
-
-      <div
-        class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
-          tab.id === selectedTab()?.id ? 'bg-white/20 hover:bg-white/30' : ''
-        }} cdkDrag"
-        (click)="selectedTab.set(tab)"
-        cdkDrag
-        [cdkDragData]="tab"
       >
-        <favicon [src]="tab.favicon" class="w-4 h-4 mr-2" />
-        <span class="truncate flex-1">{{ tab.title ?? 'Loading...' }}</span>
-        <button
-          class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
-          (click)="$event.stopPropagation(); close(tab.id)"
-          aria-label="Close tab"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 20 20"
-            stroke-width="2"
-            stroke="currentColor"
-            class="w-4 h-4"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M6 6l8 8M6 14L14 6"
-            />
-          </svg>
-        </button>
-      </div>
+        Bookmarks
+      </span>
 
-      @if ($index === tabs().length - 1 && $index +1 === ephemeralIndex) {
       <div
-        class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
-        cdkDrag
-        style="pointer-events: none;"
-      ></div>
-      } }
+        class="flex flex-col gap-2"
+        cdkDropList
+        (cdkDropListDropped)="drop($event)"
+      >
+        @for (tab of tabs(); track tab.id) { @if ($index === ephemeralIndex) {
+        <div
+          cdkDrag
+          style="pointer-events: none;"
+          class="w-full h-0.5 my-2 bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-60 rounded-full"
+        ></div>
+        }
+
+        <div
+          class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
+            tab.id === selectedTab()?.id ? 'bg-white/20 hover:bg-white/30' : ''
+          }} cdkDrag"
+          (click)="selectedTab.set(tab)"
+          cdkDrag
+          [cdkDragData]="tab"
+        >
+          <favicon [src]="tab.favicon" class="w-4 h-4 mr-2" />
+          <span class="truncate flex-1">{{ tab.title ?? 'Loading...' }}</span>
+          <button
+            class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
+            (click)="$event.stopPropagation(); close(tab.id)"
+            aria-label="Close tab"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 20 20"
+              stroke-width="2"
+              stroke="currentColor"
+              class="w-4 h-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 6l8 8M6 14L14 6"
+              />
+            </svg>
+          </button>
+        </div>
+
+        @if ($index === tabs().length - 1 && $index +1 === ephemeralIndex) {
+        <div
+          class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
+          cdkDrag
+          style="pointer-events: none;"
+        ></div>
+        } }
+      </div>
     </div>
   `,
   styles: `
+  .workspace-slide-container {
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(0);
+  }
+
+  .workspace-slide-container.slide-left {
+    animation: slideInFromRight 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .workspace-slide-container.slide-right {
+    animation: slideInFromLeft 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes slideInFromLeft {
+    from {
+      transform: translateX(-100%);
+      opacity: 0.7;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInFromRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0.7;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
   .cdk-drag-placeholder {
     /* The destination element - currently not styled */
   }
@@ -116,6 +153,7 @@ export default class TabsListComponent implements OnInit {
   ephemeralTabStartIndex = signal<number>(0);
   tabsInitialized = signal(false);
   selectedTab = signal<Tab | null>(null);
+  slideDirection = signal<string>('');
   private saveTabsDebounceDelay = 1000;
   private tabActivationOrderStack: TabId[] = [];
 
@@ -223,6 +261,31 @@ export default class TabsListComponent implements OnInit {
         activeTabId: TabId,
         ephemeralTabStartIndex: number
       ) => {
+        this.tabs.set(tabs);
+        this.ephemeralTabStartIndex.set(ephemeralTabStartIndex);
+
+        const activeTab = tabs.find((t) => t.id === activeTabId);
+        if (activeTab) {
+          this.selectedTab.set(activeTab);
+        }
+        this.tabsInitialized.set(true);
+        this.tabActivationOrderStack = [
+          ...tabs.filter((t) => t.id !== activeTabId).map((t) => t.id),
+          activeTabId,
+        ];
+      },
+      setTabsWithAnimation: (
+        tabs: Tab[],
+        activeTabId: TabId,
+        ephemeralTabStartIndex: number,
+        slideDirection: string
+      ) => {
+        // Set slide direction for animation
+        this.slideDirection.set(slideDirection);
+        
+        // Clear animation class after animation completes
+        setTimeout(() => this.slideDirection.set(''), 300);
+        
         this.tabs.set(tabs);
         this.ephemeralTabStartIndex.set(ephemeralTabStartIndex);
 
