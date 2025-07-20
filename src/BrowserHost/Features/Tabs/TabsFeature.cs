@@ -15,9 +15,17 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     public override void Register()
     {
-        // We'll initialize workspace-aware tab restoration after workspaces feature is ready
-        _workspacesFeature = Window.GetFeature<WorkspacesFeature>();
-        RestoreWorkspaceTabs();
+        // Initialize without workspace dependencies first
+        try
+        {
+            _workspacesFeature = Window.GetFeature<WorkspacesFeature>();
+            RestoreWorkspaceTabs();
+        }
+        catch
+        {
+            // If workspaces feature isn't available yet, fall back to legacy restoration
+            RestoreTabs();
+        }
 
         PubSub.Subscribe<NavigationStartedEvent>(e =>
         {
@@ -81,7 +89,7 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         );
     }
 
-    public void LoadWorkspaceTabs(TabStateDtoV1[] workspaceTabs, string? lastActiveTabId)
+    public void LoadWorkspaceTabs(TabStateDtoV1[] workspaceTabs, string? lastActiveTabId, string slideDirection = "")
     {
         // Clear existing tabs
         foreach (var browser in _tabBrowsers.ToList())
@@ -108,11 +116,27 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             activeTabId = ephemeralTabs.FirstOrDefault()?.Id ?? browsers.FirstOrDefault()?.Id;
         }
 
-        Window.ActionContext.SetTabs(
-            [.. browsers.Select(b => new TabDto(b.Id, b.Title, null, DateTimeOffset.Now))],
-            activeTabId,
-            workspaceTabs.Length // For now, assume all restored tabs are persistent
-        );
+        var tabDtos = browsers.Select(b => new TabDto(b.Id, b.Title, null, DateTimeOffset.Now)).ToArray();
+        
+        if (!string.IsNullOrEmpty(slideDirection))
+        {
+            // Use animation method
+            Window.ActionContext.SetTabsWithAnimation(
+                tabDtos,
+                activeTabId,
+                workspaceTabs.Length, // For now, assume all restored tabs are persistent
+                slideDirection
+            );
+        }
+        else
+        {
+            // Use standard method
+            Window.ActionContext.SetTabs(
+                tabDtos,
+                activeTabId,
+                workspaceTabs.Length // For now, assume all restored tabs are persistent
+            );
+        }
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)

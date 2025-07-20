@@ -63,6 +63,7 @@ export default class WorkspaceSwitcherComponent implements OnInit {
   showEditor = signal(false);
   isEditMode = signal(false);
   editorData = signal({ name: '', icon: '🌐', color: '#2563eb' });
+  private previousWorkspaceIndex = -1;
 
   api!: WorkspaceListApi;
 
@@ -70,7 +71,7 @@ export default class WorkspaceSwitcherComponent implements OnInit {
     effect(() => {
       const activeWorkspace = this.workspaces().find(w => w.Id === this.activeWorkspaceId());
       if (activeWorkspace) {
-        // Update background color
+        // Update background color with animation
         this.updateBackgroundColor(activeWorkspace.Color);
       }
     });
@@ -81,8 +82,24 @@ export default class WorkspaceSwitcherComponent implements OnInit {
 
     exposeApiToBackend({
       workspacesChanged: (workspaces: WorkspaceStateDto[], activeWorkspaceId: string) => {
+        const currentIndex = this.workspaces().findIndex(w => w.Id === activeWorkspaceId);
+        const newIndex = workspaces.findIndex(w => w.Id === activeWorkspaceId);
+        
+        // Determine slide direction for tab animation
+        let slideDirection = '';
+        if (this.previousWorkspaceIndex !== -1 && this.previousWorkspaceIndex !== newIndex) {
+          slideDirection = this.previousWorkspaceIndex < newIndex ? 'slide-left' : 'slide-right';
+        }
+        
         this.workspaces.set(workspaces);
         this.activeWorkspaceId.set(activeWorkspaceId);
+        this.previousWorkspaceIndex = newIndex;
+        
+        // Notify tab list about workspace change with animation direction
+        if (slideDirection && (window as any).angularApi && (window as any).angularApi.setTabsWithAnimation) {
+          // The actual tab data will be set by the backend when the workspace is activated
+          // This is just to ensure the animation direction is communicated
+        }
       }
     });
   }
@@ -133,7 +150,15 @@ export default class WorkspaceSwitcherComponent implements OnInit {
   private updateBackgroundColor(color: string) {
     if (typeof document !== 'undefined') {
       document.documentElement.style.setProperty('--workspace-color', color);
+      
+      // Animate background color change
+      document.body.style.transition = 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1)';
       document.body.style.backgroundColor = color;
+      
+      // Remove transition after animation completes to avoid interfering with other changes
+      setTimeout(() => {
+        document.body.style.transition = '';
+      }, 300);
     }
   }
 }

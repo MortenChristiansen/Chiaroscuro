@@ -14,6 +14,7 @@ public class WorkspacesFeature : Feature
     private readonly WorkspaceListBrowserApi _workspaceListBrowserApi;
     private WorkspacesDataDtoV2 _workspacesData;
     private readonly TabsFeature _tabsFeature;
+    private string? _previousActiveWorkspaceId;
 
     public WorkspacesFeature(MainWindow mainWindow) : base(mainWindow)
     {
@@ -27,6 +28,15 @@ public class WorkspacesFeature : Feature
     public override void Register()
     {
         MainWindow.Chrome.JavascriptObjectRepository.Register("workspacesApi", _workspaceListBrowserApi, options: BindingOptions.DefaultBinder);
+        
+        // Setup workspace API in ActionContext
+        MainWindow.ActionContext.SetWorkspacesFeature(this);
+        
+        // Initialize tabs for the active workspace
+        InitializeWorkspaceTabs();
+        
+        // Initialize workspaces in frontend
+        NotifyWorkspacesChanged();
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -58,6 +68,7 @@ public class WorkspacesFeature : Feature
             return;
         }
 
+        _previousActiveWorkspaceId = _workspacesData.ActiveWorkspaceId;
         _workspacesData = _workspacesData with { ActiveWorkspaceId = workspaceId };
         
         // Save the updated workspace data
@@ -66,8 +77,21 @@ public class WorkspacesFeature : Feature
         // Notify the frontend about the workspace change
         NotifyWorkspacesChanged();
         
-        // Switch the tabs feature to show this workspace's tabs
-        _tabsFeature.LoadWorkspaceTabs(workspace.Tabs, workspace.LastActiveTabId);
+        // Switch the tabs feature to show this workspace's tabs with animation
+        _tabsFeature.LoadWorkspaceTabs(workspace.Tabs, workspace.LastActiveTabId, GetSlideDirection());
+    }
+
+    private string GetSlideDirection()
+    {
+        if (_previousActiveWorkspaceId == null) return "";
+        
+        var workspaces = _workspacesData.Workspaces;
+        var previousIndex = Array.FindIndex(workspaces, w => w.Id == _previousActiveWorkspaceId);
+        var currentIndex = Array.FindIndex(workspaces, w => w.Id == _workspacesData.ActiveWorkspaceId);
+        
+        if (previousIndex == -1 || currentIndex == -1) return "";
+        
+        return previousIndex < currentIndex ? "slide-left" : "slide-right";
     }
 
     public void CreateWorkspace(string name, string icon, string color)
@@ -156,6 +180,15 @@ public class WorkspacesFeature : Feature
     public WorkspacesDataDtoV2 GetWorkspacesData() => _workspacesData;
 
     public string GetActiveWorkspaceId() => _workspacesData.ActiveWorkspaceId;
+
+    public void InitializeWorkspaceTabs()
+    {
+        var activeWorkspace = _workspacesData.Workspaces.FirstOrDefault(w => w.Id == _workspacesData.ActiveWorkspaceId);
+        if (activeWorkspace != null)
+        {
+            _tabsFeature.LoadWorkspaceTabs(activeWorkspace.Tabs, activeWorkspace.LastActiveTabId);
+        }
+    }
 
     private void NotifyWorkspacesChanged()
     {
