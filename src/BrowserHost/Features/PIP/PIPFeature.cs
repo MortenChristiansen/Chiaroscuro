@@ -1,10 +1,10 @@
+using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.Tabs;
 using BrowserHost.Utilities;
 using CefSharp;
 using System;
 using System.Threading.Tasks;
 using System.Timers;
-using System.Windows;
 
 namespace BrowserHost.Features.PIP;
 
@@ -20,7 +20,7 @@ public class PIPFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
         PubSub.Subscribe<TabClosedEvent>(OnTabClosed);
         PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
-        
+
         // Set up periodic video checking
         _videoPollingTimer = new Timer(2000); // Check every 2 seconds
         _videoPollingTimer.Elapsed += CheckAllTabsForVideo;
@@ -113,13 +113,13 @@ public class PIPFeature(MainWindow window) : Feature(window)
                     if (result.Success && result.Result is bool isPlaying)
                     {
                         var wasPlaying = _isVideoPlaying && _currentVideoTab == tab;
-                        
+
                         if (isPlaying && (!wasPlaying || _currentVideoTab != tab))
                         {
                             // Video started playing or different tab started playing
                             _currentVideoTab = tab;
                             _isVideoPlaying = true;
-                            
+
                             // Show PIP if this is not the current tab
                             if (Window.CurrentTab != tab)
                             {
