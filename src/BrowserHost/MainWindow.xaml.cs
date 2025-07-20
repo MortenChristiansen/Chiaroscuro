@@ -144,6 +144,11 @@ public partial class MainWindow : Window
             }
             downloadsFeature.CancelAllActiveDownloads();
         }
+
+        // Ensure PIP window is closed when main window closes
+        var pipFeature = GetFeature<PIPFeature>();
+        pipFeature.Cleanup();
+
         base.OnClosing(e);
     }
 

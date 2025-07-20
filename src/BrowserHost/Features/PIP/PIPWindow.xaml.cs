@@ -15,6 +15,7 @@ public partial class PIPWindow : Window
     private DispatcherTimer? _hideControlsTimer;
     private DispatcherTimer? _videoSyncTimer;
     private bool _isVideoPlaying = true;
+    private ChromiumWebBrowser? _pipBrowser;
 
     public PIPWindow(TabBrowser videoTab, PIPFeature pipFeature)
     {
@@ -55,9 +56,38 @@ public partial class PIPWindow : Window
 
     private void SetupPIPContent()
     {
-        // Instead of creating a new browser, we'll inject a small preview into the original tab
-        // and capture that. For now, we'll show a placeholder and rely on the controls
-        
+        try
+        {
+            // Create a new browser instance to display the same page
+            _pipBrowser = new ChromiumWebBrowser(_videoTab.Address)
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+
+            // Add the browser to the video border
+            VideoBorder.Child = _pipBrowser;
+
+            // Wait for the browser to load and then inject script to show only video
+            _pipBrowser.LoadingStateChanged += (sender, args) =>
+            {
+                if (!args.IsLoading)
+                {
+                    // Inject script to hide everything except the video
+                    Dispatcher.BeginInvoke(() => InjectVideoOnlyScript());
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error setting up PIP content: {ex.Message}");
+            // Fallback to placeholder
+            SetupPlaceholderContent();
+        }
+    }
+
+    private void SetupPlaceholderContent()
+    {
         // Set a dark background to indicate video area
         VideoBorder.Background = System.Windows.Media.Brushes.Black;
         
@@ -75,6 +105,65 @@ public partial class PIPWindow : Window
         var grid = new System.Windows.Controls.Grid();
         grid.Children.Add(textBlock);
         VideoBorder.Child = grid;
+    }
+
+    private void InjectVideoOnlyScript()
+    {
+        if (_pipBrowser?.IsBrowserInitialized == true)
+        {
+            var script = @"
+                (function() {
+                    // Find the first video element
+                    const video = document.querySelector('video');
+                    if (video) {
+                        // Hide everything except the video
+                        document.body.style.margin = '0';
+                        document.body.style.padding = '0';
+                        document.body.style.overflow = 'hidden';
+                        document.body.style.background = 'black';
+                        
+                        // Hide all elements except video
+                        const allElements = document.querySelectorAll('*:not(video):not(source)');
+                        allElements.forEach(el => {
+                            if (el !== video && !video.contains(el) && el !== document.body && el !== document.documentElement) {
+                                el.style.display = 'none';
+                            }
+                        });
+                        
+                        // Style the video to fill the container
+                        video.style.position = 'fixed';
+                        video.style.top = '0';
+                        video.style.left = '0';
+                        video.style.width = '100vw';
+                        video.style.height = '100vh';
+                        video.style.objectFit = 'contain';
+                        video.style.background = 'black';
+                        video.style.zIndex = '9999';
+                        
+                        // Remove controls to avoid interference
+                        video.controls = false;
+                        
+                        // Sync with original video
+                        const syncWithOriginal = () => {
+                            try {
+                                // This would ideally sync with the original tab's video
+                                // For now, we just ensure the video is playing
+                                if (video.paused) {
+                                    video.play().catch(() => {});
+                                }
+                            } catch (e) {
+                                console.log('Sync error:', e);
+                            }
+                        };
+                        
+                        // Try to sync every second
+                        setInterval(syncWithOriginal, 1000);
+                    }
+                })();
+            ";
+            
+            _pipBrowser.ExecuteScriptAsync(script);
+        }
     }
 
     private async void SyncVideoState(object? sender, EventArgs e)
@@ -174,6 +263,7 @@ public partial class PIPWindow : Window
     {
         _hideControlsTimer?.Stop();
         _videoSyncTimer?.Stop();
+        _pipBrowser?.Dispose();
         base.OnClosed(e);
     }
 }

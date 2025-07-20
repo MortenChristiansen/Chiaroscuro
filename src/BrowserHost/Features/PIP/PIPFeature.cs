@@ -4,7 +4,6 @@ using BrowserHost.Utilities;
 using CefSharp;
 using System;
 using System.Threading.Tasks;
-using System.Timers;
 
 namespace BrowserHost.Features.PIP;
 
@@ -13,18 +12,13 @@ public class PIPFeature(MainWindow window) : Feature(window)
     private PIPWindow? _pipWindow;
     private TabBrowser? _currentVideoTab;
     private bool _isVideoPlaying = false;
-    private Timer? _videoPollingTimer;
+    private TabBrowser? _previousTab;
 
     public override void Register()
     {
         PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
         PubSub.Subscribe<TabClosedEvent>(OnTabClosed);
         PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
-
-        // Set up periodic video checking
-        _videoPollingTimer = new Timer(2000); // Check every 2 seconds
-        _videoPollingTimer.Elapsed += CheckAllTabsForVideo;
-        _videoPollingTimer.Start();
     }
 
     private void OnTabActivated(TabActivatedEvent e)
@@ -33,14 +27,16 @@ public class PIPFeature(MainWindow window) : Feature(window)
         if (e.CurrentTab == _currentVideoTab && _pipWindow != null)
         {
             HidePIP();
-            return;
         }
 
-        // If switching away from a video tab, show PIP if video is playing
-        if (_currentVideoTab != null && _isVideoPlaying && e.CurrentTab != _currentVideoTab)
+        // If we have a previous tab that was just deactivated, check if it has playing video
+        if (_previousTab != null && _previousTab != e.CurrentTab)
         {
-            ShowPIP(_currentVideoTab);
+            CheckSpecificTabForVideo(_previousTab.Id, true);
         }
+
+        // Update previous tab for next time
+        _previousTab = e.CurrentTab;
     }
 
     private void OnTabClosed(TabClosedEvent e)
@@ -58,32 +54,11 @@ public class PIPFeature(MainWindow window) : Feature(window)
         // Check for video a bit after page loads
         if (!e.IsLoading)
         {
-            _ = Task.Delay(3000).ContinueWith(_ => CheckSpecificTabForVideo(e.TabId));
+            _ = Task.Delay(3000).ContinueWith(_ => CheckSpecificTabForVideo(e.TabId, false));
         }
     }
 
-    private void CheckAllTabsForVideo(object? sender, ElapsedEventArgs e)
-    {
-        try
-        {
-            var tabsFeature = Window.GetFeature<TabsFeature>();
-            Window.Dispatcher.Invoke(() =>
-            {
-                // Check current tab and all background tabs for video
-                var currentTab = Window.CurrentTab;
-                if (currentTab != null)
-                {
-                    CheckSpecificTabForVideo(currentTab.Id);
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error in video polling: {ex.Message}");
-        }
-    }
-
-    private void CheckSpecificTabForVideo(string tabId)
+    private void CheckSpecificTabForVideo(string tabId, bool isTabBecomingInactive)
     {
         try
         {
@@ -120,8 +95,8 @@ public class PIPFeature(MainWindow window) : Feature(window)
                             _currentVideoTab = tab;
                             _isVideoPlaying = true;
 
-                            // Show PIP if this is not the current tab
-                            if (Window.CurrentTab != tab)
+                            // Show PIP if this tab is becoming inactive (user switched away)
+                            if (isTabBecomingInactive)
                             {
                                 ShowPIP(tab);
                             }
@@ -227,8 +202,6 @@ public class PIPFeature(MainWindow window) : Feature(window)
 
     public void Cleanup()
     {
-        _videoPollingTimer?.Stop();
-        _videoPollingTimer?.Dispose();
         HidePIP();
     }
 }
