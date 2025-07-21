@@ -5,6 +5,7 @@ using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
 using BrowserHost.Features.Tabs;
+using BrowserHost.Features.Workspaces;
 using BrowserHost.Features.Zoom;
 using CefSharp;
 using CefSharp.Wpf;
@@ -42,12 +43,19 @@ public partial class MainWindow : Window
             new DevToolFeature(this),
             new FileDownloadsFeature(this),
             new ZoomFeature(this),
-            new DragDropFeature(this)
+            new DragDropFeature(this),
+            new WorkspacesFeature(this)
         ];
-        _features.ForEach(f => f.Register());
+        _features.ForEach(f => f.Configure());
 
         ContentServer.Run();
         Instance = this;
+    }
+
+    protected override void OnContentRendered(EventArgs e)
+    {
+        _features.ForEach(f => f.Start());
+        base.OnContentRendered(e);
     }
 
     public TFeature GetFeature<TFeature>() where TFeature : Feature

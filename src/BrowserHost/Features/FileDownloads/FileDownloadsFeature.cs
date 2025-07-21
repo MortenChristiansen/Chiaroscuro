@@ -13,9 +13,8 @@ public class FileDownloadsFeature(MainWindow window) : Feature<FileDownloadsBrow
     private readonly ConcurrentDictionary<int, DownloadInfo> _activeDownloads = new();
     private Timer? _progressTimer;
 
-    public override void Register()
+    public override void Configure()
     {
-
         PubSub.Subscribe<DownloadCancelledEvent>(HandleFileDownloadCancelled);
     }
 

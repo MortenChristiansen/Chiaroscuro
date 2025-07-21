@@ -23,7 +23,7 @@ public class DragDropFeature(MainWindow window) : Feature(window)
         ".mp4", ".webm", ".ogg", ".mp3", ".wav"
     ];
 
-    public override void Register()
+    public override void Configure()
     {
         Window.AllowDrop = true;
         Window.DragEnter += (sender, e) => IsDragging = true;

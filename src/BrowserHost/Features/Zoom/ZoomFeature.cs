@@ -5,10 +5,6 @@ namespace BrowserHost.Features.Zoom;
 
 public class ZoomFeature(MainWindow window) : Feature(window)
 {
-    public override void Register()
-    {
-    }
-
     public override bool HandleOnPreviewMouseWheel(MouseWheelEventArgs e)
     {
         if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)

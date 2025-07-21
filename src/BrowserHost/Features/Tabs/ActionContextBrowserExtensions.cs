@@ -1,7 +1,12 @@
 ﻿using BrowserHost.Features.ActionContext;
 using BrowserHost.Utilities;
+using System;
 
 namespace BrowserHost.Features.Tabs;
+
+public record WorkspaceDto(string Id, string Name, string Color, TabDto[] Tabs, int EphemeralTabStartIndex, string? ActiveTabId);
+public record TabDto(string Id, string? Title, string? Favicon, DateTimeOffset Created);
+
 public static class ActionContextBrowserExtensions
 {
     public static void AddTab(this ActionContextBrowser browser, TabDto tab, bool activate = true)
@@ -9,9 +14,9 @@ public static class ActionContextBrowserExtensions
         browser.CallClientApi("addTab", $"{tab.ToJsonObject()}, {activate.ToJsonBoolean()}");
     }
 
-    public static void SetTabs(this ActionContextBrowser browser, TabDto[] tabs, string? activeTabId, int ephemeralTabIndex)
+    public static void SetWorkspaces(this ActionContextBrowser browser, WorkspaceDto[] workspaces)
     {
-        browser.CallClientApi("setTabs", $"{tabs.ToJsonObject()}, {activeTabId.ToJsonString()}, {ephemeralTabIndex}");
+        browser.CallClientApi("setWorkspaces", $"{workspaces.ToJsonObject()}");
     }
 
     public static void UpdateTabTitle(this ActionContextBrowser browser, string tabId, string? title)

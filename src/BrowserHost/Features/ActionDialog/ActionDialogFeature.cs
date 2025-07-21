@@ -15,7 +15,7 @@ public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool Sa
 
 public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowserApi>(window, window.ActionDialog.Api)
 {
-    public override void Register()
+    public override void Configure()
     {
         PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
         PubSub.Subscribe<CommandExecutedEvent>(HandleCommandExecuted);

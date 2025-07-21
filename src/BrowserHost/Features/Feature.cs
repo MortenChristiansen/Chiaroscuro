@@ -12,7 +12,8 @@ public abstract class Feature(MainWindow window)
 {
     protected MainWindow Window { get; } = window;
 
-    public abstract void Register();
+    public virtual void Configure() { }
+    public virtual void Start() { }
 
     public virtual bool HandleOnPreviewKeyDown(KeyEventArgs e) => false;
     public virtual bool HandleOnPreviewMouseWheel(MouseWheelEventArgs e) => false;

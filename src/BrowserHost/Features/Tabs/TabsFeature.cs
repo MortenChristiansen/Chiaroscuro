@@ -1,4 +1,5 @@
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.Workspaces;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
@@ -9,12 +10,13 @@ namespace BrowserHost.Features.Tabs;
 
 public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.ActionContext.TabListApi)
 {
-    private readonly List<TabBrowser> _tabBrowsers = [];
+    private readonly Dictionary<string, List<TabBrowser>> _tabBrowsersByWorkspace = [];
+    private string? _currentWorkspaceId;
 
-    public override void Register()
+    public List<TabBrowser>? TabBrowsers => _currentWorkspaceId != null ? _tabBrowsersByWorkspace[_currentWorkspaceId] : null;
+
+    public override void Configure()
     {
-        RestoreTabs();
-
         PubSub.Subscribe<NavigationStartedEvent>(e =>
         {
             if (Window.CurrentTab != null && e.UseCurrentTab)
@@ -27,29 +29,26 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
             }
         });
         PubSub.Subscribe<TabActivatedEvent>(e =>
-            Window.SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId))
+            Window.SetCurrentTab(TabBrowsers?.Find(t => t.Id == e.TabId))
         );
         PubSub.Subscribe<TabClosedEvent>(e =>
         {
-            _tabBrowsers.Remove(e.Tab);
+            TabBrowsers?.Remove(e.Tab);
             if (e.Tab == Window.CurrentTab)
                 Window.SetCurrentTab(null);
             e.Tab.Dispose();
         });
-        PubSub.Subscribe<TabsChangedEvent>(e =>
-            TabStateManager.SaveTabsToDisk(e.Tabs.Select(t => new TabStateDtoV1(_tabBrowsers.Find(b => b.Id == t.Id)?.Address ?? "", t.Title, t.Favicon, t.IsActive, t.Created)), e.EphemeralTabStartIndex)
-        );
-    }
 
-    private void RestoreTabs()
-    {
-        var tabs = TabStateManager.RestoreTabsFromDisk();
-        var browsers = tabs.Tabs.Select(t => (Browser: AddExistingTab(t.Address, activate: t.IsActive, t.Title, t.Favicon), Tab: t)).ToList();
-        Window.ActionContext.SetTabs(
-            [.. browsers.Select(t => new TabDto(t.Browser.Id, t.Tab.Title, t.Tab.Favicon, t.Tab.Created))],
-            browsers.Find(t => t.Tab.IsActive).Browser?.Id,
-            tabs.EphemeralTabStartIndex
-        );
+        PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
+        {
+            if (!_tabBrowsersByWorkspace.ContainsKey(e.WorkspaceId))
+                _tabBrowsersByWorkspace[e.WorkspaceId] = [.. e.Workspace.Tabs.Select(t => AddExistingTab(t.TabId, t.Address, t.IsActive, t.Title, t.Favicon))];
+            _currentWorkspaceId = e.WorkspaceId;
+
+            var activeTabId = e.Workspace.Tabs.FirstOrDefault(t => t.IsActive)?.TabId;
+            var activeTabBrowser = _tabBrowsersByWorkspace[e.WorkspaceId].FirstOrDefault(t => t.Id == activeTabId);
+            Window.SetCurrentTab(activeTabBrowser);
+        });
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -71,28 +70,22 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
 
     private TabBrowser AddNewTab(string address, bool saveInHistory)
     {
-        var browser = new TabBrowser(address, Window.ActionContext, setManualAddress: saveInHistory);
-        _tabBrowsers.Add(browser);
+        var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory);
+        TabBrowsers?.Add(browser);
 
-        RegisterNewTabWithFrontend(browser);
+        var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.Now);
+        Window.ActionContext.AddTab(tab, activate: true);
+
+        Window.Dispatcher.Invoke(() => Window.SetCurrentTab(browser));
 
         return browser;
     }
 
-    private void RegisterNewTabWithFrontend(TabBrowser browser)
+    private TabBrowser AddExistingTab(string id, string address, bool activate, string? title, string? favicon)
     {
-        var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.Now);
-        Window.ActionContext.AddTab(tab, activate: true);
-        Window.Dispatcher.Invoke(() => Window.SetCurrentTab(browser));
-    }
-
-    private TabBrowser AddExistingTab(string address, bool activate, string? title, string? favicon)
-    {
-        var browser = new TabBrowser(address, Window.ActionContext, setManualAddress: false);
+        var browser = new TabBrowser(id, address, Window.ActionContext, setManualAddress: false);
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
-
-        _tabBrowsers.Add(browser);
 
         return browser;
     }
@@ -114,8 +107,6 @@ public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window,
         Window.ActionContext.ToggleTabBookmark(tab.Id);
     }
 
-    public TabBrowser? GetTabById(string tabId)
-    {
-        return _tabBrowsers.FirstOrDefault(t => t.Id == tabId);
-    }
+    public TabBrowser? GetTabById(string tabId) =>
+        TabBrowsers?.Find(t => t.Id == tabId);
 }
