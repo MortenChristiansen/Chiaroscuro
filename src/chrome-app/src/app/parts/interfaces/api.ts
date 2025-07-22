@@ -20,9 +20,42 @@ export async function loadBackendApi<TApi extends Api>(
   }
 }
 
+class ApiMethod {
+  private implementations: ((...args: any[]) => void)[] = [];
+
+  constructor(public methodName: string) {}
+
+  addImplementation(fn: (...args: any[]) => void) {
+    if (typeof fn === 'function') {
+      this.implementations.push(fn);
+    } else {
+      throw new Error(
+        `Implementation for ${this.methodName} is not a function`
+      );
+    }
+  }
+
+  call(...args: any[]) {
+    return this.implementations.map((fn) => fn(...args));
+  }
+}
+
 export function exposeApiToBackend(api: any) {
   if (isBrowser) {
-    const currentApi = (window as any).angularApi || {};
-    (window as any).angularApi = { ...currentApi, ...api };
+    const win = window as any;
+    win.angularApi = win.angularApi || {};
+    for (const key of Object.keys(api)) {
+      const value = api[key];
+      if (typeof value === 'function') {
+        if (!win.angularApi[key]) {
+          win.angularApi[key] = new ApiMethod(key);
+        }
+        win.angularApi[key].addImplementation(value);
+      } else {
+        throw new Error(
+          `API method ${key} is not a function. Only functions can be exposed to the backend.`
+        );
+      }
+    }
   }
 }
