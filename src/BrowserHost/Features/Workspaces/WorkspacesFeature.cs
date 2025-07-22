@@ -45,6 +45,7 @@ public class WorkspacesFeature(MainWindow window) : Feature<WorkspacesApi>(windo
                 ws.WorkspaceId,
                 ws.Name,
                 ws.Color,
+                ws.Icon,
                 [..ws.Tabs.Select(t => new TabDto(t.TabId, t.Title, t.Favicon, t.Created))],
                 ws.EphemeralTabStartIndex,
                 ws.Tabs.FirstOrDefault(t => t.IsActive)?.TabId

@@ -10,7 +10,7 @@ using System.Threading;
 namespace BrowserHost.Features.Workspaces;
 
 public record WorkspacesDataDtoV1(WorkspaceDtoV1[] Workspaces);
-public record WorkspaceDtoV1(string WorkspaceId, string Name, string Color, WorkspaceTabStateDtoV1[] Tabs, int EphemeralTabStartIndex);
+public record WorkspaceDtoV1(string WorkspaceId, string Name, string Color, string Icon, WorkspaceTabStateDtoV1[] Tabs, int EphemeralTabStartIndex);
 public record WorkspaceTabStateDtoV1(string TabId, string Address, string? Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 
 public static class WorkspaceStateManager
@@ -19,7 +19,7 @@ public static class WorkspaceStateManager
     private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
     private const int _currentVersion = 1;
     private const int _ephemeralTabExpirationHours = 16;
-    private static readonly WorkspaceDtoV1 _defaultWorkspace = new($"{Guid.NewGuid()}", "Browse", "#202634", [], 0);
+    private static readonly WorkspaceDtoV1 _defaultWorkspace = new($"{Guid.NewGuid()}", "Browse", "#202634", "🌐", [], 0);
     private static WorkspacesDataDtoV1? _lastSavedWorkspaceData;
     private static readonly Lock _lock = new();
 
