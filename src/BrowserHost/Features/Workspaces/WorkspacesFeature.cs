@@ -2,6 +2,7 @@
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
+using System.Windows.Input;
 
 namespace BrowserHost.Features.Workspaces;
 
@@ -77,6 +78,31 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             if (e.WorkspaceId == _currentWorkspace.WorkspaceId)
                 PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[0].WorkspaceId));
         });
+    }
+
+    public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
+    {
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            var index = e.Key switch
+            {
+                Key.D1 => 0,
+                Key.D2 => 1,
+                Key.D3 => 2,
+                Key.D4 => 3,
+                Key.D5 => 4,
+                Key.D6 => 5,
+                Key.D7 => 6,
+                Key.D8 => 7,
+                Key.D9 => 8,
+                _ => -1
+            };
+
+            if (index >= 0 && index < _workspaces.Length && _workspaces[index] != _currentWorkspace)
+                PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[index].WorkspaceId));
+        }
+
+        return base.HandleOnPreviewKeyDown(e);
     }
 
     private void NotifyFrontendOfUpdatedWorkspaces()

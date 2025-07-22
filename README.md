@@ -14,6 +14,7 @@ In browser:
 - **F12**: Toggle dev tools.
 - **Ctrl-MouseWheel**: Change zoom level.
 - **Ctrl-Backspace**: Reset zoom level.
+- **Ctrl-1, Ctrl-2, Ctrl-3, etc.**: Switch to workspace 1, 2, 3, etc.
 
 In action dialog:
 

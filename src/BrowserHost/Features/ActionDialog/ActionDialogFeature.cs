@@ -80,7 +80,7 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.T && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        if (e.Key == Key.T && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             ShowDialog();
             return true;

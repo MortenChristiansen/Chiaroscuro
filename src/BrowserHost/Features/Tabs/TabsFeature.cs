@@ -60,13 +60,13 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.X && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        if (e.Key == Key.X && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             CloseCurrentTab();
             return true;
         }
 
-        if (e.Key == Key.B && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        if (e.Key == Key.B && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             ToggleCurrentTabBookmark();
             return true;
