@@ -157,26 +157,35 @@ export default class WorkspaceEditorComponent {
   ];
 
   availableColors = [
-    '#ef4444',
-    '#f97316',
-    '#f59e0b',
-    '#eab308',
-    '#84cc16',
-    '#22c55e',
-    '#10b981',
-    '#14b8a6',
-    '#06b6d4',
-    '#0ea5e9',
-    '#3b82f6',
-    '#6366f1',
-    '#8b5cf6',
-    '#a855f7',
-    '#d946ef',
-    '#ec4899',
-    '#f43f5e',
-    '#64748b',
-    '#6b7280',
-    '#374151',
+    '#23272a', // muted black
+    '#1a202c', // dark blue-gray
+    '#2d3748', // dark slate
+    '#374151', // dark gray
+    '#4b5563', // muted charcoal
+    '#334155', // deep blue-gray
+    '#212529', // very dark gray
+    '#283046', // muted midnight
+    '#22223b', // deep purple
+    '#3c4251', // muted purple-gray
+    '#2a2e37', // dark steel
+    '#3b3c4a', // muted navy
+    '#2f3136', // dark graphite
+    '#24262d', // dark onyx
+    '#343a40', // dark slate gray
+    '#1c1f26', // deep black
+    '#264653', // dark teal
+    '#2b2d42', // dark blue
+    '#3d405b', // muted indigo
+    '#4a4e69', // muted violet
+    '#222831', // dark cyan
+    '#393e46', // muted blue-black
+    '#232b2b', // dark olive
+    '#2e2e2e', // classic charcoal
+    '#2c3e50', // deep blue
+    '#2d3436', // muted graphite
+    '#1b263b', // deep navy
+    '#2c2f36', // dark neutral
+    '#2d2d2d', // classic dark
   ];
 
   ngOnInit() {
