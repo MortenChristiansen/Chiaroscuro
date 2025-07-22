@@ -35,7 +35,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     public override void Start()
     {
-        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspace.WorkspaceId, _currentWorkspace));
+        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspace.WorkspaceId));
     }
 
     private void RestoreWorkspaces()

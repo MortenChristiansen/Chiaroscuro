@@ -41,11 +41,14 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
         PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
         {
+            var workspaceature = Window.GetFeature<WorkspacesFeature>();
+            var workspace = workspaceature.GetWorkspaceById(e.WorkspaceId);
+
             if (!_tabBrowsersByWorkspace.ContainsKey(e.WorkspaceId))
-                _tabBrowsersByWorkspace[e.WorkspaceId] = [.. e.Workspace.Tabs.Select(t => AddExistingTab(t.TabId, t.Address, t.IsActive, t.Title, t.Favicon))];
+                _tabBrowsersByWorkspace[e.WorkspaceId] = [.. workspace.Tabs.Select(t => AddExistingTab(t.TabId, t.Address, t.IsActive, t.Title, t.Favicon))];
             _currentWorkspaceId = e.WorkspaceId;
 
-            var activeTabId = e.Workspace.Tabs.FirstOrDefault(t => t.IsActive)?.TabId;
+            var activeTabId = workspace.Tabs.FirstOrDefault(t => t.IsActive)?.TabId;
             var activeTabBrowser = _tabBrowsersByWorkspace[e.WorkspaceId].FirstOrDefault(t => t.Id == activeTabId);
             Window.SetCurrentTab(activeTabBrowser);
         });
