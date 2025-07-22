@@ -39,17 +39,17 @@ interface WorkspaceFormData {
               Icon
             </label>
             <div
-              class="grid grid-cols-8 gap-2 max-h-32 overflow-y-auto border border-gray-600 rounded-md p-2 bg-gray-700"
+              class="grid grid-cols-8 gap-2 max-h-32 overflow-y-auto overflow-x-hidden border border-gray-600 rounded-md p-2 bg-gray-700"
             >
               @for (icon of availableIcons; track icon) {
               <button
                 type="button"
                 (click)="formData.icon = icon"
-                class="p-2 rounded hover:bg-gray-600 text-lg {{
+                class="w-8 h-8 flex items-center justify-center text-lg rounded hover:bg-gray-600 {{
                   formData.icon === icon ? 'bg-blue-600' : ''
                 }}"
               >
-                {{ icon }}
+                <span class="text-center">{{ icon }}</span>
               </button>
               }
             </div>
