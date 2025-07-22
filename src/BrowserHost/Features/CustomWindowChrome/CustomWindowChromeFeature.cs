@@ -9,7 +9,7 @@ using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
-public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindowChromeBrowserApi>(window, window.ChromeUI.Api)
+public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
 {
     public override void Configure()
     {

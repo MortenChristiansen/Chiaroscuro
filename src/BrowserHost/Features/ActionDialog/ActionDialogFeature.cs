@@ -13,7 +13,7 @@ namespace BrowserHost.Features.ActionDialog;
 public record SearchProvider(string Name, string Key, string Pattern);
 public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory);
 
-public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowserApi>(window, window.ActionDialog.Api)
+public class ActionDialogFeature(MainWindow window) : Feature(window)
 {
     public override void Configure()
     {

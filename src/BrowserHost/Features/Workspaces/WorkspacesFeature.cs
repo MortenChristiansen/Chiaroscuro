@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace BrowserHost.Features.Workspaces;
 
-public class WorkspacesFeature(MainWindow window) : Feature<WorkspacesApi>(window, new WorkspacesApi())
+public class WorkspacesFeature(MainWindow window) : Feature(window)
 {
     private WorkspaceDtoV1[] _workspaces = [];
     private WorkspaceDtoV1 _currentWorkspace = null!;

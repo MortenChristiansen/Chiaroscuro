@@ -8,7 +8,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.Tabs;
 
-public class TabsFeature(MainWindow window) : Feature<TabListBrowserApi>(window, window.ActionContext.TabListApi)
+public class TabsFeature(MainWindow window) : Feature(window)
 {
     private readonly Dictionary<string, List<TabBrowser>> _tabBrowsersByWorkspace = [];
     private string? _currentWorkspaceId;
