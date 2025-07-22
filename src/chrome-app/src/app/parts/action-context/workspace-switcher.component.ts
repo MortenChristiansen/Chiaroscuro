@@ -73,6 +73,7 @@ import { Workspace, WorkspaceDescription } from './server-models';
     <workspace-editor
       [isEdit]="isEditMode()"
       [workspaceData]="editorData()"
+      [canDelete]="workspaces().length > 1"
       (save)="onSaveWorkspace($event)"
       (delete)="onDeleteWorkspace()"
       (cancel)="closeEditor()"

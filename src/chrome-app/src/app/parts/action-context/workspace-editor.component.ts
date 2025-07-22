@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -17,7 +17,7 @@ interface WorkspaceFormData {
     >
       <div class="bg-gray-800 rounded-lg p-6 w-96 max-w-full mx-4">
         <h2 class="text-xl font-semibold text-white mb-4">
-          {{ isEdit ? 'Edit Workspace' : 'Create New Workspace' }}
+          {{ isEdit() ? 'Edit Workspace' : 'Create New Workspace' }}
         </h2>
 
         <form (ngSubmit)="onSubmit()" #form="ngForm">
@@ -73,11 +73,12 @@ interface WorkspaceFormData {
           </div>
           <div class="flex justify-between">
             <div>
-              @if (isEdit) {
+              @if (isEdit()) {
               <button
+                [disabled]="!canDelete()"
                 type="button"
                 (click)="onDelete()"
-                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
               >
                 Delete
               </button>
@@ -96,7 +97,7 @@ interface WorkspaceFormData {
                 [disabled]="!form.valid"
                 class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {{ isEdit ? 'Update' : 'Create' }}
+                {{ isEdit() ? 'Update' : 'Create' }}
               </button>
             </div>
           </div>
@@ -107,17 +108,18 @@ interface WorkspaceFormData {
   styles: ``,
 })
 export default class WorkspaceEditorComponent {
-  @Input() isEdit = false;
-  @Input() workspaceData: WorkspaceFormData = {
+  isEdit = input(false);
+  workspaceData = input<WorkspaceFormData>({
     name: '',
     icon: '🌐',
     color: '#2563eb',
-  };
-  @Output() save = new EventEmitter<WorkspaceFormData>();
-  @Output() delete = new EventEmitter<void>();
-  @Output() cancel = new EventEmitter<void>();
+  });
+  canDelete = input<boolean>(true);
+  save = output<WorkspaceFormData>();
+  delete = output<void>();
+  cancel = output<void>();
 
-  formData: WorkspaceFormData = { ...this.workspaceData };
+  formData: WorkspaceFormData = { ...this.workspaceData() };
 
   availableIcons = [
     '🌐',
@@ -178,7 +180,7 @@ export default class WorkspaceEditorComponent {
   ];
 
   ngOnInit() {
-    this.formData = { ...this.workspaceData };
+    this.formData = { ...this.workspaceData() };
   }
 
   onSubmit() {
