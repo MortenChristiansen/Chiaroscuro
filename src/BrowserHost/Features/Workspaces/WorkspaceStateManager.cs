@@ -23,44 +23,56 @@ public static class WorkspaceStateManager
     private static WorkspacesDataDtoV1? _lastSavedWorkspaceData;
     private static readonly Lock _lock = new();
 
-    public static void SaveWorkspacesToDisk(string workspaceId, IEnumerable<WorkspaceTabStateDtoV1> tabs, int ephemeralTabStartIndex)
+    public static WorkspaceDtoV1[] SaveWorkspaceTabs(string workspaceId, IEnumerable<WorkspaceTabStateDtoV1> tabs, int ephemeralTabStartIndex)
     {
         lock (_lock)
         {
             var workspace = _lastSavedWorkspaceData?.Workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId) ?? _defaultWorkspace;
             var newTabsData = workspace with { Tabs = [.. tabs], EphemeralTabStartIndex = ephemeralTabStartIndex };
 
-            // Check if the new data is the same as what we last saved
-            if (_lastSavedWorkspaceData != null && StateIsEqual(workspace, newTabsData))
-            {
-                Debug.WriteLine("Skipping workspace state save - no changes detected.");
-                return;
-            }
+            SaveWorkspaceIfChanged(workspaceId, workspace, newTabsData);
+        }
+        return _lastSavedWorkspaceData!.Workspaces;
+    }
 
-            try
-            {
-                Debug.WriteLine("Saving workspace state to disk...");
-                var existingData = _lastSavedWorkspaceData ?? new WorkspacesDataDtoV1([]);
-                var existingDataWithUpdatedWorkspace = existingData.Workspaces
-                    .Where(ws => ws.WorkspaceId != workspaceId)
-                    .Append(newTabsData)
-                    .OrderBy(ws => ws.Name)
-                    .ToArray();
-                var newWorkspacesData = new WorkspacesDataDtoV1(existingDataWithUpdatedWorkspace);
-                var versionedData = new PersistentData<WorkspacesDataDtoV1>
-                {
-                    Version = _currentVersion,
-                    Data = newWorkspacesData
-                };
-                File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versionedData, _jsonSerializerOptions));
+    private static void SaveWorkspaceIfChanged(string workspaceId, WorkspaceDtoV1 cachedWorkspace, WorkspaceDtoV1 updatedWorkspace)
+    {
+        // Check if the new data is the same as what we last saved
+        if (_lastSavedWorkspaceData != null && StateIsEqual(cachedWorkspace, updatedWorkspace))
+        {
+            Debug.WriteLine("Skipping workspace state save - no changes detected.");
+            return;
+        }
 
-                // Update the cache after successful save
-                _lastSavedWorkspaceData = newWorkspacesData;
-            }
-            catch (Exception e)
+        Debug.WriteLine("Saving workspace state to disk...");
+        var existingData = _lastSavedWorkspaceData ?? new WorkspacesDataDtoV1([]);
+        var existingDataWithUpdatedWorkspace = existingData.Workspaces
+            .Where(ws => ws.WorkspaceId != workspaceId)
+            .Append(updatedWorkspace)
+            .OrderBy(ws => ws.Name)
+            .ToArray();
+
+        SaveWorkspaces(existingDataWithUpdatedWorkspace);
+    }
+
+    private static void SaveWorkspaces(WorkspaceDtoV1[] updatedWorkspaces)
+    {
+        try
+        {
+            var newWorkspacesData = new WorkspacesDataDtoV1(updatedWorkspaces);
+            var versionedData = new PersistentData<WorkspacesDataDtoV1>
             {
-                Debug.WriteLine($"Failed to save workspace state: {e.Message}");
-            }
+                Version = _currentVersion,
+                Data = newWorkspacesData
+            };
+            File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versionedData, _jsonSerializerOptions));
+
+            // Update the cache after successful save
+            _lastSavedWorkspaceData = newWorkspacesData;
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine($"Failed to save workspace state: {e.Message}");
         }
     }
 
@@ -124,14 +136,10 @@ public static class WorkspaceStateManager
 
     private static bool StateIsEqual(WorkspaceDtoV1 data1, WorkspaceDtoV1 data2)
     {
-        if (data1.EphemeralTabStartIndex != data2.EphemeralTabStartIndex)
-            return false;
-
-        if (data1.Tabs.Length != data2.Tabs.Length)
-            return false;
-
+        if (data1.EphemeralTabStartIndex != data2.EphemeralTabStartIndex) return false;
+        if (data1.Tabs.Length != data2.Tabs.Length) return false;
         if (data1.Name != data2.Name) return false;
-
+        if (data1.Icon != data2.Icon) return false;
         if (data1.Color != data2.Color) return false;
 
         for (int i = 0; i < data1.Tabs.Length; i++)
@@ -141,5 +149,39 @@ public static class WorkspaceStateManager
         }
 
         return true;
+    }
+
+    public static WorkspaceDtoV1[] CreateWorkspace(WorkspaceDtoV1 workspace)
+    {
+        lock (_lock)
+        {
+            if (_lastSavedWorkspaceData == null)
+                throw new InvalidOperationException("No workspaces loaded");
+
+            SaveWorkspaces([.. _lastSavedWorkspaceData.Workspaces.Append(workspace).OrderBy(ws => ws.Name)]);
+        }
+        return _lastSavedWorkspaceData.Workspaces;
+    }
+
+    public static WorkspaceDtoV1[] UpdateWorkspace(WorkspaceDtoV1 workspace)
+    {
+        lock (_lock)
+        {
+            var cached = _lastSavedWorkspaceData?.Workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspace.WorkspaceId) ?? throw new ArgumentException("Workspace does not exist");
+            SaveWorkspaceIfChanged(workspace.WorkspaceId, cached, workspace);
+        }
+        return _lastSavedWorkspaceData.Workspaces;
+    }
+
+    public static WorkspaceDtoV1[] DeleteWorkspace(string workspaceId)
+    {
+        lock (_lock)
+        {
+            if (_lastSavedWorkspaceData == null)
+                throw new InvalidOperationException("No workspaces loaded");
+
+            SaveWorkspaces([.. _lastSavedWorkspaceData.Workspaces.Where(ws => ws.WorkspaceId != workspaceId)]);
+        }
+        return _lastSavedWorkspaceData.Workspaces;
     }
 }

@@ -13,6 +13,11 @@ public static class ActionContextBrowserExtensions
         browser.CallClientApi("addTab", $"{tab.ToJsonObject()}, {activate.ToJsonBoolean()}");
     }
 
+    public static void SetTabs(this ActionContextBrowser browser, TabDto[] tabs, string? activeTabId, int ephemeralTabIndex)
+    {
+        browser.CallClientApi("setTabs", $"{tabs.ToJsonObject()}, {activeTabId.ToJsonString()}, {ephemeralTabIndex}");
+    }
+
     public static void UpdateTabTitle(this ActionContextBrowser browser, string tabId, string? title)
     {
         browser.CallClientApi("updateTitle", $"{tabId.ToJsonString()}, {title.ToJsonString()}");

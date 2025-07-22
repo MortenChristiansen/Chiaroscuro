@@ -18,7 +18,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
         var tabsFeature = Window.GetFeature<TabsFeature>();
         PubSub.Subscribe<TabsChangedEvent>(e =>
-            WorkspaceStateManager.SaveWorkspacesToDisk(
+            _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
                 _currentWorkspace.WorkspaceId,
                 e.Tabs.Select(t => new WorkspaceTabStateDtoV1(
                     t.Id,
@@ -31,6 +31,57 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 e.EphemeralTabStartIndex
             )
         );
+        PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
+        {
+            _currentWorkspace = GetWorkspaceById(e.WorkspaceId);
+            Window.ActionContext.WorkspaceActivated(e.WorkspaceId);
+        });
+        PubSub.Subscribe<WorkspaceCreatedEvent>(e =>
+        {
+            var newWorkspace = new WorkspaceDtoV1(
+                e.WorkspaceId,
+                e.Name,
+                e.Color,
+                e.Icon,
+                [],
+                0
+            );
+            _workspaces = WorkspaceStateManager.CreateWorkspace(newWorkspace);
+            NotifyFrontendOfUpdatedWorkspaces();
+
+            PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspace.WorkspaceId));
+        });
+        PubSub.Subscribe<WorkspaceUpdatedEvent>(e =>
+        {
+            var workspace = GetWorkspaceById(e.WorkspaceId);
+            workspace = workspace with
+            {
+                Name = e.Name,
+                Color = e.Color,
+                Icon = e.Icon
+            };
+            if (e.WorkspaceId == _currentWorkspace.WorkspaceId)
+                _currentWorkspace = workspace;
+
+            _workspaces = WorkspaceStateManager.UpdateWorkspace(workspace);
+            NotifyFrontendOfUpdatedWorkspaces();
+        });
+        PubSub.Subscribe<WorkspaceDeletedEvent>(e =>
+        {
+            if (_workspaces.Length == 1)
+                throw new InvalidOperationException("Cannot delete the last workspace.");
+
+            _workspaces = WorkspaceStateManager.DeleteWorkspace(e.WorkspaceId);
+            NotifyFrontendOfUpdatedWorkspaces();
+
+            if (e.WorkspaceId == _currentWorkspace.WorkspaceId)
+                PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[0].WorkspaceId));
+        });
+    }
+
+    private void NotifyFrontendOfUpdatedWorkspaces()
+    {
+        Window.ActionContext.WorkspacesChanged([.. _workspaces.Select(ws => new WorkspaceDescriptionDto(ws.WorkspaceId, ws.Name, ws.Color, ws.Icon))]);
     }
 
     public override void Start()

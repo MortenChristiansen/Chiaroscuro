@@ -1,5 +1,5 @@
 import { Api } from '../interfaces/api';
-import { TabId } from './tabs-list.component';
+import { TabId } from './server-models';
 
 export interface TabStateDto {
   Id: TabId;

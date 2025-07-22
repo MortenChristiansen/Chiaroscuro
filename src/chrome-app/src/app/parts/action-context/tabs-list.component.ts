@@ -1,4 +1,4 @@
-import { Component, computed, effect, OnInit, signal } from '@angular/core';
+import { Component, effect, OnInit, signal } from '@angular/core';
 import { TabListApi } from './tabListApi';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import {
@@ -9,25 +9,7 @@ import {
 import { debounce } from '../../shared/utils';
 import { FaviconComponent } from '../../shared/favicon.component';
 import { CommonModule } from '@angular/common';
-
-export type WorkspaceId = string;
-export type TabId = string;
-
-interface Workspace {
-  id: WorkspaceId;
-  name: string;
-  color: string;
-  tabs: Tab[];
-  ephemeralTabStartIndex: number;
-  activeTabId: TabId | null;
-}
-
-interface Tab {
-  id: TabId;
-  title: string | null;
-  favicon: string | null;
-  created: Date;
-}
+import { Tab, TabId } from './server-models';
 
 @Component({
   selector: 'tabs-list',
@@ -122,13 +104,7 @@ interface Tab {
   `,
 })
 export default class TabsListComponent implements OnInit {
-  workspaces = signal<Workspace[]>([]);
-  currentWorkspaceId = signal<WorkspaceId | null>(null);
-  currentWorkspace = computed(
-    () =>
-      this.workspaces()?.find((w) => w.id === this.currentWorkspaceId()) ?? null
-  );
-  tabs = computed(() => this.currentWorkspace()?.tabs ?? []);
+  tabs = signal<Tab[]>([]);
   ephemeralTabStartIndex = signal<number>(0);
   tabsInitialized = signal(false);
   selectedTab = signal<Tab | null>(null);
@@ -184,7 +160,7 @@ export default class TabsListComponent implements OnInit {
       );
 
     moveItemInArray(currentTabs, adjustedPreviousIndex, adjustedCurrentIndex);
-    this.updateTabs(currentTabs);
+    this.tabs.set(currentTabs);
 
     // If the item was dragged past the separator, update ephemeralTabStartIndex
     if (
@@ -228,54 +204,49 @@ export default class TabsListComponent implements OnInit {
 
     exposeApiToBackend({
       addTab: (tab: Tab, activate: boolean) => {
-        this.updateTabs([...this.tabs(), tab]);
+        this.tabs.update((currentTabs) => [...currentTabs, tab]);
 
         if (activate) {
           this.selectedTab.set(tab);
         }
       },
-      setWorkspaces: (Workspaces: Workspace[]) => {
-        const currentWorkspace = Workspaces[0];
-        this.currentWorkspaceId.set(currentWorkspace.id);
-        this.workspaces.set(Workspaces);
+      setTabs: (
+        tabs: Tab[],
+        activeTabId: TabId,
+        ephemeralTabStartIndex: number
+      ) => {
+        this.tabs.set(tabs);
+        this.ephemeralTabStartIndex.set(ephemeralTabStartIndex);
 
-        this.ephemeralTabStartIndex.set(
-          currentWorkspace.ephemeralTabStartIndex
-        );
-
-        const activeTab = currentWorkspace.tabs.find(
-          (t) => t.id === currentWorkspace.activeTabId
-        );
+        const activeTab = tabs.find((t) => t.id === activeTabId);
         if (activeTab) {
           this.selectedTab.set(activeTab);
         }
         this.tabsInitialized.set(true);
-
-        this.setInitialTabActivationOrder(currentWorkspace);
+        this.tabActivationOrderStack = [
+          ...tabs.filter((t) => t.id !== activeTabId).map((t) => t.id),
+          activeTabId,
+        ];
       },
       updateTitle: (tabId: TabId, title: string | null) => {
-        this.updateTabs(
-          this.tabs().map((tab) => (tab.id === tabId ? { ...tab, title } : tab))
-        );
+        this.tabs.update((currentTabs) => {
+          const updatedTabs = currentTabs.map((tab, i) =>
+            currentTabs[i].id === tabId ? { ...tab, title } : tab
+          );
+          return updatedTabs;
+        });
       },
       updateFavicon: (tabId: TabId, favicon: string | null) => {
-        this.updateTabs(
-          this.tabs().map((tab) =>
-            tab.id === tabId ? { ...tab, favicon } : tab
-          )
-        );
+        this.tabs.update((currentTabs) => {
+          const updatedTabs = currentTabs.map((tab, i) =>
+            currentTabs[i].id === tabId ? { ...tab, favicon } : tab
+          );
+          return updatedTabs;
+        });
       },
       closeTab: (tabId: TabId) => this.close(tabId, false),
       toggleTabBookmark: (tabId: TabId) => this.toggleBookmark(tabId),
     });
-  }
-
-  private setInitialTabActivationOrder(workspace: Workspace) {
-    const tabOrder = workspace.tabs
-      .filter((t) => t.id !== workspace.activeTabId)
-      .map((t) => t.id);
-    if (workspace.activeTabId !== null) tabOrder.push(workspace.activeTabId);
-    this.tabActivationOrderStack = tabOrder;
   }
 
   api!: TabListApi;
@@ -284,7 +255,9 @@ export default class TabsListComponent implements OnInit {
     this.tabActivationOrderStack = this.tabActivationOrderStack.filter(
       (id) => id !== tabId
     );
-    this.updateTabs(this.tabs().filter((t) => t.id !== tabId));
+    this.tabs.update((currentTabs) =>
+      currentTabs.filter((t) => t.id !== tabId)
+    );
 
     if (this.selectedTab()?.id === tabId) {
       const newSelectedTabId =
@@ -330,22 +303,6 @@ export default class TabsListComponent implements OnInit {
       this.ephemeralTabStartIndex.set(ephemeralIndex - 1);
     }
 
-    this.updateTabs(currentTabs);
-  }
-
-  private updateTabs(tabs: Tab[]) {
-    this.workspaces.update((workspaces) => {
-      const currentWorkspace = this.currentWorkspace();
-      if (!currentWorkspace) return workspaces;
-
-      const updatedWorkspace: Workspace = {
-        ...currentWorkspace,
-        tabs: tabs,
-      };
-
-      return workspaces.map((w) =>
-        w.id === currentWorkspace.id ? updatedWorkspace : w
-      );
-    });
+    this.tabs.set(currentTabs);
   }
 }

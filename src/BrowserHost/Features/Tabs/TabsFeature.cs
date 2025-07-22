@@ -38,11 +38,10 @@ public class TabsFeature(MainWindow window) : Feature(window)
                 Window.SetCurrentTab(null);
             e.Tab.Dispose();
         });
-
         PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
         {
-            var workspaceature = Window.GetFeature<WorkspacesFeature>();
-            var workspace = workspaceature.GetWorkspaceById(e.WorkspaceId);
+            var workspaceFeature = Window.GetFeature<WorkspacesFeature>();
+            var workspace = workspaceFeature.GetWorkspaceById(e.WorkspaceId);
 
             if (!_tabBrowsersByWorkspace.ContainsKey(e.WorkspaceId))
                 _tabBrowsersByWorkspace[e.WorkspaceId] = [.. workspace.Tabs.Select(t => AddExistingTab(t.TabId, t.Address, t.IsActive, t.Title, t.Favicon))];
@@ -50,6 +49,11 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
             var activeTabId = workspace.Tabs.FirstOrDefault(t => t.IsActive)?.TabId;
             var activeTabBrowser = _tabBrowsersByWorkspace[e.WorkspaceId].FirstOrDefault(t => t.Id == activeTabId);
+            Window.ActionContext.SetTabs(
+                [.. _tabBrowsersByWorkspace[e.WorkspaceId].Select(t => new TabDto(t.Id, t.Title, t.Favicon, DateTimeOffset.Now))],
+                activeTabId,
+                workspace.EphemeralTabStartIndex
+            );
             Window.SetCurrentTab(activeTabBrowser);
         });
     }
