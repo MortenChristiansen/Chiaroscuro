@@ -15,6 +15,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Velopack;
 using Velopack.Sources;
 
@@ -28,6 +30,16 @@ public partial class MainWindow : Window
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
 
     public static MainWindow Instance { get; private set; } = null!; // Initialized in constructor
+
+    public static readonly DependencyProperty WorkspaceColorProperty = DependencyProperty.Register(
+        nameof(WorkspaceColor), typeof(Color), typeof(MainWindow),
+        new PropertyMetadata(Color.FromArgb(0, 0, 0, 0), OnWorkspaceColorChanged));
+
+    public Color WorkspaceColor
+    {
+        get => (Color)GetValue(WorkspaceColorProperty);
+        set => SetValue(WorkspaceColorProperty, value);
+    }
 
     public MainWindow()
     {
@@ -168,5 +180,26 @@ public partial class MainWindow : Window
     private void Tab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         ChromeUI.ChangeAddress($"{e.NewValue}");
+    }
+
+    private static void OnWorkspaceColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var window = (MainWindow)d;
+        var newColor = (Color)e.NewValue;
+        var border = window.WindowBorder;
+        if (border.Background is SolidColorBrush brush)
+        {
+            var animation = new ColorAnimation
+            {
+                To = newColor,
+                Duration = TimeSpan.FromSeconds(1),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
+            };
+            brush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
+        }
+        else
+        {
+            border.Background = new SolidColorBrush(newColor);
+        }
     }
 }

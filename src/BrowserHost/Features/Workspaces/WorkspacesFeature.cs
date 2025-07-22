@@ -3,6 +3,7 @@ using BrowserHost.Utilities;
 using System;
 using System.Linq;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace BrowserHost.Features.Workspaces;
 
@@ -36,6 +37,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         {
             _currentWorkspace = GetWorkspaceById(e.WorkspaceId);
             Window.ActionContext.WorkspaceActivated(e.WorkspaceId);
+            Window.WorkspaceColor = GetCurrentWorkspaceColor();
         });
         PubSub.Subscribe<WorkspaceCreatedEvent>(e =>
         {
@@ -62,7 +64,10 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 Icon = e.Icon
             };
             if (e.WorkspaceId == _currentWorkspace.WorkspaceId)
+            {
                 _currentWorkspace = workspace;
+                Window.WorkspaceColor = GetCurrentWorkspaceColor();
+            }
 
             _workspaces = WorkspaceStateManager.UpdateWorkspace(workspace);
             NotifyFrontendOfUpdatedWorkspaces();
@@ -79,6 +84,15 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[0].WorkspaceId));
         });
     }
+
+    public override void Start()
+    {
+        Window.WorkspaceColor = GetCurrentWorkspaceColor();
+        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspace.WorkspaceId));
+    }
+
+    private Color GetCurrentWorkspaceColor() =>
+        (Color)ColorConverter.ConvertFromString(_currentWorkspace.Color);
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
@@ -108,11 +122,6 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     private void NotifyFrontendOfUpdatedWorkspaces()
     {
         Window.ActionContext.WorkspacesChanged([.. _workspaces.Select(ws => new WorkspaceDescriptionDto(ws.WorkspaceId, ws.Name, ws.Color, ws.Icon))]);
-    }
-
-    public override void Start()
-    {
-        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspace.WorkspaceId));
     }
 
     private void RestoreWorkspaces()
