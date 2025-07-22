@@ -15,11 +15,24 @@ interface WorkspaceFormData {
     <div
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     >
-      <div class="bg-gray-800 rounded-lg p-6 w-96 max-w-full mx-4">
-        <h2 class="text-xl font-semibold text-white mb-4">
-          {{ isEdit() ? 'Edit Workspace' : 'Create New Workspace' }}
-        </h2>
-
+      <div class="bg-gray-800 rounded-lg p-6 w-96 max-w-full mx-4 relative">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-white">
+            {{ isEdit() ? 'Edit Workspace' : 'Create New Workspace' }}
+          </h2>
+          <div *ngIf="isEdit()">
+            <a
+              href="#"
+              (click)="onDelete(); $event.preventDefault()"
+              [class.opacity-50]="!canDelete()"
+              [attr.aria-disabled]="!canDelete()"
+              class="text-red-400 hover:text-red-600 font-medium underline cursor-pointer transition-opacity duration-150"
+              [style.pointer-events]="canDelete() ? 'auto' : 'none'"
+            >
+              Delete
+            </a>
+          </div>
+        </div>
         <form (ngSubmit)="onSubmit()" #form="ngForm">
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-300 mb-2">
@@ -39,7 +52,7 @@ interface WorkspaceFormData {
               Icon
             </label>
             <div
-              class="grid grid-cols-8 gap-2 max-h-32 overflow-y-auto overflow-x-hidden border border-gray-600 rounded-md p-2 bg-gray-700"
+              class="grid grid-cols-4 xxs:grid-cols-6 xs:grid-cols-8 gap-2 max-h-32 overflow-y-auto overflow-x-hidden border border-gray-600 rounded-md p-2 bg-gray-700"
             >
               @for (icon of availableIcons; track icon) {
               <button
@@ -58,7 +71,7 @@ interface WorkspaceFormData {
             <label class="block text-sm font-medium text-gray-300 mb-2">
               Background Color
             </label>
-            <div class="grid grid-cols-8 gap-2">
+            <div class="grid grid-cols-4 xxs:grid-cols-6 xs:grid-cols-8 gap-2">
               @for (color of availableColors; track color) {
               <button
                 type="button"
@@ -71,35 +84,21 @@ interface WorkspaceFormData {
               }
             </div>
           </div>
-          <div class="flex justify-between">
-            <div>
-              @if (isEdit()) {
-              <button
-                [disabled]="!canDelete()"
-                type="button"
-                (click)="onDelete()"
-                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
-              >
-                Delete
-              </button>
-              }
-            </div>
-            <div class="space-x-2">
-              <button
-                type="button"
-                (click)="onCancel()"
-                class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                [disabled]="!form.valid"
-                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ isEdit() ? 'Update' : 'Create' }}
-              </button>
-            </div>
+          <div class="flex justify-end space-x-2 mt-6">
+            <button
+              type="button"
+              (click)="onCancel()"
+              class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              [disabled]="!form.valid"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ isEdit() ? 'Update' : 'Create' }}
+            </button>
           </div>
         </form>
       </div>
