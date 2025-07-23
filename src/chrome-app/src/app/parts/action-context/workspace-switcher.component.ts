@@ -140,7 +140,7 @@ export default class WorkspaceSwitcherComponent implements OnInit {
 
   openCreateDialog() {
     this.isEditMode.set(false);
-    this.editorData.set({ name: '', icon: '🌐', color: '#2563eb' });
+    this.editorData.set(WorkspaceEditorComponent.defaultValues);
     this.showEditor.set(true);
   }
 

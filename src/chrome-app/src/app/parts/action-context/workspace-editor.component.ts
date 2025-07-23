@@ -108,12 +108,16 @@ interface WorkspaceFormData {
   styles: ``,
 })
 export default class WorkspaceEditorComponent {
-  isEdit = input(false);
-  workspaceData = input<WorkspaceFormData>({
+  public static readonly defaultValues: WorkspaceFormData = {
     name: '',
     icon: '🌐',
-    color: '#2563eb',
-  });
+    color: workspaceColors[0],
+  };
+
+  isEdit = input(false);
+  workspaceData = input<WorkspaceFormData>(
+    WorkspaceEditorComponent.defaultValues
+  );
   canDelete = input<boolean>(true);
   save = output<WorkspaceFormData>();
   delete = output<void>();
