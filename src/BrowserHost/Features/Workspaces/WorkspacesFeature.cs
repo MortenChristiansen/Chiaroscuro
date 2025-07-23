@@ -52,7 +52,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             _workspaces = WorkspaceStateManager.CreateWorkspace(newWorkspace);
             NotifyFrontendOfUpdatedWorkspaces();
 
-            PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspace.WorkspaceId));
+            PubSub.Publish(new WorkspaceActivatedEvent(newWorkspace.WorkspaceId));
         });
         PubSub.Subscribe<WorkspaceUpdatedEvent>(e =>
         {
