@@ -1,8 +1,10 @@
-﻿using EmbedIO;
+﻿#if !DEBUG
+using EmbedIO;
 using EmbedIO.Files;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+#endif
 
 namespace BrowserHost;
 
@@ -43,7 +45,7 @@ static class ContentServer
         )
         .WithStaticFolder("/", chromeAppRoot, true, m => m.WithContentCaching())
         .WithStaticFolder("/action-dialog", chromeAppActionDialog, true, m => m.WithContentCaching())
-        .WithStaticFolder("/tabs", tabs, true, m => m.WithContentCaching())
+        .WithStaticFolder("/action-context", tabs, true, m => m.WithContentCaching())
         ;
     }
 #endif

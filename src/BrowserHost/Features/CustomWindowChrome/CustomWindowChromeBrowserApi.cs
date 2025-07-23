@@ -1,14 +1,15 @@
 ﻿using BrowserHost.CefInfrastructure;
-using CefSharp;
 using BrowserHost.Utilities;
+using CefSharp;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
 public record WindowMinimizedEvent();
 public record WindowStateToggledEvent();
 public record AddressCopyRequestedEvent();
+public record TabLoadingStateChangedEvent(string TabId, bool IsLoading);
 
-public class CustomWindowChromeBrowserApi(CustomWindowChromeBrowser browser) : BrowserApi(browser)
+public class CustomWindowChromeBrowserApi : BrowserApi
 {
     public bool CanGoForward() =>
         MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.CanGoForward ?? false);
@@ -36,4 +37,7 @@ public class CustomWindowChromeBrowserApi(CustomWindowChromeBrowser browser) : B
 
     public void CopyAddress() =>
         PubSub.Publish(new AddressCopyRequestedEvent());
+
+    public bool IsLoading() =>
+        MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.IsLoading ?? false);
 }

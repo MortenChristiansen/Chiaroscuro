@@ -2,7 +2,11 @@ using BrowserHost.Features;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
+using BrowserHost.Features.DragDrop;
+using BrowserHost.Features.FileDownloads;
 using BrowserHost.Features.Tabs;
+using BrowserHost.Features.Workspaces;
+using BrowserHost.Features.Zoom;
 using CefSharp;
 using CefSharp.Wpf;
 using System;
@@ -11,6 +15,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Velopack;
 using Velopack.Sources;
 
@@ -25,6 +31,16 @@ public partial class MainWindow : Window
 
     public static MainWindow Instance { get; private set; } = null!; // Initialized in constructor
 
+    public static readonly DependencyProperty WorkspaceColorProperty = DependencyProperty.Register(
+        nameof(WorkspaceColor), typeof(Color), typeof(MainWindow),
+        new PropertyMetadata(Color.FromArgb(0, 0, 0, 0), OnWorkspaceColorChanged));
+
+    public Color WorkspaceColor
+    {
+        get => (Color)GetValue(WorkspaceColorProperty);
+        set => SetValue(WorkspaceColorProperty, value);
+    }
+
     public MainWindow()
     {
         InitializeComponent();
@@ -36,12 +52,22 @@ public partial class MainWindow : Window
             new CustomWindowChromeFeature(this),
             new ActionDialogFeature(this),
             new TabsFeature(this),
-            new DevToolFeature(this)
+            new DevToolFeature(this),
+            new FileDownloadsFeature(this),
+            new ZoomFeature(this),
+            new DragDropFeature(this),
+            new WorkspacesFeature(this)
         ];
-        _features.ForEach(f => f.Register());
+        _features.ForEach(f => f.Configure());
 
         ContentServer.Run();
         Instance = this;
+    }
+
+    protected override void OnContentRendered(EventArgs e)
+    {
+        _features.ForEach(f => f.Start());
+        base.OnContentRendered(e);
     }
 
     public TFeature GetFeature<TFeature>() where TFeature : Feature
@@ -95,11 +121,48 @@ public partial class MainWindow : Window
             }
         }
 
+        // Too small to be handled by features, handle here
         if (e.Key == Key.F5)
         {
-            var ignoreCache = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
+            var ignoreCache = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
             CurrentTab.Reload(ignoreCache);
         }
+    }
+
+    protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
+    {
+        base.OnPreviewMouseWheel(e);
+
+        foreach (var feature in _features)
+        {
+            if (feature.HandleOnPreviewMouseWheel(e))
+            {
+                e.Handled = true;
+                return;
+            }
+        }
+    }
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        var downloadsFeature = GetFeature<FileDownloadsFeature>();
+        if (downloadsFeature.HasActiveDownloads())
+        {
+            var result = MessageBox.Show(
+                this,
+                "There are active downloads. Are you sure you want to exit? All downloads will be cancelled.",
+                "Active Downloads",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning
+            );
+            if (result != MessageBoxResult.Yes)
+            {
+                e.Cancel = true;
+                return;
+            }
+            downloadsFeature.CancelAllActiveDownloads();
+        }
+        base.OnClosing(e);
     }
 
     public void SetCurrentTab(TabBrowser? tab)
@@ -117,5 +180,26 @@ public partial class MainWindow : Window
     private void Tab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         ChromeUI.ChangeAddress($"{e.NewValue}");
+    }
+
+    private static void OnWorkspaceColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var window = (MainWindow)d;
+        var newColor = (Color)e.NewValue;
+        var border = window.WindowBorder;
+        if (border.Background is SolidColorBrush brush)
+        {
+            var animation = new ColorAnimation
+            {
+                To = newColor,
+                Duration = TimeSpan.FromSeconds(1),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
+            };
+            brush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
+        }
+        else
+        {
+            border.Background = new SolidColorBrush(newColor);
+        }
     }
 }

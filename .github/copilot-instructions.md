@@ -15,9 +15,20 @@ and uses Angular for the window chrome parts of the UI.
 - `src/BrowserHost/`: Source code for the .NET application.
 - `src/chrome-app/`: Source code for the Angular application.
 
+## General Coding Guidelines
+- Avoid adding code that is not currently being used.
+
 ## Angular Guidelines
-1. Use new newest Angular features and syntax.
-2. Make sure there are no type errors in the code.
+- Use new newest Angular features and syntax.
+  - Never use `*ngFor` or `*ngIf` (instead use `@for` and `@if`).
+  - Never use `@Input` or `@Output` (instead use `input` and `output` signal based functions).
+- Make sure there are no type errors in the code.
+- Components are standalone by default.
 
 ## C# Features
-1. Use new language features where applicable.
+- Use new language features where applicable.
+
+## General PR Review Guidelines
+- When suggesting code changes, you MUST include the entire change. For example, if you
+are suggesting extracting code to a method, you must include the new method, not just update the call
+site as if the method exists.

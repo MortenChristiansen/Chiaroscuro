@@ -7,7 +7,7 @@ namespace BrowserHost.Features.DevTool;
 
 public class DevToolFeature(MainWindow window) : Feature(window)
 {
-    public override void Register()
+    public override void Configure()
     {
         PubSub.Subscribe<TabClosedEvent>(e => CloseDevTools(e.Tab));
         PubSub.Subscribe<TabActivatedEvent>(e => CloseDevTools(e.CurrentTab));

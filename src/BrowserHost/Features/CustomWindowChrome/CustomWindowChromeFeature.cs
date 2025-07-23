@@ -1,4 +1,5 @@
-﻿using BrowserHost.Utilities;
+﻿using BrowserHost.Features.Tabs;
+using BrowserHost.Utilities;
 using CefSharp;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -8,9 +9,9 @@ using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
-public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindowChromeBrowserApi>(window, window.ChromeUI.Api)
+public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
 {
-    public override void Register()
+    public override void Configure()
     {
         Window.WindowStyle = WindowStyle.None;
         Window.AllowsTransparency = true;
@@ -33,6 +34,8 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindow
             if (!string.IsNullOrEmpty(address))
                 Clipboard.SetText(address);
         });
+        PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
+        PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -83,6 +86,18 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindow
             HandleDragToDetachFromMaximizedState(e);
     }
 
+    private void OnTabLoadingStateChanged(TabLoadingStateChangedEvent e)
+    {
+        if (Window.CurrentTab?.Id == e.TabId)
+            Window.ChromeUI.UpdateLoadingState(e.IsLoading);
+    }
+
+    private void OnTabActivated(TabActivatedEvent e)
+    {
+        var isLoading = e.CurrentTab?.IsLoading ?? false;
+        Window.ChromeUI.UpdateLoadingState(isLoading);
+    }
+
     #region Minimize/Maximize
 
     private void ToggleMaximizedState()
@@ -95,17 +110,31 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature<CustomWindow
         Window.WindowState = WindowState.Minimized;
     }
 
+    private double _lastX = 0;
+    private double _lastY = 0;
+
     private void AdjustWindowBorder()
     {
         if (Window.WindowState == WindowState.Maximized)
         {
+            _lastX = Window.Left;
+            _lastY = Window.Top;
+
             var wa = SystemParameters.WorkArea;
-            var bottomMargin = Window.Height - wa.Height - 10;
-            Window.WindowBorder.Margin = new Thickness(0, 0, 0, bottomMargin);
+            // Set the window's max size to the work area to prevent overlaying the taskbar
+            Window.MaxWidth = wa.Width + 11;
+            Window.MaxHeight = wa.Height + 11;
+            Window.Left = wa.Left + 1;
+            Window.Top = wa.Top + 1;
         }
         else if (Window.WindowState == WindowState.Normal)
         {
-            Window.WindowBorder.Margin = new Thickness(0);
+            Window.MaxWidth = double.PositiveInfinity;
+            Window.MaxHeight = double.PositiveInfinity;
+
+            // Restore the last position when switching back to normal state
+            Window.Left = _lastX;
+            Window.Top = _lastY;
         }
     }
 

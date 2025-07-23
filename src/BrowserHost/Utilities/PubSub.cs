@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 
 namespace BrowserHost.Utilities;
@@ -40,7 +41,7 @@ public static class PubSub
                         {
                             typedAction(message);
                         }
-                        catch (Exception ex)
+                        catch (Exception ex) when (!Debugger.IsAttached)
                         {
                             Console.WriteLine($"Error in subscriber action: {ex.Message}");
                         }

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:BrowserHost.Converter"
         xmlns:ad="clr-namespace:BrowserHost.Features.ActionDialog"
-        xmlns:tabs="clr-namespace:BrowserHost.Features.Tabs"
+        xmlns:ac="clr-namespace:BrowserHost.Features.ActionContext"
         xmlns:chrome="clr-namespace:BrowserHost.Features.CustomWindowChrome"
         Background="Transparent"
         UseLayoutRounding="True"
@@ -12,7 +12,10 @@
         <conv:BorderClipConverter x:Key="BorderClipConverter" />
     </Window.Resources>
     <Border x:Name="ResizeBorder"  CornerRadius="8" Background="#01000000" SnapsToDevicePixels="True" Padding="4">
-        <Border x:Name="WindowBorder" CornerRadius="8" Background="#202634" BorderThickness="1" BorderBrush="#404654" Padding="8,0,8,8">
+        <Border x:Name="WindowBorder" CornerRadius="8" BorderThickness="1" BorderBrush="#404654" Padding="8,0,8,8">
+            <Border.Background>
+                <SolidColorBrush Color="{Binding WorkspaceColor, RelativeSource={RelativeSource AncestorType=Window}}" />
+            </Border.Background>
             <Grid x:Name="RootGrid">
                 <Grid.OpacityMask>
                     <VisualBrush Visual="{Binding ElementName=WebContentBorder}" />
@@ -24,7 +27,7 @@
                         <ColumnDefinition Width="5" />
                         <ColumnDefinition Width="*" MinWidth="200" />
                     </Grid.ColumnDefinitions>
-                    <tabs:TabListBrowser x:Name="Tabs" Grid.Column="0" />
+                    <ac:ActionContextBrowser x:Name="ActionContext" Grid.Column="0" />
                     <GridSplitter
                         Grid.Column="1"
                         Width="5"

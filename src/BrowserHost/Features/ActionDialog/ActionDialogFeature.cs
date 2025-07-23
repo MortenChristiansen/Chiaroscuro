@@ -1,8 +1,8 @@
 using BrowserHost.Features.Tabs;
 using BrowserHost.Utilities;
-using CefSharp;
 using System;
 using System.Linq;
+using System.Net;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -10,36 +10,64 @@ using System.Windows.Media.Animation;
 
 namespace BrowserHost.Features.ActionDialog;
 
-public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowserApi>(window, window.ActionDialog.Api)
+public record SearchProvider(string Name, string Key, string Pattern);
+public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory);
+
+public class ActionDialogFeature(MainWindow window) : Feature(window)
 {
-    public override void Register()
+    public override void Configure()
     {
         PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
-        PubSub.Subscribe<NavigationStartedEvent>(HandleNavigationStarted);
+        PubSub.Subscribe<CommandExecutedEvent>(HandleCommandExecuted);
         PubSub.Subscribe<ActionDialogValueChangedEvent>(HandleValueChanged);
-        PubSub.Subscribe<TabsChangedEvent>(HandleTabsChanged);
+        PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => HandlePageHistoryChange(e.TabId));
+        PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => HandlePageHistoryChange(e.TabId));
     }
 
-    private void HandleNavigationStarted(NavigationStartedEvent e)
-    {
-        // For now, save the address with basic info
-        // The title and favicon will be updated when the page loads
-        NavigationHistoryStateManager.SaveNavigationEntry(e.Address, null, null);
-    }
+    private static readonly SearchProvider[] _searchProviders =
+    [
+        new SearchProvider("Google", "g", "https://www.google.com/search?q={0}"),
+        new SearchProvider("GitHub", "gh", "https://github.com/search?q={0}"),
+        new SearchProvider("ChatGPT", "ai", "https://chat.openai.com/?q={0}"),
+        new SearchProvider("YouTube", "y", "https://www.youtube.com/results?search_query={0}"),
+    ];
 
-    private void HandleTabsChanged(TabsChangedEvent e)
+    private void HandleCommandExecuted(CommandExecutedEvent e)
     {
-        // Update navigation history with current tab information
-        var currentTab = e.Tabs.FirstOrDefault(t => t.IsActive);
-        if (currentTab != null)
+        if (e.Command.StartsWith('!'))
         {
-            var tabFeature = Window.GetFeature<TabsFeature>();
-            var tabBrowser = tabFeature.GetTabById(currentTab.Id);
-            if (tabBrowser != null && !string.IsNullOrEmpty(tabBrowser.ManualAddress))
-            {
-                NavigationHistoryStateManager.SaveNavigationEntry(tabBrowser.ManualAddress, currentTab.Title, currentTab.Favicon);
-            }
+            HandleSearchProviderCommand(e);
+            return;
         }
+
+        PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
+    }
+
+    private static void HandleSearchProviderCommand(CommandExecutedEvent e)
+    {
+        var pair = e.Command.Substring(1).Split(' ', 2);
+        if (pair.Length < 2)
+            return;
+
+        var key = pair[0];
+        var query = pair[1];
+
+        var provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+        if (provider == null)
+            return;
+
+        var urlEncodedQuery = WebUtility.UrlEncode(query);
+        var url = string.Format(provider.Pattern, urlEncodedQuery);
+        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
+    }
+
+    private void HandlePageHistoryChange(string tabId)
+    {
+        var currentTab = Window.CurrentTab;
+        if (currentTab == null || currentTab.Id != tabId || string.IsNullOrEmpty(currentTab.ManualAddress))
+            return;
+
+        NavigationHistoryStateManager.SaveNavigationEntry(currentTab.ManualAddress, currentTab.Title, currentTab.Favicon);
     }
 
     private void HandleValueChanged(ActionDialogValueChangedEvent e)
@@ -53,7 +81,7 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.T && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        if (e.Key == Key.T && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             ShowDialog();
             return true;
@@ -75,7 +103,7 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
         Window.ActionDialog.Opacity = 0;
         Window.ActionDialog.Visibility = Visibility.Visible;
         Window.ActionDialog.Focus();
-        Window.ActionDialog.ExecuteScriptAsync("window.angularApi.showDialog()");
+        Window.ActionDialog.CallClientApi("showDialog");
 
         if (Window.ActionDialog.RenderTransform is not ScaleTransform)
         {

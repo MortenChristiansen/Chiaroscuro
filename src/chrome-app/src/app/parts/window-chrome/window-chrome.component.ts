@@ -2,10 +2,11 @@ import { Component, OnInit, signal } from '@angular/core';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { WindowsChromeApi } from './windowChromeApi';
 import { IconButtonComponent } from '../../shared/icon-button.component';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'window-chrome',
-  imports: [IconButtonComponent],
+  imports: [IconButtonComponent, CommonModule],
   template: `
     <div class="flex items-center gap-4 align-middle px-2 py-1 select-none">
       <div class="address-bar flex flex-1 items-center gap-1 justify-center">
@@ -91,6 +92,11 @@ import { IconButtonComponent } from '../../shared/icon-button.component';
           <span>{{ url }}</span>
           }
         </span>
+        <div
+          class="loading-indicator w-2 h-2 rounded-full bg-gray-400 mr-2 transition-opacity duration-200"
+          aria-label="Loading page"
+          [ngClass]="isLoading() ? 'opacity-100' : 'opacity-0'"
+        ></div>
       </div>
       <div class="window-controls flex gap-1 ml-auto">
         <icon-button (onClick)="min()">
@@ -150,14 +156,17 @@ export default class WindowChromeComponent implements OnInit {
         this.address.set(url);
         this.canGoBack.set(await this.api.canGoBack());
         this.canGoForward.set(await this.api.canGoForward());
+        this.isLoading.set(await this.api.isLoading());
+      },
+      updateLoadingState: (isLoading: boolean) => {
+        this.isLoading.set(isLoading);
       },
     });
-
-    await this.api.uiLoaded();
   }
   canGoBack = signal(false);
   canGoForward = signal(false);
   address = signal<string | null>(null);
+  isLoading = signal(false);
 
   api!: WindowsChromeApi;
 

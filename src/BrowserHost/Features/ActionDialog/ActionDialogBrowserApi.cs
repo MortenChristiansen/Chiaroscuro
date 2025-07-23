@@ -4,13 +4,13 @@ using BrowserHost.Utilities;
 namespace BrowserHost.Features.ActionDialog;
 
 public record ActionDialogDismissedEvent();
-public record NavigationStartedEvent(string Address, bool UseCurrentTab);
+public record CommandExecutedEvent(string Command, bool Ctrl);
 public record ActionDialogValueChangedEvent(string Value);
 
-public class ActionDialogBrowserApi(ActionDialogBrowser browser) : BrowserApi(browser)
+public class ActionDialogBrowserApi : BrowserApi
 {
-    public void Navigate(string url, bool useCurrentTab) =>
-        PubSub.Publish(new NavigationStartedEvent(url, useCurrentTab));
+    public void Execute(string command, bool ctrl) =>
+        PubSub.Publish(new CommandExecutedEvent(command, ctrl));
 
     public void DismissActionDialog() =>
         PubSub.Publish(new ActionDialogDismissedEvent());

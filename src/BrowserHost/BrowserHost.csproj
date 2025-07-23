@@ -14,7 +14,7 @@
     <TargetFrameworks>net9.0-windows</TargetFrameworks>
     <UseWPF>true</UseWPF>
 	  <RootNamespace>BrowserHost</RootNamespace>
-	  <ApplicationIcon>chromium-256.ico</ApplicationIcon>
+	  <ApplicationIcon>logo.ico</ApplicationIcon>
 	  <ApplicationManifest>app.manifest</ApplicationManifest>
 	  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 	  <Platforms>x64</Platforms>
@@ -64,7 +64,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CefSharp.Wpf.NetCore" Version="137.0.100" />
+    <PackageReference Include="CefSharp.Wpf.NetCore" Version="138.0.170" />
     <PackageReference Include="EmbedIO" Version="3.5.2" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
