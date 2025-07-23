@@ -53,7 +53,7 @@ interface WorkspaceFormData {
               Icon
             </label>
             <div
-              class="grid grid-cols-4 xxs:grid-cols-6 xs:grid-cols-8 gap-2 max-h-32 overflow-y-auto overflow-x-hidden border border-gray-600 rounded-md p-2 bg-gray-700"
+              class="grid grid-cols-4 xxs:grid-cols-6 xs:grid-cols-8 gap-1 max-h-32 overflow-y-auto overflow-x-hidden border border-gray-600 rounded-md p-1 bg-gray-700"
             >
               @for (icon of availableIcons; track icon) {
               <button
@@ -72,7 +72,7 @@ interface WorkspaceFormData {
             <label class="block text-sm font-medium text-gray-300 mb-2">
               Background Color
             </label>
-            <div class="grid grid-cols-4 xxs:grid-cols-6 xs:grid-cols-8 gap-2">
+            <div class="grid grid-cols-4 xxs:grid-cols-6 xs:grid-cols-8 gap-1">
               @for (color of availableColors; track color) {
               <button
                 type="button"
