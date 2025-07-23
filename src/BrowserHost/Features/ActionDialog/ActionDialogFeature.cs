@@ -28,12 +28,13 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
     [
         new SearchProvider("Google", "g", "https://www.google.com/search?q={0}"),
         new SearchProvider("GitHub", "gh", "https://github.com/search?q={0}"),
-        new SearchProvider("ChatGPT", "gpt", "https://chat.openai.com/?q={0}"),
+        new SearchProvider("ChatGPT", "ai", "https://chat.openai.com/?q={0}"),
+        new SearchProvider("YouTube", "y", "https://www.youtube.com/results?search_query={0}"),
     ];
 
     private void HandleCommandExecuted(CommandExecutedEvent e)
     {
-        if (e.Command.StartsWith("!"))
+        if (e.Command.StartsWith('!'))
         {
             HandleSearchProviderCommand(e);
             return;
