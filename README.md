@@ -20,3 +20,12 @@ In action dialog:
 
 - **Enter**: Navigate to page in new tab.
 - **Ctrl-Enter**: Navigate to page in current tab.
+
+## Search Providers
+
+You can search via a number of providers from the action dialog:
+
+- Google: `!g <query>`
+- GitHub: `!gh <query>`
+- ChatGPT: `!ai <query>`
+- YouTube: `!y <query>`
