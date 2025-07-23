@@ -1,7 +1,11 @@
 ﻿using BrowserHost.Features.ActionContext;
 using BrowserHost.Utilities;
+using System;
 
 namespace BrowserHost.Features.Tabs;
+
+public record TabDto(string Id, string? Title, string? Favicon, DateTimeOffset Created);
+
 public static class ActionContextBrowserExtensions
 {
     public static void AddTab(this ActionContextBrowser browser, TabDto tab, bool activate = true)

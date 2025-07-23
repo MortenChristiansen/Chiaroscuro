@@ -9,15 +9,7 @@ import {
 import { debounce } from '../../shared/utils';
 import { FaviconComponent } from '../../shared/favicon.component';
 import { CommonModule } from '@angular/common';
-
-export type TabId = string;
-
-interface Tab {
-  id: TabId;
-  title: string | null;
-  favicon: string | null;
-  created: Date;
-}
+import { Tab, TabId } from './server-models';
 
 @Component({
   selector: 'tabs-list',
@@ -287,16 +279,16 @@ export default class TabsListComponent implements OnInit {
   toggleBookmark(tabId: TabId) {
     const currentTabs = [...this.tabs()];
     const ephemeralIndex = this.ephemeralTabStartIndex();
-    const tabIndex = currentTabs.findIndex(t => t.id === tabId);
-    
+    const tabIndex = currentTabs.findIndex((t) => t.id === tabId);
+
     if (tabIndex === -1) return; // Tab not found
-    
+
     const tab = currentTabs[tabIndex];
     const isCurrentlyEphemeral = tabIndex >= ephemeralIndex;
-    
+
     // Remove tab from current position
     currentTabs.splice(tabIndex, 1);
-    
+
     if (isCurrentlyEphemeral) {
       // Moving from ephemeral to persistent (bookmark the tab)
       // Insert at the end of persistent tabs (which is now at ephemeralIndex after removal)
@@ -310,7 +302,7 @@ export default class TabsListComponent implements OnInit {
       // Update ephemeralIndex to account for one less persistent tab
       this.ephemeralTabStartIndex.set(ephemeralIndex - 1);
     }
-    
+
     this.tabs.set(currentTabs);
   }
 }

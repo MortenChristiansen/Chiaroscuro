@@ -8,14 +8,13 @@ using System.Threading.Tasks;
 
 namespace BrowserHost.Features.FileDownloads;
 
-public class FileDownloadsFeature(MainWindow window) : Feature<FileDownloadsBrowserApi>(window, window.ActionContext.FileDownloadsApi)
+public class FileDownloadsFeature(MainWindow window) : Feature(window)
 {
     private readonly ConcurrentDictionary<int, DownloadInfo> _activeDownloads = new();
     private Timer? _progressTimer;
 
-    public override void Register()
+    public override void Configure()
     {
-
         PubSub.Subscribe<DownloadCancelledEvent>(HandleFileDownloadCancelled);
     }
 

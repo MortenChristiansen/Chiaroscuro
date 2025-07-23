@@ -20,6 +20,8 @@ and uses Angular for the window chrome parts of the UI.
 
 ## Angular Guidelines
 - Use new newest Angular features and syntax.
+  - Never use `*ngFor` or `*ngIf` (instead use `@for` and `@if`).
+  - Never use `@Input` or `@Output` (instead use `input` and `output` signal based functions).
 - Make sure there are no type errors in the code.
 - Components are standalone by default.
 

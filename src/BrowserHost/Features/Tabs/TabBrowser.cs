@@ -16,12 +16,13 @@ public class TabBrowser : Browser
 {
     private readonly ActionContextBrowser _actionContextBrowser;
 
-    public string Id { get; } = $"{Guid.NewGuid()}";
+    public string Id { get; }
     public string? Favicon { get; private set; }
     public string? ManualAddress { get; private set; }
 
-    public TabBrowser(string address, ActionContextBrowser actionContextBrowser, bool setManualAddress)
+    public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress)
     {
+        Id = id;
         SetAddress(address, setManualAddress);
 
         TitleChanged += OnTitleChanged;

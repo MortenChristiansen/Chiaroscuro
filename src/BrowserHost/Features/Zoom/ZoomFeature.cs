@@ -5,13 +5,9 @@ namespace BrowserHost.Features.Zoom;
 
 public class ZoomFeature(MainWindow window) : Feature(window)
 {
-    public override void Register()
-    {
-    }
-
     public override bool HandleOnPreviewMouseWheel(MouseWheelEventArgs e)
     {
-        if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             var currentZoomLevel = Window.CurrentTab?.GetZoomLevelAsync().GetAwaiter().GetResult() ?? 0;
 
@@ -32,7 +28,7 @@ public class ZoomFeature(MainWindow window) : Feature(window)
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Back && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        if (e.Key == Key.Back && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             if (Window.CurrentTab is not null)
             {

@@ -13,9 +13,9 @@ namespace BrowserHost.Features.ActionDialog;
 public record SearchProvider(string Name, string Key, string Pattern);
 public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory);
 
-public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowserApi>(window, window.ActionDialog.Api)
+public class ActionDialogFeature(MainWindow window) : Feature(window)
 {
-    public override void Register()
+    public override void Configure()
     {
         PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
         PubSub.Subscribe<CommandExecutedEvent>(HandleCommandExecuted);
@@ -80,7 +80,7 @@ public class ActionDialogFeature(MainWindow window) : Feature<ActionDialogBrowse
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.T && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        if (e.Key == Key.T && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             ShowDialog();
             return true;

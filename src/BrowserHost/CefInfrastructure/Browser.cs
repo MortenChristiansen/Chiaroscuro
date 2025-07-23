@@ -121,7 +121,7 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
             $$"""
                function tryRun_{{api}}() {
                  if (window.angularApi && window.angularApi.{{api}}) {
-                    window.angularApi.{{api}}({{arguments}});
+                    window.angularApi.{{api}}.call({{arguments}});
                  } else {
                    setTimeout(tryRun_{{api}}, 50);
                  }
