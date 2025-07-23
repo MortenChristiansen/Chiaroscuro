@@ -9,11 +9,11 @@ import { Workspace, WorkspaceDescription } from './server-models';
   selector: 'workspace-switcher',
   imports: [CommonModule, WorkspaceEditorComponent],
   template: `
-    <div class="flex items-center justify-center px-4 py-3 space-x-2">
+    <div class="flex items-center">
       <!-- Edit button -->
       <button
         (click)="openEditDialog()"
-        class="p-2 rounded-full hover:bg-white/10 transition-colors duration-200 text-gray-400 hover:text-white"
+        class="p-2 rounded-full hover:bg-white/10 transition-colors duration-200 text-gray-400 hover:text-white flex-shrink-0"
         title="Edit current workspace"
       >
         <svg
@@ -32,25 +32,33 @@ import { Workspace, WorkspaceDescription } from './server-models';
         </svg>
       </button>
       <!-- Workspace icons -->
-      <div class="flex items-center space-x-1">
-        @for (workspace of workspaces(); track workspace.id) {
-        <button
-          (click)="activateWorkspace(workspace.id)"
-          class="p-2 rounded-lg transition-all duration-200 text-lg {{
-            workspace.id === activeWorkspaceId()
-              ? 'bg-white/20 shadow-lg transform scale-110'
-              : 'hover:bg-white/10'
-          }}"
-          [title]="workspace.name"
+      <div class="flex-1 min-w-0 flex justify-center">
+        <div
+          class="flex flex-wrap items-center gap-x-1 gap-y-1 py-1 px-1 justify-center"
         >
-          {{ workspace.icon }}
-        </button>
-        }
+          @for (workspace of workspaces(); track workspace.id) {
+          <button
+            (click)="activateWorkspace(workspace.id)"
+            class="p-0.5 rounded-lg transition-all duration-200 text-md flex flex-col items-center justify-center {{
+              workspace.id === activeWorkspaceId()
+                ? 'opacity-100'
+                : 'opacity-70 hover:opacity-100'
+            }}"
+            [title]="workspace.name"
+            style="background: none; box-shadow: none;"
+          >
+            <span>{{ workspace.icon }}</span>
+            @if(workspace.id === activeWorkspaceId()) {
+            <span class="block w-6 h-0.5 mt-1 rounded bg-blue-500"></span>
+            }
+          </button>
+          }
+        </div>
       </div>
       <!-- Add workspace button -->
       <button
         (click)="openCreateDialog()"
-        class="p-2 rounded-full hover:bg-white/10 transition-colors duration-200 text-gray-400 hover:text-white"
+        class="p-2 rounded-full hover:bg-white/10 transition-colors duration-200 text-gray-400 hover:text-white flex-shrink-0"
         title="Create new workspace"
       >
         <svg
