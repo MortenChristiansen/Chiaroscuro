@@ -94,8 +94,110 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     private Color GetCurrentWorkspaceColor() =>
         (Color)ColorConverter.ConvertFromString(_currentWorkspace.Color);
 
+    private void ToggleCurrentTabFolder()
+    {
+        var tabsFeature = Window.GetFeature<TabsFeature>();
+        var currentTab = Window.CurrentTab;
+        if (currentTab == null) return;
+
+        // Only bookmarked (persistent) tabs can be grouped
+        var tabIndex = _currentWorkspace.Tabs.ToList().FindIndex(t => t.TabId == currentTab.Id);
+        if (tabIndex == -1 || tabIndex >= _currentWorkspace.EphemeralTabStartIndex) return;
+
+        // Check if tab is already in a folder
+        var existingFolder = _currentWorkspace.Folders.FirstOrDefault(f => 
+            tabIndex >= f.StartIndex && tabIndex <= f.EndIndex);
+
+        if (existingFolder != null)
+        {
+            // Remove tab from existing folder
+            RemoveTabFromFolder(currentTab.Id, existingFolder);
+        }
+        else
+        {
+            // Create new folder with this tab
+            CreateFolderWithTab(currentTab.Id);
+        }
+    }
+
+    private void RemoveTabFromFolder(string tabId, FolderDtoV1 folder)
+    {
+        var tabIndex = _currentWorkspace.Tabs.ToList().FindIndex(t => t.TabId == tabId);
+        if (tabIndex == -1) return;
+
+        var updatedFolders = _currentWorkspace.Folders.ToList();
+        
+        if (folder.EndIndex == folder.StartIndex)
+        {
+            // Only one tab in folder, remove the folder entirely
+            updatedFolders.Remove(folder);
+        }
+        else if (tabIndex == folder.StartIndex)
+        {
+            // Remove first tab, adjust folder start index
+            var updatedFolder = folder with { StartIndex = folder.StartIndex + 1 };
+            var folderIndex = updatedFolders.FindIndex(f => f.Id == folder.Id);
+            updatedFolders[folderIndex] = updatedFolder;
+        }
+        else if (tabIndex == folder.EndIndex)
+        {
+            // Remove last tab, adjust folder end index
+            var updatedFolder = folder with { EndIndex = folder.EndIndex - 1 };
+            var folderIndex = updatedFolders.FindIndex(f => f.Id == folder.Id);
+            updatedFolders[folderIndex] = updatedFolder;
+        }
+        else
+        {
+            // Remove tab from middle, split folder (for now, just remove from end to keep it simple)
+            var updatedFolder = folder with { EndIndex = tabIndex - 1 };
+            var folderIndex = updatedFolders.FindIndex(f => f.Id == folder.Id);
+            updatedFolders[folderIndex] = updatedFolder;
+        }
+
+        // Update workspace with new folders
+        SaveWorkspaceWithFolders(updatedFolders.ToArray());
+    }
+
+    private void CreateFolderWithTab(string tabId)
+    {
+        var tabIndex = _currentWorkspace.Tabs.ToList().FindIndex(t => t.TabId == tabId);
+        if (tabIndex == -1) return;
+
+        var newFolder = new FolderDtoV1(
+            $"{Guid.NewGuid()}",
+            "New Folder",
+            tabIndex,
+            tabIndex
+        );
+
+        var updatedFolders = _currentWorkspace.Folders.Append(newFolder).ToArray();
+        SaveWorkspaceWithFolders(updatedFolders);
+    }
+
+    private void SaveWorkspaceWithFolders(FolderDtoV1[] folders)
+    {
+        _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
+            _currentWorkspace.WorkspaceId,
+            _currentWorkspace.Tabs,
+            _currentWorkspace.EphemeralTabStartIndex,
+            folders
+        );
+        
+        // Update current workspace reference
+        _currentWorkspace = GetWorkspaceById(_currentWorkspace.WorkspaceId);
+        
+        // Notify frontend of changes
+        RestoreWorkspaces();
+    }
+
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
+        if (e.Key == Key.G && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            ToggleCurrentTabFolder();
+            return true;
+        }
+
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             var index = e.Key switch
@@ -134,7 +236,8 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 ws.Icon,
                 [..ws.Tabs.Select(t => new TabDto(t.TabId, t.Title, t.Favicon, t.Created))],
                 ws.EphemeralTabStartIndex,
-                ws.Tabs.FirstOrDefault(t => t.IsActive)?.TabId
+                ws.Tabs.FirstOrDefault(t => t.IsActive)?.TabId,
+                [..ws.Folders.Select(f => new FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
             ))]
         );
     }

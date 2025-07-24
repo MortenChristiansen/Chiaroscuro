@@ -10,25 +10,37 @@ using System.Threading;
 namespace BrowserHost.Features.Workspaces;
 
 public record WorkspacesDataDtoV1(WorkspaceDtoV1[] Workspaces);
-public record WorkspaceDtoV1(string WorkspaceId, string Name, string Color, string Icon, WorkspaceTabStateDtoV1[] Tabs, int EphemeralTabStartIndex);
+public record WorkspaceDtoV1(string WorkspaceId, string Name, string Color, string Icon, WorkspaceTabStateDtoV1[] Tabs, int EphemeralTabStartIndex)
+{
+    public FolderDtoV1[] Folders { get; init; } = [];
+}
 public record WorkspaceTabStateDtoV1(string TabId, string Address, string? Title, string? Favicon, bool IsActive, DateTimeOffset Created);
+public record FolderDtoV1(string Id, string Name, int StartIndex, int EndIndex);
 
 public static class WorkspaceStateManager
 {
     private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("workspaces.json");
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { 
+        WriteIndented = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never,
+        PropertyNameCaseInsensitive = true
+    };
     private const int _currentVersion = 1;
     private const int _ephemeralTabExpirationHours = 16;
     private static readonly WorkspaceDtoV1 _defaultWorkspace = new($"{Guid.NewGuid()}", "Browse", "#202634", "🌐", [], 0);
     private static WorkspacesDataDtoV1? _lastSavedWorkspaceData;
     private static readonly Lock _lock = new();
 
-    public static WorkspaceDtoV1[] SaveWorkspaceTabs(string workspaceId, IEnumerable<WorkspaceTabStateDtoV1> tabs, int ephemeralTabStartIndex)
+    public static WorkspaceDtoV1[] SaveWorkspaceTabs(string workspaceId, IEnumerable<WorkspaceTabStateDtoV1> tabs, int ephemeralTabStartIndex, FolderDtoV1[]? folders = null)
     {
         lock (_lock)
         {
             var workspace = _lastSavedWorkspaceData?.Workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId) ?? _defaultWorkspace;
-            var newTabsData = workspace with { Tabs = [.. tabs], EphemeralTabStartIndex = ephemeralTabStartIndex };
+            var newTabsData = workspace with { 
+                Tabs = [.. tabs], 
+                EphemeralTabStartIndex = ephemeralTabStartIndex, 
+                Folders = folders ?? workspace.Folders 
+            };
 
             SaveWorkspaceIfChanged(workspaceId, workspace, newTabsData);
         }
@@ -141,10 +153,17 @@ public static class WorkspaceStateManager
         if (data1.Name != data2.Name) return false;
         if (data1.Icon != data2.Icon) return false;
         if (data1.Color != data2.Color) return false;
+        if (data1.Folders.Length != data2.Folders.Length) return false;
 
         for (int i = 0; i < data1.Tabs.Length; i++)
         {
             if (!data1.Tabs[i].Equals(data2.Tabs[i]))
+                return false;
+        }
+
+        for (int i = 0; i < data1.Folders.Length; i++)
+        {
+            if (!data1.Folders[i].Equals(data2.Folders[i]))
                 return false;
         }
 
