@@ -186,6 +186,9 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
         var updatedFolders = _currentWorkspace.Folders.Append(newFolder).ToArray();
         SaveWorkspaceWithFolders(updatedFolders);
+        
+        // TODO: Notify frontend to open the newly created folder
+        // For now, folders will be closed by default as per the isOpen property in the frontend
     }
 
     private void SaveWorkspaceWithFolders(FolderDtoV1[] folders)

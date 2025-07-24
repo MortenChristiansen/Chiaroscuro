@@ -355,7 +355,23 @@ export default class TabsListComponent implements OnInit {
         folders?: Folder[]
       ) => {
         this.tabs.set(tabs);
-        this.folders.set(folders || []);
+        
+        // Update folders and auto-open any new folders
+        const currentFolderIds = new Set(this.folders().map(f => f.id));
+        const newFolders = folders || [];
+        const newFolderIds = newFolders
+          .filter(f => !currentFolderIds.has(f.id))
+          .map(f => f.id);
+        
+        this.folders.set(newFolders);
+        
+        // Auto-open newly created folders
+        if (newFolderIds.length > 0) {
+          const currentOpen = new Set(this.openFolders());
+          newFolderIds.forEach(id => currentOpen.add(id));
+          this.openFolders.set(currentOpen);
+        }
+        
         this.ephemeralTabStartIndex.set(ephemeralTabStartIndex);
 
         const activeTab = tabs.find((t) => t.id === activeTabId);
