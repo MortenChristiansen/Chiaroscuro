@@ -33,6 +33,20 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 e.EphemeralTabStartIndex
             )
         );
+        PubSub.Subscribe<FolderNameUpdatedEvent>(e =>
+        {
+            var updatedFolders = _currentWorkspace.Folders.Select(f => 
+                f.Id == e.FolderId ? f with { Name = e.NewName } : f).ToArray();
+            
+            _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
+                _currentWorkspace.WorkspaceId,
+                _currentWorkspace.Tabs,
+                _currentWorkspace.EphemeralTabStartIndex,
+                updatedFolders
+            );
+            
+            _currentWorkspace = GetWorkspaceById(_currentWorkspace.WorkspaceId);
+        });
         PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
         {
             _currentWorkspace = GetWorkspaceById(e.WorkspaceId);

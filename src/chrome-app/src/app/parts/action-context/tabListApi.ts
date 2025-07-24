@@ -13,4 +13,5 @@ export interface TabListApi extends Api {
   activateTab: (tabId: TabId) => Promise<void>;
   closeTab: (tabId: TabId) => Promise<void>;
   tabsChanged: (tabs: TabStateDto[], ephemeralTabStartIndex: number) => void;
+  updateFolderName: (folderId: string, name: string) => Promise<void>;
 }

@@ -11,6 +11,7 @@ public record TabClosedEvent(TabBrowser Tab);
 public record TabsChangedEvent(TabUiStateDto[] Tabs, int EphemeralTabStartIndex);
 public record TabUrlLoadedSuccessfullyEvent(string TabId);
 public record TabFaviconUrlChangedEvent(string TabId, string? NewFaviconUrl);
+public record FolderNameUpdatedEvent(string FolderId, string NewName);
 
 public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 
@@ -27,4 +28,7 @@ public class TabListBrowserApi : BrowserApi
             [.. tabs.Select((dynamic tab) => new TabUiStateDto(tab.Id, tab.Title, tab.Favicon, tab.IsActive, DateTimeOffset.Parse(tab.Created)))],
             ephemeralTabStartIndex
         ));
+
+    public void UpdateFolderName(string folderId, string name) =>
+        PubSub.Publish(new FolderNameUpdatedEvent(folderId, name));
 }

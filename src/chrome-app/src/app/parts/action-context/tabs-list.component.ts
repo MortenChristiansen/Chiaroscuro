@@ -42,7 +42,7 @@ import { Tab, TabId, Folder, FolderId } from './server-models';
             @let folder = getFolderForTabIndex(i);
             @if (folder) {
               <!-- Folder Header -->
-              <div class="folder-header flex items-center px-4 py-1 rounded-lg select-none text-white font-sans text-sm bg-gray-700/50">
+              <div class="folder-header group flex items-center px-4 py-1 rounded-lg select-none text-white font-sans text-sm bg-gray-700/50">
                 <button 
                   (click)="toggleFolder(folder.id)"
                   class="mr-2 text-gray-400 hover:text-gray-300 transition-colors"
@@ -96,7 +96,7 @@ import { Tab, TabId, Folder, FolderId } from './server-models';
           <div
             class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
               tab.id === selectedTab()?.id ? 'bg-white/20 hover:bg-white/30' : ''
-            }} {{ isFirstTabInFolder(i) ? 'ml-6' : getFolderForTabIndex(i) ? 'ml-8' : '' }}"
+            }} {{ getFolderForTabIndex(i) ? 'ml-6' : '' }}"
             (click)="selectedTab.set(tab)"
             cdkDrag
             [cdkDragData]="tab"
@@ -217,8 +217,26 @@ export default class TabsListComponent implements OnInit {
   // Save folder name after editing
   savefolderName(folderId: FolderId, newName: string): void {
     this.editingFolder.set(null);
-    // TODO: Send update to backend
-    console.log(`Saving folder ${folderId} with name: ${newName}`);
+    
+    // Update local folder name immediately for responsive UI
+    this.folders.update(folders => 
+      folders.map(f => f.id === folderId ? { ...f, name: newName } : f)
+    );
+    
+    // Send update to backend
+    this.api.updateFolderName(folderId, newName);
+  }
+
+  // Check if a drop position is valid (simplified for now)
+  isValidDropPosition(targetIndex: number): boolean {
+    // For now, prevent dropping in the middle of closed folders
+    const folder = this.getFolderForTabIndex(targetIndex);
+    if (!folder) return true;
+    
+    // Allow dropping at the start or end of a folder, or if folder is open
+    return this.isFirstTabInFolder(targetIndex) || 
+           this.isLastTabInFolder(targetIndex) || 
+           this.isFolderOpen(folder.id);
   }
 
   constructor() {
@@ -259,8 +277,15 @@ export default class TabsListComponent implements OnInit {
   }, this.saveTabsDebounceDelay);
 
   drop(event: CdkDragDrop<any>) {
+    // For now, keep the existing logic but add basic folder validation
     const currentTabs = [...this.tabs()];
     const ephemeralIndex = this.ephemeralTabStartIndex();
+
+    // Basic validation - prevent drops in invalid positions
+    if (!this.isValidDropPosition(event.currentIndex)) {
+      console.log('Invalid drop position, ignoring drop');
+      return;
+    }
 
     const { adjustedCurrentIndex, adjustedPreviousIndex } =
       this.adjustDragIndices(
@@ -286,6 +311,9 @@ export default class TabsListComponent implements OnInit {
       // Moved from ephemeral to persistent
       this.ephemeralTabStartIndex.set(ephemeralIndex + 1);
     }
+
+    // TODO: Update folder boundaries if tabs moved in/out of folders
+    // For now, this is a simplified implementation
   }
 
   private adjustDragIndices(
