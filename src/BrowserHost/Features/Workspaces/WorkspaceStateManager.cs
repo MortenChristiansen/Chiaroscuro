@@ -1,4 +1,4 @@
-using BrowserHost.Utilities;
+﻿using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -134,10 +134,11 @@ public static class WorkspaceStateManager
 
         WorkspaceDtoV1 FilterExpiredTabs(WorkspaceDtoV1 tabsData)
         {
-            var persistentTabs = tabsData.EphemeralTabStartIndex > 0 ? tabsData.Tabs[..tabsData.EphemeralTabStartIndex] : [];
-            var ephemeralTabs = tabsData.EphemeralTabStartIndex < tabsData.Tabs.Length ? tabsData.Tabs[tabsData.EphemeralTabStartIndex..] : [];
+            var ephemeralTabStartIndex = Math.Max(0, Math.Min(tabsData.EphemeralTabStartIndex, tabsData.Tabs.Length - 1));
+            var persistentTabs = ephemeralTabStartIndex > 0 ? tabsData.Tabs[..ephemeralTabStartIndex] : [];
+            var ephemeralTabs = ephemeralTabStartIndex < tabsData.Tabs.Length ? tabsData.Tabs[ephemeralTabStartIndex..] : [];
             ephemeralTabs = [.. ephemeralTabs.Where(t => (now - t.Created).TotalHours < _ephemeralTabExpirationHours)];
-            return tabsData with { Tabs = [.. persistentTabs, .. ephemeralTabs], EphemeralTabStartIndex = tabsData.EphemeralTabStartIndex };
+            return tabsData with { Tabs = [.. persistentTabs, .. ephemeralTabs], EphemeralTabStartIndex = ephemeralTabStartIndex };
         }
 
         return workspaceData with { Workspaces = [.. workspaceData.Workspaces.Select(FilterExpiredTabs)] };
