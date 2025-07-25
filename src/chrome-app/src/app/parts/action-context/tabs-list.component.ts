@@ -35,8 +35,8 @@ import { Tab, TabId, Folder, FolderId } from './server-models';
         style="pointer-events: none;"
         class="w-full h-0.5 my-2 bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-60 rounded-full"
       ></div>
-      } @if (isTabVisible(i)) { @if (isFirstTabInFolder(i)) { @let folder =
-      getFolderForTabIndex(i); @if (folder) {
+      } @let folder = getFolderForTabIndex(i); @if (folder &&
+      isFirstTabInFolder(i)) {
       <!-- Folder Header -->
       <div
         class="folder-header group flex items-center px-4 py-1 rounded-lg select-none text-white font-sans text-sm bg-gray-700/50"
@@ -122,8 +122,7 @@ import { Tab, TabId, Folder, FolderId } from './server-models';
         </button>
         }
       </div>
-      } }
-
+      } @if (isTabVisible(i)) {
       <!-- Tab Item -->
       <div
         class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
@@ -241,7 +240,6 @@ export default class TabsListComponent implements OnInit {
   isTabVisible(index: number): boolean {
     const folder = this.getFolderForTabIndex(index);
     if (!folder) return true; // Not in a folder, always visible
-    if (this.isFirstTabInFolder(index)) return true; // First tab in folder is always visible (shows folder header)
     return this.isFolderOpen(folder.id); // Other tabs in folder are visible only if folder is open
   }
 
