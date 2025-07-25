@@ -104,7 +104,7 @@ public partial class MainWindow : Window
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!Debugger.IsAttached)
         {
             Debug.WriteLine($"Update check failed: {ex.Message}");
         }

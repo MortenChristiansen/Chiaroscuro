@@ -1,4 +1,4 @@
-﻿using BrowserHost.Utilities;
+using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -79,7 +79,7 @@ public static class WorkspaceStateManager
             // Update the cache after successful save
             _lastSavedWorkspaceData = newWorkspacesData;
         }
-        catch (Exception e)
+        catch (Exception e) when (!Debugger.IsAttached)
         {
             Debug.WriteLine($"Failed to save workspace state: {e.Message}");
         }
@@ -106,13 +106,13 @@ public static class WorkspaceStateManager
                             result = FilterExpiredEphemeralTabs(rawData);
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception e) when (!Debugger.IsAttached)
                     {
                         Debug.WriteLine($"Failed to restore tabs state: {e.Message}");
                     }
                 }
             }
-            catch (Exception e2)
+            catch (Exception e2) when (!Debugger.IsAttached)
             {
                 Debug.WriteLine($"Failed to restore tabs state: {e2.Message}");
             }
