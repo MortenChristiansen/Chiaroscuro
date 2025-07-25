@@ -10,18 +10,20 @@ namespace BrowserHost.Features.Workspaces;
 public class WorkspacesFeature(MainWindow window) : Feature(window)
 {
     private WorkspaceDtoV1[] _workspaces = [];
-    private WorkspaceDtoV1 _currentWorkspace = null!;
+    private string _currentWorkspaceId = null!;
+
+    public WorkspaceDtoV1 CurrentWorkspace => _workspaces.FirstOrDefault(ws => ws.WorkspaceId == _currentWorkspaceId) ?? throw new ArgumentException("Error getting current workspace");
 
     public override void Configure()
     {
         _workspaces = WorkspaceStateManager.RestoreWorkspacesFromDisk();
-        _currentWorkspace = _workspaces[0];
+        _currentWorkspaceId = _workspaces[0].WorkspaceId;
         RestoreWorkspaces();
 
         var tabsFeature = Window.GetFeature<TabsFeature>();
         PubSub.Subscribe<TabsChangedEvent>(e =>
             _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
-                _currentWorkspace.WorkspaceId,
+                _currentWorkspaceId,
                 e.Tabs.Select(t => new WorkspaceTabStateDtoV1(
                     t.Id,
                     tabsFeature.GetTabById(t.Id)?.Address ?? "",
@@ -39,24 +41,9 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 ))
             )
         );
-        PubSub.Subscribe<FolderNameUpdatedEvent>(e =>
-        {
-            var updatedFolders = _currentWorkspace.Folders.Select(f =>
-                f.Id == e.FolderId ? f with { Name = e.NewName } : f
-            ).ToArray();
-
-            _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
-                _currentWorkspace.WorkspaceId,
-                _currentWorkspace.Tabs,
-                _currentWorkspace.EphemeralTabStartIndex,
-                updatedFolders
-            );
-
-            _currentWorkspace = GetWorkspaceById(_currentWorkspace.WorkspaceId);
-        });
         PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
         {
-            _currentWorkspace = GetWorkspaceById(e.WorkspaceId);
+            _currentWorkspaceId = e.WorkspaceId;
             Window.ActionContext.WorkspaceActivated(e.WorkspaceId);
             Window.WorkspaceColor = GetCurrentWorkspaceColor();
         });
@@ -84,9 +71,9 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 Color = e.Color,
                 Icon = e.Icon
             };
-            if (e.WorkspaceId == _currentWorkspace.WorkspaceId)
+            if (e.WorkspaceId == _currentWorkspaceId)
             {
-                _currentWorkspace = workspace;
+                _currentWorkspaceId = e.WorkspaceId;
                 Window.WorkspaceColor = GetCurrentWorkspaceColor();
             }
 
@@ -101,7 +88,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             _workspaces = WorkspaceStateManager.DeleteWorkspace(e.WorkspaceId);
             NotifyFrontendOfUpdatedWorkspaces();
 
-            if (e.WorkspaceId == _currentWorkspace.WorkspaceId)
+            if (e.WorkspaceId == _currentWorkspaceId)
                 PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[0].WorkspaceId));
         });
     }
@@ -109,117 +96,14 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     public override void Start()
     {
         Window.WorkspaceColor = GetCurrentWorkspaceColor();
-        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspace.WorkspaceId));
+        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspaceId));
     }
 
     private Color GetCurrentWorkspaceColor() =>
-        (Color)ColorConverter.ConvertFromString(_currentWorkspace.Color);
-
-    private void ToggleCurrentTabFolder()
-    {
-        var tabsFeature = Window.GetFeature<TabsFeature>();
-        var currentTab = Window.CurrentTab;
-        if (currentTab == null) return;
-
-        // Only bookmarked (persistent) tabs can be grouped
-        var tabIndex = _currentWorkspace.Tabs.ToList().FindIndex(t => t.TabId == currentTab.Id);
-        if (tabIndex == -1 || tabIndex >= _currentWorkspace.EphemeralTabStartIndex) return;
-
-        // Check if tab is already in a folder
-        var existingFolder = _currentWorkspace.Folders.FirstOrDefault(f =>
-            tabIndex >= f.StartIndex && tabIndex <= f.EndIndex);
-
-        if (existingFolder != null)
-        {
-            RemoveTabFromFolder(currentTab.Id, existingFolder);
-        }
-        else
-        {
-            CreateFolderWithTab(currentTab.Id);
-        }
-    }
-
-    private void RemoveTabFromFolder(string tabId, FolderDtoV1 folder)
-    {
-        var tabIndex = _currentWorkspace.Tabs.ToList().FindIndex(t => t.TabId == tabId);
-        if (tabIndex == -1) return;
-
-        var updatedFolders = _currentWorkspace.Folders.ToList();
-
-        if (folder.EndIndex == folder.StartIndex)
-        {
-            // Only one tab in folder, remove the folder entirely
-            updatedFolders.Remove(folder);
-        }
-        else if (tabIndex == folder.StartIndex)
-        {
-            // Remove first tab, adjust folder start index
-            var updatedFolder = folder with { StartIndex = folder.StartIndex + 1 };
-            var folderIndex = updatedFolders.FindIndex(f => f.Id == folder.Id);
-            updatedFolders[folderIndex] = updatedFolder;
-        }
-        else if (tabIndex == folder.EndIndex)
-        {
-            // Remove last tab, adjust folder end index
-            var updatedFolder = folder with { EndIndex = folder.EndIndex - 1 };
-            var folderIndex = updatedFolders.FindIndex(f => f.Id == folder.Id);
-            updatedFolders[folderIndex] = updatedFolder;
-        }
-        else
-        {
-            // Remove tab from middle, split folder (for now, just remove from end to keep it simple)
-            var updatedFolder = folder with { EndIndex = tabIndex - 1 };
-            var folderIndex = updatedFolders.FindIndex(f => f.Id == folder.Id);
-            updatedFolders[folderIndex] = updatedFolder;
-        }
-
-        // Update workspace with new folders
-        SaveWorkspaceWithFolders([.. updatedFolders]);
-    }
-
-    private void CreateFolderWithTab(string tabId)
-    {
-        var tabIndex = _currentWorkspace.Tabs.ToList().FindIndex(t => t.TabId == tabId);
-        if (tabIndex == -1) return;
-
-        var newFolder = new FolderDtoV1(
-            $"{Guid.NewGuid()}",
-            "New Folder",
-            tabIndex,
-            tabIndex
-        );
-
-        var updatedFolders = _currentWorkspace.Folders.Append(newFolder).ToArray();
-        SaveWorkspaceWithFolders(updatedFolders);
-
-        // TODO: Notify frontend to open the newly created folder
-        // For now, folders will be closed by default as per the isOpen property in the frontend
-    }
-
-    private void SaveWorkspaceWithFolders(FolderDtoV1[] folders)
-    {
-        _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
-            _currentWorkspace.WorkspaceId,
-            _currentWorkspace.Tabs,
-            _currentWorkspace.EphemeralTabStartIndex,
-            folders
-        );
-
-        // Update current workspace reference
-        _currentWorkspace = GetWorkspaceById(_currentWorkspace.WorkspaceId);
-
-        // Notify frontend of changes
-        RestoreWorkspaces();
-    }
+        (Color)ColorConverter.ConvertFromString(CurrentWorkspace.Color);
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.G && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
-        {
-            ToggleCurrentTabFolder();
-            return true;
-        }
-
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             var index = e.Key switch
@@ -236,7 +120,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 _ => -1
             };
 
-            if (index >= 0 && index < _workspaces.Length && _workspaces[index] != _currentWorkspace)
+            if (index >= 0 && index < _workspaces.Length && _workspaces[index] != CurrentWorkspace)
                 PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[index].WorkspaceId));
         }
 

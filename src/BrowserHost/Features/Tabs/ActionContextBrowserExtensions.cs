@@ -16,8 +16,7 @@ public static class ActionContextBrowserExtensions
 
     public static void SetTabs(this ActionContextBrowser browser, TabDto[] tabs, string? activeTabId, int ephemeralTabIndex, FolderDto[] folders)
     {
-        var foldersJson = folders?.ToJsonObject() ?? "[]";
-        browser.CallClientApi("setTabs", $"{tabs.ToJsonObject()}, {activeTabId.ToJsonString()}, {ephemeralTabIndex}, {foldersJson}");
+        browser.CallClientApi("setTabs", $"{tabs.ToJsonObject()}, {activeTabId.ToJsonString()}, {ephemeralTabIndex}, {folders.ToJsonObject()}");
     }
 
     public static void UpdateTabTitle(this ActionContextBrowser browser, string tabId, string? title)
