@@ -5,6 +5,7 @@ using System;
 namespace BrowserHost.Features.Tabs;
 
 public record TabDto(string Id, string? Title, string? Favicon, DateTimeOffset Created);
+public record FolderDto(string Id, string Name, int StartIndex, int EndIndex);
 
 public static class ActionContextBrowserExtensions
 {
@@ -13,7 +14,7 @@ public static class ActionContextBrowserExtensions
         browser.CallClientApi("addTab", $"{tab.ToJsonObject()}, {activate.ToJsonBoolean()}");
     }
 
-    public static void SetTabs(this ActionContextBrowser browser, TabDto[] tabs, string? activeTabId, int ephemeralTabIndex, FolderDto[]? folders = null)
+    public static void SetTabs(this ActionContextBrowser browser, TabDto[] tabs, string? activeTabId, int ephemeralTabIndex, FolderDto[] folders)
     {
         var foldersJson = folders?.ToJsonObject() ?? "[]";
         browser.CallClientApi("setTabs", $"{tabs.ToJsonObject()}, {activeTabId.ToJsonString()}, {ephemeralTabIndex}, {foldersJson}");

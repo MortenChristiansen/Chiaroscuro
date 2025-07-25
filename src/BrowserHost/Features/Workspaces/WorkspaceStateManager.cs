@@ -20,26 +20,23 @@ public record FolderDtoV1(string Id, string Name, int StartIndex, int EndIndex);
 public static class WorkspaceStateManager
 {
     private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("workspaces.json");
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { 
-        WriteIndented = true,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never,
-        PropertyNameCaseInsensitive = true
-    };
+    private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
     private const int _currentVersion = 1;
     private const int _ephemeralTabExpirationHours = 16;
     private static readonly WorkspaceDtoV1 _defaultWorkspace = new($"{Guid.NewGuid()}", "Browse", "#202634", "🌐", [], 0);
     private static WorkspacesDataDtoV1? _lastSavedWorkspaceData;
     private static readonly Lock _lock = new();
 
-    public static WorkspaceDtoV1[] SaveWorkspaceTabs(string workspaceId, IEnumerable<WorkspaceTabStateDtoV1> tabs, int ephemeralTabStartIndex, FolderDtoV1[]? folders = null)
+    public static WorkspaceDtoV1[] SaveWorkspaceTabs(string workspaceId, IEnumerable<WorkspaceTabStateDtoV1> tabs, int ephemeralTabStartIndex, IEnumerable<FolderDtoV1> folders)
     {
         lock (_lock)
         {
             var workspace = _lastSavedWorkspaceData?.Workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId) ?? _defaultWorkspace;
-            var newTabsData = workspace with { 
-                Tabs = [.. tabs], 
-                EphemeralTabStartIndex = ephemeralTabStartIndex, 
-                Folders = folders ?? workspace.Folders 
+            var newTabsData = workspace with
+            {
+                Tabs = [.. tabs],
+                EphemeralTabStartIndex = ephemeralTabStartIndex,
+                Folders = [.. folders]
             };
 
             SaveWorkspaceIfChanged(workspaceId, workspace, newTabsData);

@@ -30,21 +30,28 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                     t.IsActive,
                     t.Created)
                 ),
-                e.EphemeralTabStartIndex
+                e.EphemeralTabStartIndex,
+                e.Folders.Select(f => new FolderDtoV1(
+                    f.Id,
+                    f.Name,
+                    f.StartIndex,
+                    f.EndIndex
+                ))
             )
         );
         PubSub.Subscribe<FolderNameUpdatedEvent>(e =>
         {
-            var updatedFolders = _currentWorkspace.Folders.Select(f => 
-                f.Id == e.FolderId ? f with { Name = e.NewName } : f).ToArray();
-            
+            var updatedFolders = _currentWorkspace.Folders.Select(f =>
+                f.Id == e.FolderId ? f with { Name = e.NewName } : f
+            ).ToArray();
+
             _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
                 _currentWorkspace.WorkspaceId,
                 _currentWorkspace.Tabs,
                 _currentWorkspace.EphemeralTabStartIndex,
                 updatedFolders
             );
-            
+
             _currentWorkspace = GetWorkspaceById(_currentWorkspace.WorkspaceId);
         });
         PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
@@ -119,17 +126,15 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         if (tabIndex == -1 || tabIndex >= _currentWorkspace.EphemeralTabStartIndex) return;
 
         // Check if tab is already in a folder
-        var existingFolder = _currentWorkspace.Folders.FirstOrDefault(f => 
+        var existingFolder = _currentWorkspace.Folders.FirstOrDefault(f =>
             tabIndex >= f.StartIndex && tabIndex <= f.EndIndex);
 
         if (existingFolder != null)
         {
-            // Remove tab from existing folder
             RemoveTabFromFolder(currentTab.Id, existingFolder);
         }
         else
         {
-            // Create new folder with this tab
             CreateFolderWithTab(currentTab.Id);
         }
     }
@@ -140,7 +145,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         if (tabIndex == -1) return;
 
         var updatedFolders = _currentWorkspace.Folders.ToList();
-        
+
         if (folder.EndIndex == folder.StartIndex)
         {
             // Only one tab in folder, remove the folder entirely
@@ -169,7 +174,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         }
 
         // Update workspace with new folders
-        SaveWorkspaceWithFolders(updatedFolders.ToArray());
+        SaveWorkspaceWithFolders([.. updatedFolders]);
     }
 
     private void CreateFolderWithTab(string tabId)
@@ -186,7 +191,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
         var updatedFolders = _currentWorkspace.Folders.Append(newFolder).ToArray();
         SaveWorkspaceWithFolders(updatedFolders);
-        
+
         // TODO: Notify frontend to open the newly created folder
         // For now, folders will be closed by default as per the isOpen property in the frontend
     }
@@ -199,10 +204,10 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             _currentWorkspace.EphemeralTabStartIndex,
             folders
         );
-        
+
         // Update current workspace reference
         _currentWorkspace = GetWorkspaceById(_currentWorkspace.WorkspaceId);
-        
+
         // Notify frontend of changes
         RestoreWorkspaces();
     }
