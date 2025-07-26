@@ -177,9 +177,9 @@ export class TabsListComponent implements OnInit {
     persistentTabs.forEach((tab, idx) => {
       const folderId = folders.find((f) => f.startIndex === idx);
       if (folderId) {
-        const isNewFolder = this.persistedTabs().every(
-          (x) => x.id !== folderId.id
-        );
+        const isNewFolder =
+          this.tabsInitialized() &&
+          this.persistedTabs().every((x) => x.id !== folderId.id);
         currentFolder = {
           id: folderId.id,
           name: folderId.name,
