@@ -1,4 +1,4 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, effect, input, output, signal } from '@angular/core';
 import { Tab, TabId } from './server-models';
 import { TabsListTabComponent } from './tabs-list-tab.component';
 
@@ -114,10 +114,19 @@ export class TabsListFolderComponent {
   isOpen = input.required<boolean>();
   tabs = input.required<Tab[]>();
   activeTabId = input.required<TabId | undefined>();
+  isNew = input.required<boolean>();
   selectTab = output<TabId>();
   closeTab = output<TabId>();
   toggleOpen = output<void>();
   folderRenamed = output<string>();
 
   isEditing = signal(false);
+
+  constructor() {
+    effect(() => {
+      if (this.isNew()) {
+        this.isEditing.set(true);
+      }
+    });
+  }
 }

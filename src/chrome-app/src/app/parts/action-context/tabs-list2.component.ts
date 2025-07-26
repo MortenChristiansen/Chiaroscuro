@@ -13,6 +13,7 @@ interface FolderDto {
   id: string;
   name: string;
   isOpen: boolean;
+  isNew: boolean;
   tabs: Tab[];
 }
 
@@ -34,7 +35,7 @@ interface FolderDto {
 
     <div class="flex flex-col gap-2">
       @for (tabOrFolder of persistedTabs(); track tabOrFolder.id) { @if
-      ('favicon' in tabOrFolder) { @let tab = tabOrFolder;
+      (!isFolder(tabOrFolder)) { @let tab = tabOrFolder;
       <tabs-list-tab
         [tab]="tab"
         [isActive]="tab.id == activeTabId()"
@@ -47,6 +48,7 @@ interface FolderDto {
         [name]="folder.name"
         [isOpen]="folder.isOpen"
         [tabs]="folder.tabs"
+        [isNew]="folder.isNew"
         (closeTab)="closeTab($event, true)"
         (selectTab)="activeTabId.set($event)"
         (toggleOpen)="toggleFolder(folder.id)"
@@ -185,6 +187,7 @@ export class TabsListComponent implements OnInit {
           name: folderId.name,
           isOpen: isNewFolder || (folderId.isOpen ?? false),
           tabs: [],
+          isNew: isNewFolder,
         };
         result.push(currentFolder);
       }
@@ -286,7 +289,7 @@ export class TabsListComponent implements OnInit {
     }
   }
 
-  private isFolder(tab: Tab | FolderDto): tab is FolderDto {
+  isFolder(tab: Tab | FolderDto): tab is FolderDto {
     return 'tabs' in tab;
   }
 
