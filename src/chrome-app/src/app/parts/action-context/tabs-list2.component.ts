@@ -11,7 +11,26 @@ import { debounce } from '../../shared/utils';
   selector: 'tabs-list2',
   imports: [DragDropModule, CommonModule, TabsListTabComponent],
   template: `
-    @for (tab of tabs(); track tab.id) {
+    <span
+      class="bookmark-label text-gray-500 text-xs px-4"
+      style="pointer-events: none;"
+    >
+      Bookmarks
+    </span>
+    @for (tab of persistedTabs(); track tab.id) {
+    <tabs-list-tab
+      [tab]="tab"
+      [isActive]="tab.id == activeTabId()"
+      [inFolder]="false"
+      (selectTab)="activeTabId.set(tab.id)"
+      (closeTab)="closeTab(tab.id, true)"
+    />
+    }
+    <div
+      class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
+      style="pointer-events: none;"
+    ></div>
+    @for (tab of ephemeralTabs(); track tab.id) {
     <tabs-list-tab
       [tab]="tab"
       [isActive]="tab.id == activeTabId()"
@@ -48,9 +67,9 @@ import { debounce } from '../../shared/utils';
   `,
 })
 export class TabsListComponent implements OnInit {
-  tabs = signal<Tab[]>([]);
+  persistedTabs = signal<Tab[]>([]);
+  ephemeralTabs = signal<Tab[]>([]);
   activeTabId = signal<TabId | undefined>(undefined);
-  ephemeralTabStartIndex = signal<number>(0); // Can this be made into a computed property?
   tabsInitialized = signal(false);
   private saveTabsDebounceDelay = 1000;
   private tabActivationOrderStack: TabId[] = [];
@@ -76,7 +95,7 @@ export class TabsListComponent implements OnInit {
 
     effect(() => {
       if (!this.tabsInitialized()) return;
-      const currentTabs = this.tabs();
+      const currentTabs = [...this.persistedTabs(), ...this.ephemeralTabs()];
       this.tabsChanged(currentTabs, this.activeTabId() ?? null);
     });
   }
@@ -86,7 +105,7 @@ export class TabsListComponent implements OnInit {
 
     exposeApiToBackend({
       addTab: (tab: Tab, activate: boolean) => {
-        this.tabs.update((currentTabs) => [...currentTabs, tab]);
+        this.ephemeralTabs.update((currentTabs) => [...currentTabs, tab]);
 
         if (activate) {
           this.activeTabId.set(tab.id);
@@ -98,9 +117,15 @@ export class TabsListComponent implements OnInit {
         ephemeralTabStartIndex: number,
         folders: Folder[]
       ) => {
-        this.tabs.set(tabs);
+        const persistedTabs = tabs.filter(
+          (t, idx) => idx < ephemeralTabStartIndex
+        );
+        this.persistedTabs.set(persistedTabs);
+        const ephemeralTabs = tabs.filter(
+          (t, idx) => idx >= ephemeralTabStartIndex
+        );
+        this.ephemeralTabs.set(ephemeralTabs);
         this.activeTabId.set(activeTabId);
-        this.ephemeralTabStartIndex.set(ephemeralTabStartIndex);
         this.tabsInitialized.set(true);
       },
       updateTitle: (tabId: TabId, title: string | null) =>
@@ -108,12 +133,17 @@ export class TabsListComponent implements OnInit {
       updateFavicon: (tabId: TabId, favicon: string | null) =>
         this.updateTab(tabId, { favicon }),
       closeTab: (tabId: TabId) => this.closeTab(tabId, false),
-      toggleTabBookmark: (tabId: TabId) => {},
+      toggleTabBookmark: (tabId: TabId) => this.toggleBookmark(tabId),
     });
   }
 
   private updateTab(tabId: TabId, update: Partial<Tab>) {
-    this.tabs.update((currentTabs) => {
+    this.persistedTabs.update((currentTabs) => {
+      return currentTabs.map((tab) =>
+        tab.id === tabId ? { ...tab, ...update } : tab
+      );
+    });
+    this.ephemeralTabs.update((currentTabs) => {
       return currentTabs.map((tab) =>
         tab.id === tabId ? { ...tab, ...update } : tab
       );
@@ -129,7 +159,7 @@ export class TabsListComponent implements OnInit {
         IsActive: tab.id === selectedTabId,
         Created: tab.created,
       })),
-      this.ephemeralTabStartIndex(),
+      this.persistedTabs().length, // Ephemeral tab start index
       [] // Handle folders
     );
   }, this.saveTabsDebounceDelay);
@@ -138,13 +168,16 @@ export class TabsListComponent implements OnInit {
     this.tabActivationOrderStack = this.tabActivationOrderStack.filter(
       (id) => id !== tabId
     );
-    this.tabs.update((currentTabs) =>
+    this.persistedTabs.update((currentTabs) =>
+      currentTabs.filter((t) => t.id !== tabId)
+    );
+    this.ephemeralTabs.update((currentTabs) =>
       currentTabs.filter((t) => t.id !== tabId)
     );
 
     if (this.activeTabId() === tabId) {
       const newSelectedTabId =
-        this.tabs().length == 0
+        this.persistedTabs().length == 0 && this.ephemeralTabs().length == 0
           ? undefined
           : this.tabActivationOrderStack[
               this.tabActivationOrderStack.length - 1
@@ -155,6 +188,23 @@ export class TabsListComponent implements OnInit {
 
     if (updateBackend) {
       this.api.closeTab(tabId);
+    }
+  }
+
+  toggleBookmark(tabId: TabId) {
+    const isBookmarked = this.persistedTabs().some((t) => t.id === tabId);
+    if (isBookmarked) {
+      const tab = this.persistedTabs().find((t) => t.id === tabId)!;
+      this.persistedTabs.update((currentTabs) =>
+        currentTabs.filter((t) => t.id !== tabId)
+      );
+      this.ephemeralTabs.update((currentTabs) => [...currentTabs, tab]);
+    } else {
+      const tab = this.ephemeralTabs().find((t) => t.id === tabId)!;
+      this.persistedTabs.update((currentTabs) => [...currentTabs, tab]);
+      this.ephemeralTabs.update((currentTabs) =>
+        currentTabs.filter((t) => t.id !== tabId)
+      );
     }
   }
 }
