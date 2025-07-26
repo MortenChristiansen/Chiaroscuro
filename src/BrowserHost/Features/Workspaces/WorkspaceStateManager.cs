@@ -134,7 +134,7 @@ public static class WorkspaceStateManager
 
         WorkspaceDtoV1 FilterExpiredTabs(WorkspaceDtoV1 tabsData)
         {
-            var ephemeralTabStartIndex = Math.Max(0, Math.Min(tabsData.EphemeralTabStartIndex, tabsData.Tabs.Length - 1));
+            var ephemeralTabStartIndex = Math.Min(tabsData.EphemeralTabStartIndex, tabsData.Tabs.Length);
             var persistentTabs = ephemeralTabStartIndex > 0 ? tabsData.Tabs[..ephemeralTabStartIndex] : [];
             var ephemeralTabs = ephemeralTabStartIndex < tabsData.Tabs.Length ? tabsData.Tabs[ephemeralTabStartIndex..] : [];
             ephemeralTabs = [.. ephemeralTabs.Where(t => (now - t.Created).TotalHours < _ephemeralTabExpirationHours)];
