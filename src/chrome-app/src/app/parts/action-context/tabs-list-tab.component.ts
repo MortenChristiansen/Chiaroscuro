@@ -11,7 +11,6 @@ import { FaviconComponent } from '../../shared/favicon.component';
       class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10"
       [ngClass]="{
         'bg-white/20 hover:bg-white/30': isActive(),
-        'ml-6': inFolder()
       }"
       (click)="onSelectTab()"
     >
@@ -44,7 +43,6 @@ import { FaviconComponent } from '../../shared/favicon.component';
 export class TabsListTabComponent {
   tab = input.required<Tab>();
   isActive = input.required<boolean>();
-  inFolder = input.required<boolean>();
   selectTab = output<void>();
   closeTab = output<void>();
 
