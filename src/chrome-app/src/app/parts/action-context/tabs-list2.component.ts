@@ -6,6 +6,7 @@ import { Folder, Tab, TabId } from './server-models';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { TabsListTabComponent } from './tabs-list-tab.component';
 import { debounce } from '../../shared/utils';
+import { Stack } from '../../shared/stack';
 
 @Component({
   selector: 'tabs-list2',
@@ -72,7 +73,7 @@ export class TabsListComponent implements OnInit {
   activeTabId = signal<TabId | undefined>(undefined);
   tabsInitialized = signal(false);
   private saveTabsDebounceDelay = 1000;
-  private tabActivationOrderStack: TabId[] = [];
+  private tabActivationOrderStack = new Stack<TabId>();
 
   api!: TabListApi;
 
@@ -87,10 +88,7 @@ export class TabsListComponent implements OnInit {
       const activeTabId = this.activeTabId();
       if (!activeTabId) return;
 
-      this.tabActivationOrderStack = [
-        ...this.tabActivationOrderStack.filter((id) => id !== activeTabId),
-        activeTabId,
-      ];
+      this.tabActivationOrderStack.push(activeTabId);
     });
 
     effect(() => {
@@ -165,9 +163,7 @@ export class TabsListComponent implements OnInit {
   }, this.saveTabsDebounceDelay);
 
   closeTab(tabId: TabId, updateBackend = true) {
-    this.tabActivationOrderStack = this.tabActivationOrderStack.filter(
-      (id) => id !== tabId
-    );
+    this.tabActivationOrderStack.remove(tabId);
     this.persistedTabs.update((currentTabs) =>
       currentTabs.filter((t) => t.id !== tabId)
     );
@@ -179,9 +175,7 @@ export class TabsListComponent implements OnInit {
       const newSelectedTabId =
         this.persistedTabs().length == 0 && this.ephemeralTabs().length == 0
           ? undefined
-          : this.tabActivationOrderStack[
-              this.tabActivationOrderStack.length - 1
-            ];
+          : this.tabActivationOrderStack.pop();
 
       this.activeTabId.set(newSelectedTabId);
     }
