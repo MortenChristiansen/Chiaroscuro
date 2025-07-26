@@ -56,6 +56,7 @@ import { TabsListTabComponent } from './tabs-list-tab.component';
           (blur)="
             isEditing.set(false); folderRenamed.emit(folderNameInput.value)
           "
+          (focus)="folderNameInput.select()"
           (keydown.enter)="
             isEditing.set(false); folderRenamed.emit(folderNameInput.value)
           "
