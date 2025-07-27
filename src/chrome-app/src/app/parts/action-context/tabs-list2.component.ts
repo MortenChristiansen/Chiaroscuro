@@ -56,14 +56,20 @@ interface FolderDto {
         (toggleOpen)="toggleFolder(folder.id)"
         (folderRenamed)="renameFolder(folder.id, $event)"
       >
-        @for (tab of folder.tabs; track tab.id) {
-        <tabs-list-tab
-          [tab]="tab"
-          [isActive]="tab.id == activeTabId()"
-          (selectTab)="activeTabId.set(tab.id)"
-          (closeTab)="closeTab(tab.id, true)"
-        />
-        }
+        <div
+          class="flex flex-col gap-2 tab-folder"
+          [nxtSortablejs]="folder.tabs"
+          [config]="sortableOptions"
+        >
+          @for (tab of folder.tabs; track tab.id) {
+          <tabs-list-tab
+            [tab]="tab"
+            [isActive]="tab.id == activeTabId()"
+            (selectTab)="activeTabId.set(tab.id)"
+            (closeTab)="closeTab(tab.id, true)"
+          />
+          }
+        </div>
       </tabs-list-folder>
       } }
     </div>
@@ -113,6 +119,12 @@ export class TabsListComponent implements OnInit {
     group: {
       name: 'tabs',
       put: (to, from, draggedElement) => {
+        // Prevent folders from being dropped into other folders
+        if (
+          draggedElement.tagName === 'TABS-LIST-FOLDER' &&
+          to.el.classList.contains('tab-folder')
+        )
+          return false;
         // Prevent folders from being dropped into ephemeral-tabs
         return (
           to.el.id !== 'ephemeral-tabs' ||
@@ -121,7 +133,10 @@ export class TabsListComponent implements OnInit {
       },
     },
     onUpdate: (e) => {
-      if (e.from.id === 'persistent-tabs') {
+      if (
+        e.from.id === 'persistent-tabs' ||
+        e.from.classList.contains('tab-folder')
+      ) {
         this.persistedTabs.set(this.sortablePersistedTabs);
       }
       if (e.from.id === 'ephemeral-tabs') {
@@ -129,7 +144,13 @@ export class TabsListComponent implements OnInit {
       }
     },
     onAdd: (e) => {
-      if (e.to.id === 'persistent-tabs') {
+      const classes: string[] = [];
+      e.to.classList.forEach((cls) => classes.push(cls));
+
+      if (
+        e.to.id === 'persistent-tabs' ||
+        e.to.classList.contains('tab-folder')
+      ) {
         this.persistedTabs.set(this.sortablePersistedTabs);
       }
       if (e.to.id === 'ephemeral-tabs') {
@@ -137,7 +158,10 @@ export class TabsListComponent implements OnInit {
       }
     },
     onRemove: (e) => {
-      if (e.from.id === 'persistent-tabs') {
+      if (
+        e.from.id === 'persistent-tabs' ||
+        e.from.classList.contains('tab-folder')
+      ) {
         this.persistedTabs.set(this.sortablePersistedTabs);
       }
       if (e.from.id === 'ephemeral-tabs') {
