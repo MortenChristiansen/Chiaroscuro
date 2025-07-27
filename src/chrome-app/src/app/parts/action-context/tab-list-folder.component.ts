@@ -1,6 +1,4 @@
 import { Component, effect, input, output, signal } from '@angular/core';
-import { Tab, TabId } from './server-models';
-import { TabsListTabComponent } from './tabs-list-tab.component';
 
 @Component({
   selector: 'tabs-list-folder',
@@ -93,30 +91,17 @@ import { TabsListTabComponent } from './tabs-list-tab.component';
         }
       </div>
       @if(isOpen()) {
-      <div class="flex flex-col mt-2">
-        @for (tab of tabs(); track tab.id) {
-        <tabs-list-tab
-          class="ml-6"
-          [tab]="tab"
-          [isActive]="tab.id == activeTabId()"
-          (selectTab)="selectTab.emit(tab.id)"
-          (closeTab)="closeTab.emit(tab.id)"
-        />
-        }
+      <div class="flex flex-col mt-2 ml-6">
+        <ng-content />
       </div>
       }
     </div>
   `,
-  imports: [TabsListTabComponent],
 })
 export class TabsListFolderComponent {
   name = input.required<string>();
   isOpen = input.required<boolean>();
-  tabs = input.required<Tab[]>();
-  activeTabId = input.required<TabId | undefined>();
   isNew = input.required<boolean>();
-  selectTab = output<TabId>();
-  closeTab = output<TabId>();
   toggleOpen = output<void>();
   folderRenamed = output<string>();
 

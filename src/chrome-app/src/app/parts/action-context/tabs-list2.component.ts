@@ -50,16 +50,21 @@ interface FolderDto {
       />
       } @else { @let folder = tabOrFolder;
       <tabs-list-folder
-        [activeTabId]="activeTabId()"
         [name]="folder.name"
         [isOpen]="folder.isOpen"
-        [tabs]="folder.tabs"
         [isNew]="folder.isNew"
-        (closeTab)="closeTab($event, true)"
-        (selectTab)="activeTabId.set($event)"
         (toggleOpen)="toggleFolder(folder.id)"
         (folderRenamed)="renameFolder(folder.id, $event)"
-      />
+      >
+        @for (tab of folder.tabs; track tab.id) {
+        <tabs-list-tab
+          [tab]="tab"
+          [isActive]="tab.id == activeTabId()"
+          (selectTab)="activeTabId.set(tab.id)"
+          (closeTab)="closeTab(tab.id, true)"
+        />
+        }
+      </tabs-list-folder>
       } }
     </div>
 
