@@ -194,12 +194,9 @@ export class TabsListComponent implements OnInit {
 
     effect(() => {
       if (!this.tabsInitialized()) return;
-      const currentTabs = [
-        ...this.allPersistentTabs(),
-        ...this.ephemeralTabs(),
-      ];
 
-      this.tabsChanged(currentTabs, this.activeTabId() ?? null);
+      // Trigger effect (the actual values are retrieved in the debounced method)
+      this.allPersistentTabs(), this.ephemeralTabs(), this.tabsChanged();
     });
   }
 
@@ -284,7 +281,7 @@ export class TabsListComponent implements OnInit {
     let startIndex = 0;
 
     this.persistedTabs().forEach((tabOrFolder) => {
-      if (this.isFolder(tabOrFolder)) {
+      if (this.isFolder(tabOrFolder) && tabOrFolder.tabs.length > 0) {
         folders.push({
           Id: tabOrFolder.id,
           Name: tabOrFolder.name,
@@ -322,7 +319,10 @@ export class TabsListComponent implements OnInit {
     });
   }
 
-  private tabsChanged = debounce((tabs: Tab[], selectedTabId: TabId | null) => {
+  private tabsChanged = debounce(() => {
+    const tabs = [...this.allPersistentTabs(), ...this.ephemeralTabs()];
+    const selectedTabId = this.activeTabId() ?? null;
+
     this.api.tabsChanged(
       tabs.map((tab) => ({
         Id: tab.id,

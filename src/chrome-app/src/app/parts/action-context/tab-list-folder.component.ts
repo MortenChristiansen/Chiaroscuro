@@ -70,7 +70,7 @@ import { Component, effect, input, output, signal } from '@angular/core';
           {{ name() }}
         </span>
         <button
-          class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
+          class="edit-button ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
           (click)="$event.stopPropagation(); isEditing.set(true)"
         >
           <svg
