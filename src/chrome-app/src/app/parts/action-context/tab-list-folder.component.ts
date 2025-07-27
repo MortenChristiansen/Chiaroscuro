@@ -12,7 +12,7 @@ import { TabsListTabComponent } from './tabs-list-tab.component';
       <div class="group flex items-center px-4 py-1">
         <button
           (click)="toggleOpen.emit()"
-          class="mr-2 text-gray-400 hover:text-gray-300 transition-colors"
+          class="mr-2 text-gray-400 hover:text-gray-300 transition-colors drag-handle"
         >
           @if (isOpen()) {
           <!-- Open folder icon -->

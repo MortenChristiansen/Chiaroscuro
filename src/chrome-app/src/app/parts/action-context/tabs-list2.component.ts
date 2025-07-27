@@ -1,4 +1,3 @@
-import { DragDropModule } from '@angular/cdk/drag-drop';
 import { Component, computed, effect, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FolderIndexStateDto, TabListApi } from './tabListApi';
@@ -8,6 +7,8 @@ import { TabsListTabComponent } from './tabs-list-tab.component';
 import { debounce } from '../../shared/utils';
 import { Stack } from '../../shared/stack';
 import { TabsListFolderComponent } from './tab-list-folder.component';
+import { SortablejsModule } from 'nxt-sortablejs';
+import { Options } from 'sortablejs';
 
 interface FolderDto {
   id: string;
@@ -20,10 +21,10 @@ interface FolderDto {
 @Component({
   selector: 'tabs-list2',
   imports: [
-    DragDropModule,
     CommonModule,
     TabsListTabComponent,
     TabsListFolderComponent,
+    SortablejsModule,
   ],
   template: `
     <span
@@ -33,8 +34,13 @@ interface FolderDto {
       Bookmarks
     </span>
 
-    <div class="flex flex-col gap-2">
-      @for (tabOrFolder of persistedTabs(); track tabOrFolder.id) { @if
+    <div
+      id="persistent-tabs"
+      class="flex flex-col gap-2"
+      [nxtSortablejs]="sortablePersistedTabs"
+      [config]="sortableOptions"
+    >
+      @for (tabOrFolder of sortablePersistedTabs; track tabOrFolder.id) { @if
       (!isFolder(tabOrFolder)) { @let tab = tabOrFolder;
       <tabs-list-tab
         [tab]="tab"
@@ -55,11 +61,20 @@ interface FolderDto {
         (folderRenamed)="renameFolder(folder.id, $event)"
       />
       } }
-      <div
-        class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
-        style="pointer-events: none;"
-      ></div>
-      @for (tab of ephemeralTabs(); track tab.id) {
+    </div>
+
+    <div
+      class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
+      style="pointer-events: none;"
+    ></div>
+
+    <div
+      id="ephemeral-tabs"
+      class="flex flex-col gap-2"
+      [nxtSortablejs]="sortableEphemeralTabs"
+      [config]="sortableOptions"
+    >
+      @for (tab of sortableEphemeralTabs; track tab.id) {
       <tabs-list-tab
         [tab]="tab"
         [isActive]="tab.id == activeTabId()"
@@ -69,37 +84,15 @@ interface FolderDto {
       }
     </div>
   `,
-  styles: `
-    .cdk-drag-placeholder {
-    /* The destination element - currently not styled */
-  }
-
-  .cdk-drag-animating {
-    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-  }
-
-  .cdk-drop-list-dragging .tab:not(.cdk-drag-placeholder) {
-    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-  }
-
-  .cdk-drag-preview {
-    opacity: 0; /* We don't show an element at the mouse position while dragging */
-  }
-
-  .cdk-drop-list-dragging .tab:not(.cdk-drag-placeholder) {
-    background: transparent !important; /* Disable hover effect of dragged over elements */
-  }
-
-  .cdk-drop-list-dragging .tab:not(.cdk-drag-placeholder) button {
-    display: none; /* Hide close button of dragged over elements */
-  }
-  `,
+  styles: ``,
 })
 export class TabsListComponent implements OnInit {
+  sortablePersistedTabs: (Tab | FolderDto)[] = [];
   persistedTabs = signal<(Tab | FolderDto)[]>([]);
   allPersistentTabs = computed(() =>
     this.persistedTabs().flatMap((x) => (this.isFolder(x) ? x.tabs : [x]))
   );
+  sortableEphemeralTabs: Tab[] = [];
   ephemeralTabs = signal<Tab[]>([]);
   activeTabId = signal<TabId | undefined>(undefined);
   tabsInitialized = signal(false);
@@ -108,7 +101,55 @@ export class TabsListComponent implements OnInit {
 
   api!: TabListApi;
 
+  sortableOptions: Options = {
+    handle: '.drag-handle',
+    animation: 150,
+    forceFallback: true,
+    group: {
+      name: 'tabs',
+      put: (to, from, draggedElement) => {
+        // Prevent folders from being dropped into ephemeral-tabs
+        return (
+          to.el.id !== 'ephemeral-tabs' ||
+          draggedElement.tagName !== 'TABS-LIST-FOLDER'
+        );
+      },
+    },
+    onUpdate: (e) => {
+      if (e.from.id === 'persistent-tabs') {
+        this.persistedTabs.set(this.sortablePersistedTabs);
+      }
+      if (e.from.id === 'ephemeral-tabs') {
+        this.ephemeralTabs.set(this.sortableEphemeralTabs);
+      }
+    },
+    onAdd: (e) => {
+      if (e.to.id === 'persistent-tabs') {
+        this.persistedTabs.set(this.sortablePersistedTabs);
+      }
+      if (e.to.id === 'ephemeral-tabs') {
+        this.ephemeralTabs.set(this.sortableEphemeralTabs);
+      }
+    },
+    onRemove: (e) => {
+      if (e.from.id === 'persistent-tabs') {
+        this.persistedTabs.set(this.sortablePersistedTabs);
+      }
+      if (e.from.id === 'ephemeral-tabs') {
+        this.ephemeralTabs.set(this.sortableEphemeralTabs);
+      }
+    },
+  };
+
   constructor() {
+    effect(() => {
+      this.sortablePersistedTabs = [...this.persistedTabs()];
+    });
+
+    effect(() => {
+      this.sortableEphemeralTabs = [...this.ephemeralTabs()];
+    });
+
     effect(() => {
       const activeTabId = this.activeTabId();
       if (!activeTabId) return;
