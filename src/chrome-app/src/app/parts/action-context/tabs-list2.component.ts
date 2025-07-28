@@ -215,11 +215,16 @@ export class TabsListComponent implements OnInit {
         tabs: Tab[],
         activeTabId: TabId | undefined,
         ephemeralTabStartIndex: number,
-        folders: Folder[]
+        folders: Folder[],
+        isFullUpdate: boolean
       ) => {
         const persistedTabs = tabs.slice(0, ephemeralTabStartIndex);
         this.persistedTabs.set(
-          this.createPersistedTabsWithFolders(persistedTabs, folders)
+          this.createPersistedTabsWithFolders(
+            persistedTabs,
+            folders,
+            isFullUpdate
+          )
         );
         const ephemeralTabs = tabs.filter(
           (t, idx) => idx >= ephemeralTabStartIndex
@@ -239,7 +244,8 @@ export class TabsListComponent implements OnInit {
 
   private createPersistedTabsWithFolders(
     persistentTabs: Tab[],
-    folders: Folder[]
+    folders: Folder[],
+    isFullUpdate: boolean
   ): (Tab | FolderDto)[] {
     const result: (Tab | FolderDto)[] = [];
     let currentFolder: FolderDto | undefined;
@@ -247,7 +253,7 @@ export class TabsListComponent implements OnInit {
       const folderId = folders.find((f) => f.startIndex === idx);
       if (folderId) {
         const isNewFolder =
-          this.tabsInitialized() &&
+          !isFullUpdate &&
           this.persistedTabs().every((x) => x.id !== folderId.id);
         currentFolder = {
           id: folderId.id,

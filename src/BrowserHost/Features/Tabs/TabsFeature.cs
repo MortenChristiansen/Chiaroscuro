@@ -53,7 +53,8 @@ public class TabsFeature(MainWindow window) : Feature(window)
                 [.. _tabBrowsersByWorkspace[e.WorkspaceId].Select(t => new TabDto(t.Id, t.Title, t.Favicon, DateTimeOffset.Now))],
                 activeTabId,
                 workspace.EphemeralTabStartIndex,
-                [.. workspace.Folders.Select(f => new FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
+                [.. workspace.Folders.Select(f => new FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))],
+                isFullUpdate: true
             );
             Window.SetCurrentTab(activeTabBrowser);
         });

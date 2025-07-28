@@ -122,7 +122,8 @@ public class FoldersFeature(MainWindow window) : Feature(window)
             [.. tabsFeature.TabBrowsers?.Select(t => new Tabs.TabDto(t.Id, t.Title, t.Favicon, DateTimeOffset.Now)) ?? []],
             Window.CurrentTab?.Id,
             currentWorkspace.EphemeralTabStartIndex,
-            [.. folders.Select(f => new Tabs.FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
+            [.. folders.Select(f => new Tabs.FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))],
+            isFullUpdate: false
         );
     }
 }
