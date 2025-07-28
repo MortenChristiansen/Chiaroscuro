@@ -109,6 +109,7 @@ export class TabsListComponent implements OnInit {
   tabsInitialized = signal(false);
   private saveTabsDebounceDelay = 1000;
   private tabActivationOrderStack = new Stack<TabId>();
+  private folderOpenState: Record<string, boolean> = {};
 
   api!: TabListApi;
 
@@ -250,15 +251,17 @@ export class TabsListComponent implements OnInit {
     const result: (Tab | FolderDto)[] = [];
     let currentFolder: FolderDto | undefined;
     persistentTabs.forEach((tab, idx) => {
-      const folderId = folders.find((f) => f.startIndex === idx);
-      if (folderId) {
+      const folder = folders.find((f) => f.startIndex === idx);
+      if (folder) {
         const isNewFolder =
           !isFullUpdate &&
-          this.persistedTabs().every((x) => x.id !== folderId.id);
+          this.persistedTabs().every((x) => x.id !== folder.id);
+        const isOpen =
+          isNewFolder || (this.folderOpenState[folder.id] ?? false);
         currentFolder = {
-          id: folderId.id,
-          name: folderId.name,
-          isOpen: isNewFolder || (folderId.isOpen ?? false),
+          id: folder.id,
+          name: folder.name,
+          isOpen,
           tabs: [],
           isNew: isNewFolder,
         };
@@ -394,9 +397,14 @@ export class TabsListComponent implements OnInit {
 
   toggleFolder(folderId: FolderId): void {
     this.persistedTabs.update((current) => {
-      return current.map((x) =>
-        this.isFolder(x) && x.id === folderId ? { ...x, isOpen: !x.isOpen } : x
-      );
+      return current.map((x) => {
+        if (this.isFolder(x) && x.id === folderId) {
+          const newIsOpen = !x.isOpen;
+          this.folderOpenState[folderId] = newIsOpen;
+          return { ...x, isOpen: newIsOpen };
+        }
+        return x;
+      });
     });
   }
 

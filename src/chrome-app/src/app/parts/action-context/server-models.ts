@@ -28,5 +28,4 @@ export interface Folder {
   name: string;
   startIndex: number;
   endIndex: number;
-  isOpen?: boolean;
 }
