@@ -340,7 +340,7 @@ export class TabsListComponent implements OnInit {
         IsActive: tab.id === selectedTabId,
         Created: tab.created,
       })),
-      this.persistedTabs().length, // Ephemeral tab start index
+      this.allPersistentTabs().length, // Ephemeral tab start index
       this.getFolderIndexInformation()
     );
   }, this.saveTabsDebounceDelay);
