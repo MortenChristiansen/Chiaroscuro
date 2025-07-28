@@ -1,8 +1,24 @@
 import { Component, effect, input, output, signal } from '@angular/core';
+import {
+  trigger,
+  state,
+  style,
+  transition,
+  animate,
+} from '@angular/animations';
 
 @Component({
   selector: 'tabs-list-folder',
   standalone: true,
+  animations: [
+    trigger('expandCollapse', [
+      state('open', style({ height: '*', opacity: 1, overflow: 'visible' })),
+      state('closed', style({ height: '0px', opacity: 0, overflow: 'hidden' })),
+      transition('open <=> closed', [
+        animate('200ms cubic-bezier(0.4,0,0.2,1)'),
+      ]),
+    ]),
+  ],
   template: `
     <div
       class="rounded-lg select-none text-white font-sans text-sm bg-gray-700/50"
@@ -90,11 +106,15 @@ import { Component, effect, input, output, signal } from '@angular/core';
         </button>
         }
       </div>
-      @if(isOpen()) {
-      <div class="flex flex-col mt-2 ml-6">
+      <div
+        [@expandCollapse]="isOpen() ? 'open' : 'closed'"
+        class="flex flex-col mt-2 ml-6 transition-all duration-200"
+        (@expandCollapse.start)="onAnimationStart()"
+        (@expandCollapse.done)="onAnimationDone()"
+        style="will-change: height, opacity;"
+      >
         <ng-content />
       </div>
-      }
     </div>
   `,
 })
@@ -106,6 +126,7 @@ export class TabsListFolderComponent {
   folderRenamed = output<string>();
 
   isEditing = signal(false);
+  animating = false;
 
   constructor() {
     effect(() => {
@@ -113,5 +134,12 @@ export class TabsListFolderComponent {
         this.isEditing.set(true);
       }
     });
+  }
+
+  onAnimationStart() {
+    this.animating = true;
+  }
+  onAnimationDone() {
+    this.animating = false;
   }
 }
