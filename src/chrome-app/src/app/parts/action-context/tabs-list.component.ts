@@ -266,6 +266,9 @@ export class TabsListComponent implements OnInit {
           isNew: isNewFolder,
         };
         result.push(currentFolder);
+        if (isNewFolder) {
+          this.folderOpenState[folder.id] = isOpen;
+        }
       }
       if (
         currentFolder &&
