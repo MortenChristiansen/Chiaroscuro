@@ -1,4 +1,12 @@
-import { Component, effect, input, output, signal } from '@angular/core';
+import {
+  Component,
+  effect,
+  ElementRef,
+  input,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import {
   trigger,
   state,
@@ -76,7 +84,6 @@ import {
           "
           (keydown.escape)="isEditing.set(false)"
           class="flex-1 bg-transparent border-b border-gray-400 focus:border-white outline-none text-white"
-          autoFocus
         />
         } @else {
         <span
@@ -127,11 +134,23 @@ export class TabsListFolderComponent {
 
   isEditing = signal(false);
   animating = false;
+  hasStartedEditingDueToNewState = false;
+
+  folderNameInput = viewChild<ElementRef<HTMLInputElement>>('folderNameInput');
 
   constructor() {
     effect(() => {
-      if (this.isNew()) {
+      if (
+        this.isNew() &&
+        !this.isEditing() &&
+        !this.hasStartedEditingDueToNewState
+      ) {
+        this.hasStartedEditingDueToNewState = true;
         this.isEditing.set(true);
+      }
+
+      if (this.folderNameInput()) {
+        this.folderNameInput()!.nativeElement.focus();
       }
     });
   }
