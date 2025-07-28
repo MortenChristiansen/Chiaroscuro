@@ -53,6 +53,7 @@ interface FolderDto {
         [name]="folder.name"
         [isOpen]="folder.isOpen"
         [isNew]="folder.isNew"
+        [containsActiveTab]="containsActiveTab(folder)"
         (toggleOpen)="toggleFolder(folder.id)"
         (folderRenamed)="renameFolder(folder.id, $event)"
       >
@@ -423,5 +424,9 @@ export class TabsListComponent implements OnInit {
         this.isFolder(x) && x.id === folderId ? { ...x, name: newName } : x
       );
     });
+  }
+
+  containsActiveTab(folder: FolderDto): boolean {
+    return folder.tabs.some((t) => t.id === this.activeTabId());
   }
 }

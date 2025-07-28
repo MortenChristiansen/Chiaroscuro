@@ -29,7 +29,9 @@ import {
   ],
   template: `
     <div
-      class="rounded-lg select-none text-white font-sans text-sm bg-gray-700/50"
+      class="rounded-lg select-none text-white font-sans text-sm {{
+        containsActiveTab() && !isOpen() ? ' font-bold' : ''
+      }}"
     >
       <div class="group flex items-center px-4 py-1">
         <button
@@ -139,6 +141,7 @@ export class TabsListFolderComponent {
   name = input.required<string>();
   isOpen = input.required<boolean>();
   isNew = input.required<boolean>();
+  containsActiveTab = input.required<boolean>();
   toggleOpen = output<void>();
   folderRenamed = output<string>();
 
