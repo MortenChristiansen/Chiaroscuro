@@ -348,7 +348,13 @@ export class TabsListComponent implements OnInit {
   closeTab(tabId: TabId, updateBackend = true) {
     this.tabActivationOrderStack.remove(tabId);
     this.persistedTabs.update((currentTabs) =>
-      currentTabs.filter((t) => t.id !== tabId)
+      currentTabs
+        .filter((t) => t.id !== tabId)
+        .map((x) =>
+          this.isFolder(x)
+            ? { ...x, tabs: x.tabs.filter((t) => t.id !== tabId) }
+            : x
+        )
     );
     this.ephemeralTabs.update((currentTabs) =>
       currentTabs.filter((t) => t.id !== tabId)
