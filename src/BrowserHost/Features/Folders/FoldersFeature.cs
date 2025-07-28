@@ -101,8 +101,6 @@ public class FoldersFeature(MainWindow window) : Feature(window)
 
     private void SaveFolders(FolderDtoV1[] folders, WorkspaceDtoV1 currentWorkspace)
     {
-        //TODO: Is there a prettier way to do this?
-
         // Persist the updated workspace state
         PubSub.Publish(new TabsChangedEvent(
             [..currentWorkspace.Tabs.Select(t => new TabUiStateDto(
@@ -118,12 +116,8 @@ public class FoldersFeature(MainWindow window) : Feature(window)
 
         // Notify the frontend
         var tabsFeature = Window.GetFeature<TabsFeature>();
-        Window.ActionContext.SetTabs(
-            [.. tabsFeature.TabBrowsers?.Select(t => new Tabs.TabDto(t.Id, t.Title, t.Favicon, DateTimeOffset.Now)) ?? []],
-            Window.CurrentTab?.Id,
-            currentWorkspace.EphemeralTabStartIndex,
-            [.. folders.Select(f => new Tabs.FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))],
-            isFullUpdate: false
+        Window.ActionContext.UpdateFolders(
+            [.. folders.Select(f => new Tabs.FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
         );
     }
 }
