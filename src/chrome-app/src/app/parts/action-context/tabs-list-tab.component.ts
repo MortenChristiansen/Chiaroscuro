@@ -8,13 +8,13 @@ import { FaviconComponent } from '../../shared/favicon.component';
   standalone: true,
   template: `
     <div
-      class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10"
+      class="tab drag-handle group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10"
       [ngClass]="{
         'bg-white/20 hover:bg-white/30': isActive(),
       }"
       (click)="onSelectTab()"
     >
-      <favicon [src]="tab().favicon" class="drag-handle w-4 h-4 mr-2" />
+      <favicon [src]="tab().favicon" class="w-4 h-4 mr-2" />
       <span class="truncate flex-1">{{ tab().title ?? 'Loading...' }}</span>
       <button
         class="close-button not-odd:ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
