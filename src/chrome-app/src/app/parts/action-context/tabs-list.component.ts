@@ -19,7 +19,7 @@ interface FolderDto {
 }
 
 @Component({
-  selector: 'tabs-list2',
+  selector: 'tabs-list',
   imports: [
     CommonModule,
     TabsListTabComponent,
