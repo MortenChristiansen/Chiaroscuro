@@ -7,14 +7,15 @@ A simple web browser built on the CefSharp library. It runs on Windows only and 
 In browser:
 
 - **Ctrl-T**: Show action dialog.
-- **F5**: Reload page.
-- **Ctrl-F5**: Reload page, ignoring cache.
 - **Ctrl-X**: Close current tab.
 - **Ctrl-B**: Toggle tab as bookmark.
-- **F12**: Toggle dev tools.
+- **Ctrl-G**: Toggle whether a bookmarked tab is placed in a folder or not.
 - **Ctrl-MouseWheel**: Change zoom level.
 - **Ctrl-Backspace**: Reset zoom level.
 - **Ctrl-1, Ctrl-2, Ctrl-3, etc.**: Switch to workspace 1, 2, 3, etc.
+- **F5**: Reload page.
+- **Ctrl-F5**: Reload page, ignoring cache.
+- **F12**: Toggle dev tools.
 
 In action dialog:
 

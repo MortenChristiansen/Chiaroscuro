@@ -17,6 +17,7 @@ and uses Angular for the window chrome parts of the UI.
 
 ## General Coding Guidelines
 - Avoid adding code that is not currently being used.
+- Always provide finished code. This means that there should be no "TODO" comments in the code.
 
 ## Angular Guidelines
 - Use new newest Angular features and syntax.

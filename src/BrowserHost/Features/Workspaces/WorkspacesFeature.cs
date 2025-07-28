@@ -10,18 +10,20 @@ namespace BrowserHost.Features.Workspaces;
 public class WorkspacesFeature(MainWindow window) : Feature(window)
 {
     private WorkspaceDtoV1[] _workspaces = [];
-    private WorkspaceDtoV1 _currentWorkspace = null!;
+    private string _currentWorkspaceId = null!;
+
+    public WorkspaceDtoV1 CurrentWorkspace => _workspaces.FirstOrDefault(ws => ws.WorkspaceId == _currentWorkspaceId) ?? throw new ArgumentException("Error getting current workspace");
 
     public override void Configure()
     {
         _workspaces = WorkspaceStateManager.RestoreWorkspacesFromDisk();
-        _currentWorkspace = _workspaces[0];
+        _currentWorkspaceId = _workspaces[0].WorkspaceId;
         RestoreWorkspaces();
 
         var tabsFeature = Window.GetFeature<TabsFeature>();
         PubSub.Subscribe<TabsChangedEvent>(e =>
             _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
-                _currentWorkspace.WorkspaceId,
+                _currentWorkspaceId,
                 e.Tabs.Select(t => new WorkspaceTabStateDtoV1(
                     t.Id,
                     tabsFeature.GetTabById(t.Id)?.Address ?? "",
@@ -30,12 +32,18 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                     t.IsActive,
                     t.Created)
                 ),
-                e.EphemeralTabStartIndex
+                e.EphemeralTabStartIndex,
+                e.Folders.Select(f => new FolderDtoV1(
+                    f.Id,
+                    f.Name,
+                    f.StartIndex,
+                    f.EndIndex
+                ))
             )
         );
         PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
         {
-            _currentWorkspace = GetWorkspaceById(e.WorkspaceId);
+            _currentWorkspaceId = e.WorkspaceId;
             Window.ActionContext.WorkspaceActivated(e.WorkspaceId);
             Window.WorkspaceColor = GetCurrentWorkspaceColor();
         });
@@ -63,9 +71,9 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 Color = e.Color,
                 Icon = e.Icon
             };
-            if (e.WorkspaceId == _currentWorkspace.WorkspaceId)
+            if (e.WorkspaceId == _currentWorkspaceId)
             {
-                _currentWorkspace = workspace;
+                _currentWorkspaceId = e.WorkspaceId;
                 Window.WorkspaceColor = GetCurrentWorkspaceColor();
             }
 
@@ -80,7 +88,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             _workspaces = WorkspaceStateManager.DeleteWorkspace(e.WorkspaceId);
             NotifyFrontendOfUpdatedWorkspaces();
 
-            if (e.WorkspaceId == _currentWorkspace.WorkspaceId)
+            if (e.WorkspaceId == _currentWorkspaceId)
                 PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[0].WorkspaceId));
         });
     }
@@ -88,11 +96,11 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     public override void Start()
     {
         Window.WorkspaceColor = GetCurrentWorkspaceColor();
-        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspace.WorkspaceId));
+        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspaceId));
     }
 
     private Color GetCurrentWorkspaceColor() =>
-        (Color)ColorConverter.ConvertFromString(_currentWorkspace.Color);
+        (Color)ColorConverter.ConvertFromString(CurrentWorkspace.Color);
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
@@ -112,7 +120,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 _ => -1
             };
 
-            if (index >= 0 && index < _workspaces.Length && _workspaces[index] != _currentWorkspace)
+            if (index >= 0 && index < _workspaces.Length && _workspaces[index] != CurrentWorkspace)
                 PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[index].WorkspaceId));
         }
 
@@ -134,7 +142,8 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 ws.Icon,
                 [..ws.Tabs.Select(t => new TabDto(t.TabId, t.Title, t.Favicon, t.Created))],
                 ws.EphemeralTabStartIndex,
-                ws.Tabs.FirstOrDefault(t => t.IsActive)?.TabId
+                ws.Tabs.FirstOrDefault(t => t.IsActive)?.TabId,
+                [..ws.Folders.Select(f => new FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
             ))]
         );
     }

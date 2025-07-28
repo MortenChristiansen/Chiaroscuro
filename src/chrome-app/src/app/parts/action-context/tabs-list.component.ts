@@ -1,21 +1,32 @@
-import { Component, effect, OnInit, signal } from '@angular/core';
-import { TabListApi } from './tabListApi';
-import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
-import {
-  CdkDragDrop,
-  moveItemInArray,
-  DragDropModule,
-} from '@angular/cdk/drag-drop';
-import { debounce } from '../../shared/utils';
-import { FaviconComponent } from '../../shared/favicon.component';
+import { Component, computed, effect, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Tab, TabId } from './server-models';
+import { FolderIndexStateDto, TabListApi } from './tabListApi';
+import { Folder, FolderId, Tab, TabId } from './server-models';
+import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
+import { TabsListTabComponent } from './tabs-list-tab.component';
+import { debounce } from '../../shared/utils';
+import { Stack } from '../../shared/stack';
+import { TabsListFolderComponent } from './tab-list-folder.component';
+import { SortablejsModule } from 'nxt-sortablejs';
+import { Options } from 'sortablejs';
+
+interface FolderDto {
+  id: string;
+  name: string;
+  isOpen: boolean;
+  isNew: boolean;
+  tabs: Tab[];
+}
 
 @Component({
   selector: 'tabs-list',
-  imports: [DragDropModule, FaviconComponent, CommonModule],
+  imports: [
+    CommonModule,
+    TabsListTabComponent,
+    TabsListFolderComponent,
+    SortablejsModule,
+  ],
   template: `
-    @let ephemeralIndex = ephemeralTabStartIndex();
     <span
       class="bookmark-label text-gray-500 text-xs px-4"
       style="pointer-events: none;"
@@ -24,118 +35,311 @@ import { Tab, TabId } from './server-models';
     </span>
 
     <div
+      id="persistent-tabs"
       class="flex flex-col gap-2"
-      cdkDropList
-      (cdkDropListDropped)="drop($event)"
+      [nxtSortablejs]="sortablePersistedTabs"
+      [config]="sortableOptions"
     >
-      @for (tab of tabs(); track tab.id) { @if ($index === ephemeralIndex) {
-      <div
-        cdkDrag
-        style="pointer-events: none;"
-        class="w-full h-0.5 my-2 bg-gradient-to-r from-transparent via-gray-500 to-transparent opacity-60 rounded-full"
-      ></div>
-      }
-
-      <div
-        class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 {{
-          tab.id === selectedTab()?.id ? 'bg-white/20 hover:bg-white/30' : ''
-        }} cdkDrag"
-        (click)="selectedTab.set(tab)"
-        cdkDrag
-        [cdkDragData]="tab"
+      @for (tabOrFolder of sortablePersistedTabs; track tabOrFolder.id) { @if
+      (!isFolder(tabOrFolder)) { @let tab = tabOrFolder;
+      <tabs-list-tab
+        [tab]="tab"
+        [isActive]="tab.id == activeTabId()"
+        (selectTab)="activeTabId.set(tab.id)"
+        (closeTab)="closeTab(tab.id, true)"
+      />
+      } @else { @let folder = tabOrFolder;
+      <tabs-list-folder
+        [name]="folder.name"
+        [isOpen]="folder.isOpen"
+        [isNew]="folder.isNew"
+        [containsActiveTab]="containsActiveTab(folder)"
+        (toggleOpen)="toggleFolder(folder.id)"
+        (folderRenamed)="renameFolder(folder.id, $event)"
       >
-        <favicon [src]="tab.favicon" class="w-4 h-4 mr-2" />
-        <span class="truncate flex-1">{{ tab.title ?? 'Loading...' }}</span>
-        <button
-          class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
-          (click)="$event.stopPropagation(); close(tab.id)"
-          aria-label="Close tab"
+        <div
+          class="flex flex-col gap-2 tab-folder"
+          [nxtSortablejs]="folder.tabs"
+          [config]="sortableOptions"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 20 20"
-            stroke-width="2"
-            stroke="currentColor"
-            class="w-4 h-4"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M6 6l8 8M6 14L14 6"
-            />
-          </svg>
-        </button>
-      </div>
-
-      @if ($index === tabs().length - 1 && $index +1 === ephemeralIndex) {
-      <div
-        class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
-        cdkDrag
-        style="pointer-events: none;"
-      ></div>
+          @for (tab of folder.tabs; track tab.id) {
+          <tabs-list-tab
+            [tab]="tab"
+            [isActive]="tab.id == activeTabId()"
+            (selectTab)="activeTabId.set(tab.id)"
+            (closeTab)="closeTab(tab.id, true)"
+          />
+          }
+        </div>
+      </tabs-list-folder>
       } }
     </div>
+
+    <div
+      class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
+      style="pointer-events: none;"
+    ></div>
+
+    <div
+      id="ephemeral-tabs"
+      class="flex flex-col gap-2"
+      [nxtSortablejs]="sortableEphemeralTabs"
+      [config]="sortableOptions"
+    >
+      @for (tab of sortableEphemeralTabs; track tab.id) {
+      <tabs-list-tab
+        [tab]="tab"
+        [isActive]="tab.id == activeTabId()"
+        (selectTab)="activeTabId.set(tab.id)"
+        (closeTab)="closeTab(tab.id, true)"
+      />
+      }
+    </div>
   `,
-  styles: `
-  .cdk-drag-placeholder {
-    /* The destination element - currently not styled */
-  }
-
-  .cdk-drag-animating {
-    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-  }
-
-  .cdk-drop-list-dragging .tab:not(.cdk-drag-placeholder) {
-    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-  }
-
-  .cdk-drag-preview {
-    opacity: 0; /* We don't show an element at the mouse position while dragging */
-  }
-
-  .cdk-drop-list-dragging .tab:not(.cdk-drag-placeholder) {
-    background: transparent !important; /* Disable hover effect of dragged over elements */
-  }
-
-  .cdk-drop-list-dragging .tab:not(.cdk-drag-placeholder) button {
-    display: none; /* Hide close button of dragged over elements */
-  }
-  `,
+  styles: ``,
 })
-export default class TabsListComponent implements OnInit {
-  tabs = signal<Tab[]>([]);
-  ephemeralTabStartIndex = signal<number>(0);
+export class TabsListComponent implements OnInit {
+  sortablePersistedTabs: (Tab | FolderDto)[] = [];
+  persistedTabs = signal<(Tab | FolderDto)[]>([]);
+  allPersistentTabs = computed(() =>
+    this.persistedTabs().flatMap((x) => (this.isFolder(x) ? x.tabs : [x]))
+  );
+  sortableEphemeralTabs: Tab[] = [];
+  ephemeralTabs = signal<Tab[]>([]);
+  activeTabId = signal<TabId | undefined>(undefined);
   tabsInitialized = signal(false);
-  selectedTab = signal<Tab | null>(null);
   private saveTabsDebounceDelay = 1000;
-  private tabActivationOrderStack: TabId[] = [];
+  private tabActivationOrderStack = new Stack<TabId>();
+  private folderOpenState: Record<string, boolean> = {};
+
+  api!: TabListApi;
+
+  sortableOptions: Options = {
+    handle: '.drag-handle',
+    animation: 150,
+    forceFallback: true,
+    group: {
+      name: 'tabs',
+      put: (to, from, draggedElement) => {
+        // Prevent folders from being dropped into other folders
+        if (
+          draggedElement.tagName === 'TABS-LIST-FOLDER' &&
+          to.el.classList.contains('tab-folder')
+        )
+          return false;
+        // Prevent folders from being dropped into ephemeral-tabs
+        return (
+          to.el.id !== 'ephemeral-tabs' ||
+          draggedElement.tagName !== 'TABS-LIST-FOLDER'
+        );
+      },
+    },
+    onUpdate: (e) => {
+      if (
+        e.from.id === 'persistent-tabs' ||
+        e.from.classList.contains('tab-folder')
+      ) {
+        this.persistedTabs.set(this.sortablePersistedTabs);
+      }
+      if (e.from.id === 'ephemeral-tabs') {
+        this.ephemeralTabs.set(this.sortableEphemeralTabs);
+      }
+    },
+    onAdd: (e) => {
+      const classes: string[] = [];
+      e.to.classList.forEach((cls) => classes.push(cls));
+
+      if (
+        e.to.id === 'persistent-tabs' ||
+        e.to.classList.contains('tab-folder')
+      ) {
+        this.persistedTabs.set(this.sortablePersistedTabs);
+      }
+      if (e.to.id === 'ephemeral-tabs') {
+        this.ephemeralTabs.set(this.sortableEphemeralTabs);
+      }
+    },
+    onRemove: (e) => {
+      if (
+        e.from.id === 'persistent-tabs' ||
+        e.from.classList.contains('tab-folder')
+      ) {
+        this.persistedTabs.set(this.sortablePersistedTabs);
+      }
+      if (e.from.id === 'ephemeral-tabs') {
+        this.ephemeralTabs.set(this.sortableEphemeralTabs);
+      }
+    },
+  };
 
   constructor() {
     effect(() => {
-      const activeTab = this.selectedTab();
-      if (!activeTab) return;
-      this.api.activateTab(activeTab.id);
+      this.sortablePersistedTabs = [...this.persistedTabs()];
     });
 
     effect(() => {
-      const activeTab = this.selectedTab();
-      if (!activeTab) return;
+      this.sortableEphemeralTabs = [...this.ephemeralTabs()];
+    });
 
-      this.tabActivationOrderStack = [
-        ...this.tabActivationOrderStack.filter((id) => id !== activeTab.id),
-        activeTab.id,
-      ];
+    effect(() => {
+      const activeTabId = this.activeTabId();
+      if (!activeTabId) return;
+      this.api.activateTab(activeTabId);
+    });
+
+    effect(() => {
+      const activeTabId = this.activeTabId();
+      if (!activeTabId) return;
+
+      this.tabActivationOrderStack.push(activeTabId);
     });
 
     effect(() => {
       if (!this.tabsInitialized()) return;
-      const currentTabs = this.tabs();
-      this.tabsChanged(currentTabs, this.selectedTab()?.id ?? null);
+
+      // Trigger effect (the actual values are retrieved in the debounced method)
+      this.allPersistentTabs(), this.ephemeralTabs(), this.tabsChanged();
     });
   }
 
-  private tabsChanged = debounce((tabs: Tab[], selectedTabId: TabId | null) => {
+  async ngOnInit() {
+    this.api = await loadBackendApi<TabListApi>('tabsApi');
+
+    exposeApiToBackend({
+      addTab: (tab: Tab, activate: boolean) => {
+        this.ephemeralTabs.update((currentTabs) => [...currentTabs, tab]);
+
+        if (activate) {
+          this.activeTabId.set(tab.id);
+        }
+      },
+      setTabs: (
+        tabs: Tab[],
+        activeTabId: TabId | undefined,
+        ephemeralTabStartIndex: number,
+        folders: Folder[]
+      ) => {
+        const persistedTabs = tabs.slice(0, ephemeralTabStartIndex);
+        this.persistedTabs.set(
+          this.createPersistedTabsWithFolders(persistedTabs, folders, true)
+        );
+        const ephemeralTabs = tabs.filter(
+          (t, idx) => idx >= ephemeralTabStartIndex
+        );
+        this.ephemeralTabs.set(ephemeralTabs);
+        this.activeTabId.set(activeTabId);
+        this.tabsInitialized.set(true);
+      },
+      updateFolders: (folders: Folder[]) => {
+        this.persistedTabs.set(
+          this.createPersistedTabsWithFolders(
+            this.allPersistentTabs(),
+            folders,
+            false
+          )
+        );
+      },
+      updateTitle: (tabId: TabId, title: string | null) =>
+        this.updateTab(tabId, { title }),
+      updateFavicon: (tabId: TabId, favicon: string | null) =>
+        this.updateTab(tabId, { favicon }),
+      closeTab: (tabId: TabId) => this.closeTab(tabId, false),
+      toggleTabBookmark: (tabId: TabId) => this.toggleBookmark(tabId),
+    });
+  }
+
+  private createPersistedTabsWithFolders(
+    persistentTabs: Tab[],
+    folders: Folder[],
+    isFullUpdate: boolean
+  ): (Tab | FolderDto)[] {
+    const result: (Tab | FolderDto)[] = [];
+    let currentFolder: FolderDto | undefined;
+    persistentTabs.forEach((tab, idx) => {
+      const folder = folders.find((f) => f.startIndex === idx);
+      if (folder) {
+        const isNewFolder =
+          !isFullUpdate &&
+          this.persistedTabs().every((x) => x.id !== folder.id);
+        const isOpen =
+          isNewFolder || (this.folderOpenState[folder.id] ?? false);
+        currentFolder = {
+          id: folder.id,
+          name: folder.name,
+          isOpen,
+          tabs: [],
+          isNew: isNewFolder,
+        };
+        result.push(currentFolder);
+        if (isNewFolder) {
+          this.folderOpenState[folder.id] = isOpen;
+        }
+      }
+      if (
+        currentFolder &&
+        folders.find(
+          (f) =>
+            currentFolder!.id === f.id &&
+            f.startIndex <= idx &&
+            f.endIndex >= idx
+        )
+      ) {
+        currentFolder.tabs.push(tab);
+      } else {
+        result.push(tab);
+      }
+    });
+
+    return result;
+  }
+
+  private getFolderIndexInformation(): FolderIndexStateDto[] {
+    const folders: FolderIndexStateDto[] = [];
+    let startIndex = 0;
+
+    this.persistedTabs().forEach((tabOrFolder) => {
+      if (this.isFolder(tabOrFolder) && tabOrFolder.tabs.length > 0) {
+        folders.push({
+          Id: tabOrFolder.id,
+          Name: tabOrFolder.name,
+          StartIndex: startIndex,
+          EndIndex: startIndex + tabOrFolder.tabs.length - 1,
+        });
+        startIndex += tabOrFolder.tabs.length;
+      } else {
+        startIndex++;
+      }
+    });
+
+    return folders;
+  }
+
+  private updateTab(tabId: TabId, update: Partial<Tab>) {
+    this.persistedTabs.update((currentTabs) => {
+      return currentTabs.map((x) =>
+        this.isFolder(x)
+          ? {
+              ...x,
+              tabs: x.tabs.map((t) =>
+                t.id === tabId ? { ...t, ...update } : t
+              ),
+            }
+          : x.id === tabId
+          ? { ...x, ...update }
+          : x
+      );
+    });
+    this.ephemeralTabs.update((currentTabs) => {
+      return currentTabs.map((tab) =>
+        tab.id === tabId ? { ...tab, ...update } : tab
+      );
+    });
+  }
+
+  private tabsChanged = debounce(() => {
+    const tabs = [...this.allPersistentTabs(), ...this.ephemeralTabs()];
+    const selectedTabId = this.activeTabId() ?? null;
+
     this.api.tabsChanged(
       tabs.map((tab) => ({
         Id: tab.id,
@@ -144,131 +348,33 @@ export default class TabsListComponent implements OnInit {
         IsActive: tab.id === selectedTabId,
         Created: tab.created,
       })),
-      this.ephemeralTabStartIndex()
+      this.allPersistentTabs().length, // Ephemeral tab start index
+      this.getFolderIndexInformation()
     );
   }, this.saveTabsDebounceDelay);
 
-  drop(event: CdkDragDrop<any>) {
-    const currentTabs = [...this.tabs()];
-    const ephemeralIndex = this.ephemeralTabStartIndex();
-
-    const { adjustedCurrentIndex, adjustedPreviousIndex } =
-      this.adjustDragIndices(
-        event.currentIndex,
-        event.previousIndex,
-        ephemeralIndex
-      );
-
-    moveItemInArray(currentTabs, adjustedPreviousIndex, adjustedCurrentIndex);
-    this.tabs.set(currentTabs);
-
-    // If the item was dragged past the separator, update ephemeralTabStartIndex
-    if (
-      event.previousIndex < ephemeralIndex &&
-      event.currentIndex >= ephemeralIndex
-    ) {
-      // Moved from persistent to ephemeral
-      this.ephemeralTabStartIndex.set(ephemeralIndex - 1);
-    } else if (
-      event.previousIndex > ephemeralIndex &&
-      event.currentIndex <= ephemeralIndex
-    ) {
-      // Moved from ephemeral to persistent
-      this.ephemeralTabStartIndex.set(ephemeralIndex + 1);
-    }
-  }
-
-  private adjustDragIndices(
-    currentIndex: number,
-    previousIndex: number,
-    ephemeralIndex: number
-  ) {
-    let adjustedCurrentIndex =
-      currentIndex - (currentIndex > ephemeralIndex ? 1 : 0);
-    const adjustedPreviousIndex =
-      previousIndex - (previousIndex > ephemeralIndex ? 1 : 0);
-
-    // I cannot explain the nature of this condition but it solves an edge case when dragging a persistent tab to the top of the ephemeral tabs
-    if (
-      currentIndex == ephemeralIndex &&
-      adjustedCurrentIndex == ephemeralIndex &&
-      currentIndex > previousIndex
-    )
-      adjustedCurrentIndex--;
-
-    return { adjustedCurrentIndex, adjustedPreviousIndex };
-  }
-
-  async ngOnInit() {
-    this.api = await loadBackendApi<TabListApi>('tabsApi');
-
-    exposeApiToBackend({
-      addTab: (tab: Tab, activate: boolean) => {
-        this.tabs.update((currentTabs) => [...currentTabs, tab]);
-
-        if (activate) {
-          this.selectedTab.set(tab);
-        }
-      },
-      setTabs: (
-        tabs: Tab[],
-        activeTabId: TabId,
-        ephemeralTabStartIndex: number
-      ) => {
-        this.tabs.set(tabs);
-        this.ephemeralTabStartIndex.set(ephemeralTabStartIndex);
-
-        const activeTab = tabs.find((t) => t.id === activeTabId);
-        if (activeTab) {
-          this.selectedTab.set(activeTab);
-        }
-        this.tabsInitialized.set(true);
-        this.tabActivationOrderStack = [
-          ...tabs.filter((t) => t.id !== activeTabId).map((t) => t.id),
-          activeTabId,
-        ];
-      },
-      updateTitle: (tabId: TabId, title: string | null) => {
-        this.tabs.update((currentTabs) => {
-          const updatedTabs = currentTabs.map((tab, i) =>
-            currentTabs[i].id === tabId ? { ...tab, title } : tab
-          );
-          return updatedTabs;
-        });
-      },
-      updateFavicon: (tabId: TabId, favicon: string | null) => {
-        this.tabs.update((currentTabs) => {
-          const updatedTabs = currentTabs.map((tab, i) =>
-            currentTabs[i].id === tabId ? { ...tab, favicon } : tab
-          );
-          return updatedTabs;
-        });
-      },
-      closeTab: (tabId: TabId) => this.close(tabId, false),
-      toggleTabBookmark: (tabId: TabId) => this.toggleBookmark(tabId),
-    });
-  }
-
-  api!: TabListApi;
-
-  close(tabId: TabId, updateBackend = true) {
-    this.tabActivationOrderStack = this.tabActivationOrderStack.filter(
-      (id) => id !== tabId
+  closeTab(tabId: TabId, updateBackend = true) {
+    this.tabActivationOrderStack.remove(tabId);
+    this.persistedTabs.update((currentTabs) =>
+      currentTabs
+        .filter((t) => t.id !== tabId)
+        .map((x) =>
+          this.isFolder(x)
+            ? { ...x, tabs: x.tabs.filter((t) => t.id !== tabId) }
+            : x
+        )
     );
-    this.tabs.update((currentTabs) =>
+    this.ephemeralTabs.update((currentTabs) =>
       currentTabs.filter((t) => t.id !== tabId)
     );
 
-    if (this.selectedTab()?.id === tabId) {
+    if (this.activeTabId() === tabId) {
       const newSelectedTabId =
-        this.tabs().length == 0
-          ? null
-          : this.tabActivationOrderStack[
-              this.tabActivationOrderStack.length - 1
-            ];
-      const newSelectedTab =
-        this.tabs().find((t) => t.id === newSelectedTabId) || null;
-      this.selectedTab.set(newSelectedTab);
+        this.persistedTabs().length == 0 && this.ephemeralTabs().length == 0
+          ? undefined
+          : this.tabActivationOrderStack.pop();
+
+      this.activeTabId.set(newSelectedTabId);
     }
 
     if (updateBackend) {
@@ -276,33 +382,55 @@ export default class TabsListComponent implements OnInit {
     }
   }
 
+  isFolder(tab: Tab | FolderDto): tab is FolderDto {
+    return 'tabs' in tab;
+  }
+
   toggleBookmark(tabId: TabId) {
-    const currentTabs = [...this.tabs()];
-    const ephemeralIndex = this.ephemeralTabStartIndex();
-    const tabIndex = currentTabs.findIndex((t) => t.id === tabId);
-
-    if (tabIndex === -1) return; // Tab not found
-
-    const tab = currentTabs[tabIndex];
-    const isCurrentlyEphemeral = tabIndex >= ephemeralIndex;
-
-    // Remove tab from current position
-    currentTabs.splice(tabIndex, 1);
-
-    if (isCurrentlyEphemeral) {
-      // Moving from ephemeral to persistent (bookmark the tab)
-      // Insert at the end of persistent tabs (which is now at ephemeralIndex after removal)
-      currentTabs.splice(ephemeralIndex, 0, tab);
-      // Update ephemeralIndex as persistent section grew by 1
-      this.ephemeralTabStartIndex.set(ephemeralIndex + 1);
+    const isBookmarked = this.persistedTabs().some((t) => t.id === tabId);
+    if (isBookmarked) {
+      const tab = this.allPersistentTabs().find((t) => t.id === tabId) as Tab;
+      this.persistedTabs.update((tabsOrFolders) =>
+        tabsOrFolders
+          .filter((t) => t.id !== tabId)
+          .map((x) =>
+            this.isFolder(x)
+              ? { ...x, tabs: x.tabs.filter((t) => t.id !== tabId) }
+              : x
+          )
+      );
+      this.ephemeralTabs.update((currentTabs) => [...currentTabs, tab]);
     } else {
-      // Moving from persistent to ephemeral (unbookmark the tab)
-      // Insert at the end of all tabs (end of ephemeral section)
-      currentTabs.push(tab);
-      // Update ephemeralIndex to account for one less persistent tab
-      this.ephemeralTabStartIndex.set(ephemeralIndex - 1);
+      const tab = this.ephemeralTabs().find((t) => t.id === tabId)!;
+      this.persistedTabs.update((currentTabs) => [...currentTabs, tab]);
+      this.ephemeralTabs.update((currentTabs) =>
+        currentTabs.filter((t) => t.id !== tabId)
+      );
     }
+  }
 
-    this.tabs.set(currentTabs);
+  toggleFolder(folderId: FolderId): void {
+    this.persistedTabs.update((current) => {
+      return current.map((x) => {
+        if (this.isFolder(x) && x.id === folderId) {
+          const newIsOpen = !x.isOpen;
+          this.folderOpenState[folderId] = newIsOpen;
+          return { ...x, isOpen: newIsOpen };
+        }
+        return x;
+      });
+    });
+  }
+
+  renameFolder(folderId: FolderId, newName: string): void {
+    this.persistedTabs.update((current) => {
+      return current.map((x) =>
+        this.isFolder(x) && x.id === folderId ? { ...x, name: newName } : x
+      );
+    });
+  }
+
+  containsActiveTab(folder: FolderDto): boolean {
+    return folder.tabs.some((t) => t.id === this.activeTabId());
   }
 }

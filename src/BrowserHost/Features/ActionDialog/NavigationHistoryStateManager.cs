@@ -50,7 +50,7 @@ public static class NavigationHistoryStateManager
                 }
             });
         }
-        catch (Exception e)
+        catch (Exception e) when (!Debugger.IsAttached)
         {
             Debug.WriteLine($"Failed to save navigation history: {e.Message}");
         }
@@ -90,7 +90,7 @@ public static class NavigationHistoryStateManager
                 return JsonSerializer.Deserialize<Dictionary<string, NavigationHistoryEntry>>(json) ?? new Dictionary<string, NavigationHistoryEntry>();
             }
         }
-        catch (Exception e)
+        catch (Exception e) when (!Debugger.IsAttached)
         {
             Debug.WriteLine($"Failed to load navigation history: {e.Message}");
         }

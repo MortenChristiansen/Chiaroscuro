@@ -52,7 +52,8 @@ public class TabsFeature(MainWindow window) : Feature(window)
             Window.ActionContext.SetTabs(
                 [.. _tabBrowsersByWorkspace[e.WorkspaceId].Select(t => new TabDto(t.Id, t.Title, t.Favicon, DateTimeOffset.Now))],
                 activeTabId,
-                workspace.EphemeralTabStartIndex
+                workspace.EphemeralTabStartIndex,
+                [.. workspace.Folders.Select(f => new FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
             );
             Window.SetCurrentTab(activeTabBrowser);
         });
