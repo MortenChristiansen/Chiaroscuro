@@ -5,8 +5,9 @@ using System;
 namespace BrowserHost.Features.Workspaces;
 
 public record WorkspaceDescriptionDto(string Id, string Name, string Color, string Icon);
-public record WorkspaceDto(string Id, string Name, string Color, string Icon, TabDto[] Tabs, int EphemeralTabStartIndex, string? ActiveTabId) : WorkspaceDescriptionDto(Id, Name, Color, Icon);
+public record WorkspaceDto(string Id, string Name, string Color, string Icon, TabDto[] Tabs, int EphemeralTabStartIndex, string? ActiveTabId, FolderDto[] Folders) : WorkspaceDescriptionDto(Id, Name, Color, Icon);
 public record TabDto(string Id, string? Title, string? Favicon, DateTimeOffset Created);
+public record FolderDto(string Id, string Name, int StartIndex, int EndIndex);
 
 public static class ActionContextBrowserExtensions
 {

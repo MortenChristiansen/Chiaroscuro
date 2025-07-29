@@ -1,6 +1,7 @@
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Utilities;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -58,7 +59,7 @@ public class DragDropFeature(MainWindow window) : Feature(window)
             var extension = Path.GetExtension(filePath).ToLowerInvariant();
             return SupportedExtensions.Contains(extension);
         }
-        catch
+        catch (Exception) when (!Debugger.IsAttached)
         {
             return false;
         }
@@ -73,7 +74,7 @@ public class DragDropFeature(MainWindow window) : Feature(window)
                 var fileUri = new Uri(filePath).AbsoluteUri;
                 PubSub.Publish(new NavigationStartedEvent(fileUri, UseCurrentTab: false, SaveInHistory: true));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!Debugger.IsAttached)
             {
                 // Log error and continue with other files
                 System.Diagnostics.Debug.WriteLine($"Failed to process dropped file {filePath}: {ex.Message}");

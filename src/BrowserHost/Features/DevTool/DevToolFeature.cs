@@ -1,6 +1,7 @@
 using BrowserHost.Features.Tabs;
 using BrowserHost.Utilities;
 using CefSharp;
+using System.Diagnostics;
 using System.Windows.Input;
 
 namespace BrowserHost.Features.DevTool;
@@ -21,6 +22,12 @@ public class DevToolFeature(MainWindow window) : Feature(window)
             return true;
         }
 
+        if (e.Key == Key.F11 && Debugger.IsAttached)
+        {
+            ToggleActionContextDevTools();
+            return true;
+        }
+
         return base.HandleOnPreviewKeyDown(e);
     }
 
@@ -30,6 +37,18 @@ public class DevToolFeature(MainWindow window) : Feature(window)
         if (currentTab == null) return;
 
         var browserHost = currentTab.GetBrowserHost();
+        if (browserHost != null)
+        {
+            if (browserHost.HasDevTools)
+                browserHost.CloseDevTools();
+            else
+                browserHost.ShowDevTools();
+        }
+    }
+
+    private void ToggleActionContextDevTools()
+    {
+        var browserHost = Window.ActionContext.GetBrowserHost();
         if (browserHost != null)
         {
             if (browserHost.HasDevTools)

@@ -4,6 +4,7 @@ using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
+using BrowserHost.Features.Folders;
 using BrowserHost.Features.Tabs;
 using BrowserHost.Features.Workspaces;
 using BrowserHost.Features.Zoom;
@@ -56,7 +57,8 @@ public partial class MainWindow : Window
             new FileDownloadsFeature(this),
             new ZoomFeature(this),
             new DragDropFeature(this),
-            new WorkspacesFeature(this)
+            new WorkspacesFeature(this),
+            new FoldersFeature(this)
         ];
         _features.ForEach(f => f.Configure());
 
@@ -102,7 +104,7 @@ public partial class MainWindow : Window
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!Debugger.IsAttached)
         {
             Debug.WriteLine($"Update check failed: {ex.Message}");
         }

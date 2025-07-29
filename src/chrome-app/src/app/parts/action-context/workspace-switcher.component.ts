@@ -125,6 +125,7 @@ export default class WorkspaceSwitcherComponent implements OnInit {
                 tabs: [],
                 ephemeralTabStartIndex: 0,
                 activeTabId: null,
+                folders: [],
               } as Workspace;
           })
         );

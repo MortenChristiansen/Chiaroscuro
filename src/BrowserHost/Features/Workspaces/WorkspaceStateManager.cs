@@ -10,8 +10,12 @@ using System.Threading;
 namespace BrowserHost.Features.Workspaces;
 
 public record WorkspacesDataDtoV1(WorkspaceDtoV1[] Workspaces);
-public record WorkspaceDtoV1(string WorkspaceId, string Name, string Color, string Icon, WorkspaceTabStateDtoV1[] Tabs, int EphemeralTabStartIndex);
+public record WorkspaceDtoV1(string WorkspaceId, string Name, string Color, string Icon, WorkspaceTabStateDtoV1[] Tabs, int EphemeralTabStartIndex)
+{
+    public FolderDtoV1[] Folders { get; init; } = [];
+}
 public record WorkspaceTabStateDtoV1(string TabId, string Address, string? Title, string? Favicon, bool IsActive, DateTimeOffset Created);
+public record FolderDtoV1(string Id, string Name, int StartIndex, int EndIndex);
 
 public static class WorkspaceStateManager
 {
@@ -23,12 +27,17 @@ public static class WorkspaceStateManager
     private static WorkspacesDataDtoV1? _lastSavedWorkspaceData;
     private static readonly Lock _lock = new();
 
-    public static WorkspaceDtoV1[] SaveWorkspaceTabs(string workspaceId, IEnumerable<WorkspaceTabStateDtoV1> tabs, int ephemeralTabStartIndex)
+    public static WorkspaceDtoV1[] SaveWorkspaceTabs(string workspaceId, IEnumerable<WorkspaceTabStateDtoV1> tabs, int ephemeralTabStartIndex, IEnumerable<FolderDtoV1> folders)
     {
         lock (_lock)
         {
             var workspace = _lastSavedWorkspaceData?.Workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId) ?? _defaultWorkspace;
-            var newTabsData = workspace with { Tabs = [.. tabs], EphemeralTabStartIndex = ephemeralTabStartIndex };
+            var newTabsData = workspace with
+            {
+                Tabs = [.. tabs],
+                EphemeralTabStartIndex = ephemeralTabStartIndex,
+                Folders = [.. folders]
+            };
 
             SaveWorkspaceIfChanged(workspaceId, workspace, newTabsData);
         }
@@ -70,7 +79,7 @@ public static class WorkspaceStateManager
             // Update the cache after successful save
             _lastSavedWorkspaceData = newWorkspacesData;
         }
-        catch (Exception e)
+        catch (Exception e) when (!Debugger.IsAttached)
         {
             Debug.WriteLine($"Failed to save workspace state: {e.Message}");
         }
@@ -97,13 +106,13 @@ public static class WorkspaceStateManager
                             result = FilterExpiredEphemeralTabs(rawData);
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception e) when (!Debugger.IsAttached)
                     {
                         Debug.WriteLine($"Failed to restore tabs state: {e.Message}");
                     }
                 }
             }
-            catch (Exception e2)
+            catch (Exception e2) when (!Debugger.IsAttached)
             {
                 Debug.WriteLine($"Failed to restore tabs state: {e2.Message}");
             }
@@ -125,10 +134,11 @@ public static class WorkspaceStateManager
 
         WorkspaceDtoV1 FilterExpiredTabs(WorkspaceDtoV1 tabsData)
         {
-            var persistentTabs = tabsData.EphemeralTabStartIndex > 0 ? tabsData.Tabs[..tabsData.EphemeralTabStartIndex] : [];
-            var ephemeralTabs = tabsData.EphemeralTabStartIndex < tabsData.Tabs.Length ? tabsData.Tabs[tabsData.EphemeralTabStartIndex..] : [];
+            var ephemeralTabStartIndex = Math.Min(tabsData.EphemeralTabStartIndex, tabsData.Tabs.Length);
+            var persistentTabs = ephemeralTabStartIndex > 0 ? tabsData.Tabs[..ephemeralTabStartIndex] : [];
+            var ephemeralTabs = ephemeralTabStartIndex < tabsData.Tabs.Length ? tabsData.Tabs[ephemeralTabStartIndex..] : [];
             ephemeralTabs = [.. ephemeralTabs.Where(t => (now - t.Created).TotalHours < _ephemeralTabExpirationHours)];
-            return tabsData with { Tabs = [.. persistentTabs, .. ephemeralTabs], EphemeralTabStartIndex = tabsData.EphemeralTabStartIndex };
+            return tabsData with { Tabs = [.. persistentTabs, .. ephemeralTabs], EphemeralTabStartIndex = ephemeralTabStartIndex };
         }
 
         return workspaceData with { Workspaces = [.. workspaceData.Workspaces.Select(FilterExpiredTabs)] };
@@ -141,10 +151,17 @@ public static class WorkspaceStateManager
         if (data1.Name != data2.Name) return false;
         if (data1.Icon != data2.Icon) return false;
         if (data1.Color != data2.Color) return false;
+        if (data1.Folders.Length != data2.Folders.Length) return false;
 
         for (int i = 0; i < data1.Tabs.Length; i++)
         {
             if (!data1.Tabs[i].Equals(data2.Tabs[i]))
+                return false;
+        }
+
+        for (int i = 0; i < data1.Folders.Length; i++)
+        {
+            if (!data1.Folders[i].Equals(data2.Folders[i]))
                 return false;
         }
 
