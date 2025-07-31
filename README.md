@@ -10,6 +10,7 @@ In browser:
 - **Ctrl-X**: Close current tab.
 - **Ctrl-B**: Toggle tab as bookmark.
 - **Ctrl-G**: Toggle whether a bookmarked tab is placed in a folder or not.
+- **Ctrl-P**: Toggle whether the current tab is pinned or not.
 - **Ctrl-MouseWheel**: Change zoom level.
 - **Ctrl-Backspace**: Reset zoom level.
 - **Ctrl-1, Ctrl-2, Ctrl-3, etc.**: Switch to workspace 1, 2, 3, etc.
