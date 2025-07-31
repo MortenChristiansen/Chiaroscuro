@@ -14,13 +14,13 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
     // - Drag to reorder pinned tabs?
     // - Drag to unpin pinned tab
     // - Drag to pin tab
-    // - Persistence
     // - Horizontal layout for pinned tabs (scalable)
     // - A different icon for unpinning
+    // - Handle updates to pinned tabs (e.g. title, favicon, address)
 
     public const string WorkspaceId = "pinned-tabs-workspace";
 
-    private PinnedTabData _pinnedTabData = null!;
+    private PinnedTabDataV1 _pinnedTabData = null!;
 
     public override void Configure()
     {
