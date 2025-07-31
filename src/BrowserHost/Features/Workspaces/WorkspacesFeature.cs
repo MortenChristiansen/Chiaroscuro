@@ -148,7 +148,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
         var fromWorkspaceId = CurrentWorkspace.WorkspaceId;
         PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
-        PubSub.Publish(new TabMovedToNewWorkspaceEvent(tab.TabId, fromWorkspaceId, targetWorkspace.WorkspaceId));
+        PubSub.Publish(new TabMovedToNewWorkspaceEvent(tab.TabId, fromWorkspaceId, targetWorkspace.WorkspaceId, WorkspaceTabMoveType.Regular));
         Window.ActionContext.AddTab(new(tab.TabId, tab.Title, tab.Favicon, tab.Created));
     }
 

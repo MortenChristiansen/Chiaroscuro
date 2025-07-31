@@ -1,4 +1,5 @@
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.PinnedTabs;
 using BrowserHost.Features.Workspaces;
 using BrowserHost.Utilities;
 using System;
@@ -67,6 +68,18 @@ public class TabsFeature(MainWindow window) : Feature(window)
         });
     }
 
+    public override void Start()
+    {
+        LoadPinnedTabs();
+    }
+
+    private void LoadPinnedTabs()
+    {
+        var pinedTabsFeature = Window.GetFeature<PinnedTabsFeature>();
+        var tabs = pinedTabsFeature.GetPinnedTabs();
+        _tabBrowsersByWorkspace[PinnedTabsFeature.WorkspaceId] = [.. tabs.Select(t => AddExistingTab(t.Id, t.Address, t.Title, t.Favicon))];
+    }
+
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
         if (e.Key == Key.X && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
@@ -89,7 +102,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
         var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null);
         TabBrowsers?.Add(browser);
 
-        var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.Now);
+        var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.UtcNow);
         Window.ActionContext.AddTab(tab, activate: true);
 
         Window.Dispatcher.Invoke(() => Window.SetCurrentTab(browser));
