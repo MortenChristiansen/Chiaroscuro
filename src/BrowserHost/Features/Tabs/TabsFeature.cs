@@ -44,7 +44,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
             var workspace = workspaceFeature.GetWorkspaceById(e.WorkspaceId);
 
             if (!_tabBrowsersByWorkspace.ContainsKey(e.WorkspaceId))
-                _tabBrowsersByWorkspace[e.WorkspaceId] = [.. workspace.Tabs.Select(t => AddExistingTab(t.TabId, t.Address, t.IsActive, t.Title, t.Favicon))];
+                _tabBrowsersByWorkspace[e.WorkspaceId] = [.. workspace.Tabs.Select(t => AddExistingTab(t.TabId, t.Address, t.Title, t.Favicon))];
             _currentWorkspaceId = e.WorkspaceId;
 
             var activeTabId = workspace.Tabs.FirstOrDefault(t => t.IsActive)?.TabId;
@@ -86,7 +86,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
     private TabBrowser AddNewTab(string address, bool saveInHistory)
     {
-        var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory);
+        var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null);
         TabBrowsers?.Add(browser);
 
         var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.Now);
@@ -97,9 +97,9 @@ public class TabsFeature(MainWindow window) : Feature(window)
         return browser;
     }
 
-    private TabBrowser AddExistingTab(string id, string address, bool activate, string? title, string? favicon)
+    private TabBrowser AddExistingTab(string id, string address, string? title, string? favicon)
     {
-        var browser = new TabBrowser(id, address, Window.ActionContext, setManualAddress: false);
+        var browser = new TabBrowser(id, address, Window.ActionContext, setManualAddress: false, favicon);
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
 
