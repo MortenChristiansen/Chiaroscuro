@@ -20,9 +20,10 @@ public class TabBrowser : Browser
     public string? Favicon { get; private set; }
     public string? ManualAddress { get; private set; }
 
-    public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress)
+    public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon)
     {
         Id = id;
+        Favicon = favicon;
         SetAddress(address, setManualAddress);
 
         TitleChanged += OnTitleChanged;
