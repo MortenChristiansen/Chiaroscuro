@@ -13,6 +13,7 @@ public record TabUrlLoadedSuccessfullyEvent(string TabId);
 public record TabFaviconUrlChangedEvent(string TabId, string? NewFaviconUrl);
 public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 public record FolderUiStateDto(string Id, string Name, int StartIndex, int EndIndex);
+public record TabMovedToNewWorkspaceEvent(string TabId, string OldWorkspaceId, string NewWorkspaceId);
 
 public class TabListBrowserApi : BrowserApi
 {
@@ -20,7 +21,7 @@ public class TabListBrowserApi : BrowserApi
         PubSub.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
 
     public void CloseTab(string tabId) =>
-        PubSub.Publish(new TabClosedEvent(MainWindow.Instance.GetFeature<TabsFeature>().GetTabById(tabId) ?? throw new ArgumentException("Tab does not exist")));
+        PubSub.Publish(new TabClosedEvent(MainWindow.Instance.GetFeature<TabsFeature>().GetTabBrowserById(tabId)));
 
     public void TabsChanged(List<object> tabs, int ephemeralTabStartIndex, List<object> folders) =>
         PubSub.Publish(new TabsChangedEvent(

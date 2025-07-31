@@ -13,6 +13,7 @@ In browser:
 - **Ctrl-MouseWheel**: Change zoom level.
 - **Ctrl-Backspace**: Reset zoom level.
 - **Ctrl-1, Ctrl-2, Ctrl-3, etc.**: Switch to workspace 1, 2, 3, etc.
+- **Ctrl-Shift-1, Ctrl-Shift-2, Ctrl-Shift-3, etc.**: Move current tab to workspace 1, 2, 3, etc.
 - **F5**: Reload page.
 - **Ctrl-F5**: Reload page, ignoring cache.
 - **F12**: Toggle dev tools.
