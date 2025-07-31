@@ -124,5 +124,5 @@ public class TabsFeature(MainWindow window) : Feature(window)
     }
 
     public TabBrowser GetTabBrowserById(string tabId) =>
-        _tabBrowsersByWorkspace.SelectMany(ws => ws.Value)?.FirstOrDefault(t => t.Id == tabId) ?? throw new ArgumentException("Tab does not exist");
+        _tabBrowsersByWorkspace.SelectMany(ws => ws.Value).FirstOrDefault(t => t.Id == tabId) ?? throw new ArgumentException("Tab does not exist");
 }

@@ -194,5 +194,5 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     public WorkspaceTabStateDtoV1[] GetTabsForWorkspace(string workspaceId) =>
         _workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId)?.Tabs
-            ?? throw new ArgumentException($"No tabs found for workspace with ID {_currentWorkspaceId}.");
+            ?? throw new ArgumentException($"No tabs found for workspace with ID {workspaceId}.");
 }
