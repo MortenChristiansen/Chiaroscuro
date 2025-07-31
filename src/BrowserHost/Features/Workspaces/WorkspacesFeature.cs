@@ -26,7 +26,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 _currentWorkspaceId,
                 e.Tabs.Select(t => new WorkspaceTabStateDtoV1(
                     t.Id,
-                    tabsFeature.GetTabById(t.Id)?.Address ?? "",
+                    tabsFeature.GetTabBrowserById(t.Id)?.Address ?? "",
                     t.Title,
                     t.Favicon,
                     t.IsActive,
@@ -121,10 +121,46 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             };
 
             if (index >= 0 && index < _workspaces.Length && _workspaces[index] != CurrentWorkspace)
-                PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[index].WorkspaceId));
+            {
+                var targetWorkspace = _workspaces[index];
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                {
+                    MoveCurrentTabToWorkspace(targetWorkspace);
+                }
+                else
+                {
+                    PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
+                }
+            }
         }
-
         return base.HandleOnPreviewKeyDown(e);
+    }
+
+    private void MoveCurrentTabToWorkspace(WorkspaceDtoV1 targetWorkspace)
+    {
+        var currentTab = Window.CurrentTab;
+        if (currentTab == null)
+            return;
+
+        var tab = GetTabById(currentTab.Id);
+        Window.ActionContext.CloseTab(tab.TabId);
+        RemoveTabFromWorkspace(tab.TabId);
+
+        var fromWorkspaceId = CurrentWorkspace.WorkspaceId;
+        PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
+        PubSub.Publish(new TabMovedToNewWorkspaceEvent(tab.TabId, fromWorkspaceId, targetWorkspace.WorkspaceId));
+        Window.ActionContext.AddTab(new(tab.TabId, tab.Title, tab.Favicon, tab.Created));
+    }
+
+    private void RemoveTabFromWorkspace(string tabId)
+    {
+        var isPersistentTab = CurrentWorkspace.Tabs.ToList().FindIndex(t => t.TabId == tabId) < CurrentWorkspace.EphemeralTabStartIndex;
+        var updatedWorkspace = CurrentWorkspace with
+        {
+            Tabs = [.. CurrentWorkspace.Tabs.Where(t => t.TabId != tabId)],
+            EphemeralTabStartIndex = isPersistentTab ? CurrentWorkspace.EphemeralTabStartIndex - 1 : CurrentWorkspace.EphemeralTabStartIndex,
+        };
+        _workspaces = WorkspaceStateManager.UpdateWorkspace(updatedWorkspace);
     }
 
     private void NotifyFrontendOfUpdatedWorkspaces()
@@ -151,4 +187,12 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     public WorkspaceDtoV1 GetWorkspaceById(string workspaceId) =>
         _workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId)
             ?? throw new ArgumentException($"Workspace with ID {workspaceId} not found.");
+
+    public WorkspaceTabStateDtoV1 GetTabById(string tabId) =>
+        _workspaces.SelectMany(ws => ws.Tabs)
+            .FirstOrDefault(t => t.TabId == tabId) ?? throw new ArgumentException($"Tab with ID {tabId} not found in current workspace.");
+
+    public WorkspaceTabStateDtoV1[] GetTabsForWorkspace(string workspaceId) =>
+        _workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId)?.Tabs
+            ?? throw new ArgumentException($"No tabs found for workspace with ID {_currentWorkspaceId}.");
 }

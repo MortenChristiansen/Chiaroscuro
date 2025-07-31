@@ -48,14 +48,22 @@ public class TabsFeature(MainWindow window) : Feature(window)
             _currentWorkspaceId = e.WorkspaceId;
 
             var activeTabId = workspace.Tabs.FirstOrDefault(t => t.IsActive)?.TabId;
-            var activeTabBrowser = _tabBrowsersByWorkspace[e.WorkspaceId].FirstOrDefault(t => t.Id == activeTabId);
+            var tabs = workspaceFeature.GetTabsForWorkspace(e.WorkspaceId);
             Window.ActionContext.SetTabs(
-                [.. _tabBrowsersByWorkspace[e.WorkspaceId].Select(t => new TabDto(t.Id, t.Title, t.Favicon, DateTimeOffset.Now))],
+                [.. tabs.Select(t => new TabDto(t.TabId, t.Title, t.Favicon, t.Created))],
                 activeTabId,
                 workspace.EphemeralTabStartIndex,
                 [.. workspace.Folders.Select(f => new FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
             );
+            var activeTabBrowser = _tabBrowsersByWorkspace[e.WorkspaceId].FirstOrDefault(t => t.Id == activeTabId);
             Window.SetCurrentTab(activeTabBrowser);
+        });
+        PubSub.Subscribe<TabMovedToNewWorkspaceEvent>(e =>
+        {
+            var tab = GetTabBrowserById(e.TabId);
+
+            _tabBrowsersByWorkspace[e.OldWorkspaceId].Remove(tab);
+            _tabBrowsersByWorkspace[e.NewWorkspaceId].Add(tab);
         });
     }
 
@@ -115,6 +123,6 @@ public class TabsFeature(MainWindow window) : Feature(window)
         Window.ActionContext.ToggleTabBookmark(tab.Id);
     }
 
-    public TabBrowser? GetTabById(string tabId) =>
-        TabBrowsers?.Find(t => t.Id == tabId);
+    public TabBrowser GetTabBrowserById(string tabId) =>
+        _tabBrowsersByWorkspace.SelectMany(ws => ws.Value)?.FirstOrDefault(t => t.Id == tabId) ?? throw new ArgumentException("Tab does not exist");
 }
