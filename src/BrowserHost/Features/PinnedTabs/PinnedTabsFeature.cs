@@ -12,8 +12,8 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
     // - Drag to reorder pinned tabs?
     // - Drag to unpin pinned tab
     // - Drag to pin tab
-    // - Handle updates to pinned tabs (e.g. title, favicon, address)
     // - Tabs feature should handle workspace deletion to clean up loaded tabs
+    // - Test Ctrl-X
 
     private PinnedTabDataV1 _pinnedTabData = null!;
 
@@ -49,6 +49,8 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
             NotifyFrontendOfUpdatedPinnedTabs();
             Window.ActionContext.AddTab(new(e.TabId, tab.Title, tab.Favicon, DateTimeOffset.UtcNow)); // We don't currently store creation info for pinned tabs
         });
+        PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => UpdatePinnedTabState(e.TabId));
+        PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => UpdatePinnedTabState(e.TabId));
     }
 
     private void NotifyFrontendOfUpdatedPinnedTabs()
@@ -93,6 +95,15 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         }
 
         return base.HandleOnPreviewKeyDown(e);
+    }
+
+    private void UpdatePinnedTabState(string tabId)
+    {
+        var updatedTab = Window.GetFeature<TabsFeature>().GetTabBrowserById(tabId);
+        _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
+        {
+            PinnedTabs = [.. _pinnedTabData.PinnedTabs.Where(t => t.Id != tabId), new PinnedTabDtoV1(tabId, updatedTab.Title, updatedTab.Favicon, updatedTab.Address)]
+        });
     }
 
     public PinnedTabDtoV1[] GetPinnedTabs() =>
