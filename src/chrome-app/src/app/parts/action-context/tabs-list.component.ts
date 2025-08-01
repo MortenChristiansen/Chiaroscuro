@@ -63,8 +63,7 @@ interface FolderDto {
           [nxtSortablejs]="folder.tabs"
           [config]="sortableOptions"
         >
-          @let parentIndex = $index; @for (tab of folder.tabs; track
-          getTrackingKey(tab, $index)) {
+          @for (tab of folder.tabs; track tab.id) {
           <tabs-list-tab
             [tab]="tab"
             [isActive]="tab.id == activeTabId()"
