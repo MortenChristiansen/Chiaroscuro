@@ -11,7 +11,7 @@ public class DevToolFeature(MainWindow window) : Feature(window)
     public override void Configure()
     {
         PubSub.Subscribe<TabClosedEvent>(e => CloseDevTools(e.Tab));
-        PubSub.Subscribe<TabActivatedEvent>(e => CloseDevTools(e.CurrentTab));
+        PubSub.Subscribe<TabActivatedEvent>(e => CloseDevTools(e.PreviousTab));
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)

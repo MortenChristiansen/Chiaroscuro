@@ -34,9 +34,9 @@ public static class ActionContextBrowserExtensions
         browser.CallClientApi("updateFavicon", $"{tabId.ToJsonString()}, {favicon.ToJsonString()}");
     }
 
-    public static void CloseTab(this ActionContextBrowser browser, string tabId)
+    public static void CloseTab(this ActionContextBrowser browser, string tabId, bool activateNext = true)
     {
-        browser.CallClientApi("closeTab", tabId.ToJsonString());
+        browser.CallClientApi("closeTab", $"{tabId.ToJsonString()}, {activateNext.ToJsonBoolean()}");
     }
 
     public static void ToggleTabBookmark(this ActionContextBrowser browser, string tabId)

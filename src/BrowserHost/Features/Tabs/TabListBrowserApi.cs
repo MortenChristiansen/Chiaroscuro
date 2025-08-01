@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace BrowserHost.Features.Tabs;
 
-public record TabActivatedEvent(string TabId, TabBrowser? CurrentTab);
+public record TabActivatedEvent(string TabId, TabBrowser? PreviousTab);
 public record TabClosedEvent(TabBrowser Tab);
 public record TabsChangedEvent(TabUiStateDto[] Tabs, int EphemeralTabStartIndex, FolderUiStateDto[] Folders);
 public record TabUrlLoadedSuccessfullyEvent(string TabId);

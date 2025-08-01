@@ -13,7 +13,6 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
     // - Drag to unpin pinned tab
     // - Drag to pin tab
     // - Tabs feature should handle workspace deletion to clean up loaded tabs
-    // - Test Ctrl-X
 
     private PinnedTabDataV1 _pinnedTabData = null!;
 
@@ -38,7 +37,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
             var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
             var activateTabId = Window.CurrentTab?.Id;
             AddPinnedTabToState(new PinnedTabDtoV1(e.TabId, tab.Title, tab.Favicon, tab.Address), activateTabId);
-            Window.ActionContext.CloseTab(e.TabId);
+            Window.ActionContext.CloseTab(e.TabId, activateNext: false);
             NotifyFrontendOfUpdatedPinnedTabs();
         });
         PubSub.Subscribe<TabUnpinnedEvent>(e =>
