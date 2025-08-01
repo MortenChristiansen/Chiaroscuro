@@ -17,6 +17,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
     // - Horizontal layout for pinned tabs (scalable)
     // - A different icon for unpinning
     // - Handle updates to pinned tabs (e.g. title, favicon, address)
+    // - Are we absolutely sure that treating pinned tabs as something of a workspace makes sense?
 
     public const string WorkspaceId = "pinned-tabs-workspace";
 

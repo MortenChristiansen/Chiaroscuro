@@ -22,6 +22,7 @@ import { CommonModule } from '@angular/common';
           [ngClass]="{
             'bg-white/20 hover:bg-white/30': activeTabId() == tab.id,
           }"
+          (click)="api.activateTab(tab.id)"
         >
           <favicon [src]="tab.favicon" class="drag-handle w-4 h-4 mr-2" />
           <span class="truncate flex-1">{{ tab.title ?? 'Loading...' }}</span>
