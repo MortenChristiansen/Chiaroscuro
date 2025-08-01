@@ -71,8 +71,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
     private void LoadPinnedTabs()
     {
-        var pinedTabsFeature = Window.GetFeature<PinnedTabsFeature>();
-        var tabs = pinedTabsFeature.GetPinnedTabs();
+        var tabs = Window.GetFeature<PinnedTabsFeature>().GetPinnedTabs();
         _tabBrowsers.AddRange(tabs.Select(t => AddExistingTab(t.Id, t.Address, t.Title, t.Favicon)));
     }
 

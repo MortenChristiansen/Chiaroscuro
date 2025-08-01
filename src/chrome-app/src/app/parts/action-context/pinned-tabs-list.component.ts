@@ -60,7 +60,6 @@ export class PinnedTabsListComponent implements OnInit {
 
     exposeApiToBackend({
       setPinnedTabs: (tabs: PinnedTab[], activeTabId: string | null) => {
-        console.log('Pinned tabs updated:', tabs);
         this.pinnedTabs.set(tabs);
         this.activeTabId.set(activeTabId);
       },
