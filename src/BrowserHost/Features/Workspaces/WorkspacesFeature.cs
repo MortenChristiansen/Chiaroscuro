@@ -146,9 +146,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         Window.ActionContext.CloseTab(tab.TabId);
         RemoveTabFromWorkspace(tab.TabId);
 
-        var fromWorkspaceId = CurrentWorkspace.WorkspaceId;
         PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
-        PubSub.Publish(new TabMovedToNewWorkspaceEvent(tab.TabId, fromWorkspaceId, targetWorkspace.WorkspaceId));
         Window.ActionContext.AddTab(new(tab.TabId, tab.Title, tab.Favicon, tab.Created));
     }
 

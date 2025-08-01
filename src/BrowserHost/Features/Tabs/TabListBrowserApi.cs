@@ -13,7 +13,6 @@ public record TabUrlLoadedSuccessfullyEvent(string TabId);
 public record TabFaviconUrlChangedEvent(string TabId, string? NewFaviconUrl);
 public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 public record FolderUiStateDto(string Id, string Name, int StartIndex, int EndIndex);
-public record TabMovedToNewWorkspaceEvent(string TabId, string OldWorkspaceId, string NewWorkspaceId);
 
 public class TabListBrowserApi : BrowserApi
 {

@@ -11,11 +11,8 @@ namespace BrowserHost.Features.Tabs;
 
 public class TabsFeature(MainWindow window) : Feature(window)
 {
-    private List<TabBrowser> _pinnedTabBrowsers = [];
-    private readonly Dictionary<string, List<TabBrowser>> _tabBrowsersByWorkspace = [];
-    private string? _currentWorkspaceId;
-
-    public List<TabBrowser>? TabBrowsers => _currentWorkspaceId != null ? _tabBrowsersByWorkspace[_currentWorkspaceId] : null;
+    private readonly List<TabBrowser> _tabBrowsers = [];
+    private readonly HashSet<string> _loadedWorkspaceIds = [];
 
     public override void Configure()
     {
@@ -31,11 +28,11 @@ public class TabsFeature(MainWindow window) : Feature(window)
             }
         });
         PubSub.Subscribe<TabActivatedEvent>(e =>
-            Window.SetCurrentTab(TabBrowsers?.Find(t => t.Id == e.TabId))
+            Window.SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId))
         );
         PubSub.Subscribe<TabClosedEvent>(e =>
         {
-            TabBrowsers?.Remove(e.Tab);
+            _tabBrowsers.Remove(e.Tab);
             if (e.Tab == Window.CurrentTab)
                 Window.SetCurrentTab(null);
             e.Tab.Dispose();
@@ -45,9 +42,11 @@ public class TabsFeature(MainWindow window) : Feature(window)
             var workspaceFeature = Window.GetFeature<WorkspacesFeature>();
             var workspace = workspaceFeature.GetWorkspaceById(e.WorkspaceId);
 
-            if (!_tabBrowsersByWorkspace.ContainsKey(e.WorkspaceId))
-                _tabBrowsersByWorkspace[e.WorkspaceId] = [.. workspace.Tabs.Select(t => AddExistingTab(t.TabId, t.Address, t.Title, t.Favicon))];
-            _currentWorkspaceId = e.WorkspaceId;
+            if (!_loadedWorkspaceIds.Contains(e.WorkspaceId))
+            {
+                _tabBrowsers.AddRange(workspace.Tabs.Select(t => AddExistingTab(t.TabId, t.Address, t.Title, t.Favicon)));
+                _loadedWorkspaceIds.Add(e.WorkspaceId);
+            }
 
             var activeTabId = workspace.Tabs.FirstOrDefault(t => t.IsActive)?.TabId;
             var tabs = workspaceFeature.GetTabsForWorkspace(e.WorkspaceId);
@@ -57,26 +56,8 @@ public class TabsFeature(MainWindow window) : Feature(window)
                 workspace.EphemeralTabStartIndex,
                 [.. workspace.Folders.Select(f => new FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
             );
-            var activeTabBrowser = _tabBrowsersByWorkspace[e.WorkspaceId].FirstOrDefault(t => t.Id == activeTabId);
+            var activeTabBrowser = activeTabId != null ? GetTabBrowserById(activeTabId) : null;
             Window.SetCurrentTab(activeTabBrowser);
-        });
-        PubSub.Subscribe<TabMovedToNewWorkspaceEvent>(e =>
-        {
-            var tab = GetTabBrowserById(e.TabId);
-            _tabBrowsersByWorkspace[e.OldWorkspaceId].Remove(tab);
-            _tabBrowsersByWorkspace[e.NewWorkspaceId].Add(tab);
-        });
-        PubSub.Subscribe<TabPinnedEvent>(e =>
-        {
-            var tab = GetTabBrowserById(e.TabId);
-            _pinnedTabBrowsers.Add(tab);
-            TabBrowsers!.Remove(tab);
-        });
-        PubSub.Subscribe<TabUnpinnedEvent>(e =>
-        {
-            var tab = _pinnedTabBrowsers.First(t => t.Id == e.TabId);
-            _pinnedTabBrowsers.Remove(tab);
-            TabBrowsers!.Add(tab);
         });
     }
 
@@ -89,7 +70,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
     {
         var pinedTabsFeature = Window.GetFeature<PinnedTabsFeature>();
         var tabs = pinedTabsFeature.GetPinnedTabs();
-        _pinnedTabBrowsers = [.. tabs.Select(t => AddExistingTab(t.Id, t.Address, t.Title, t.Favicon))];
+        _tabBrowsers.AddRange(tabs.Select(t => AddExistingTab(t.Id, t.Address, t.Title, t.Favicon)));
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -112,11 +93,10 @@ public class TabsFeature(MainWindow window) : Feature(window)
     private TabBrowser AddNewTab(string address, bool saveInHistory)
     {
         var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null);
-        TabBrowsers?.Add(browser);
+        _tabBrowsers.Add(browser);
 
         var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.UtcNow);
         Window.ActionContext.AddTab(tab, activate: true);
-
         Window.Dispatcher.Invoke(() => Window.SetCurrentTab(browser));
 
         return browser;
@@ -149,5 +129,5 @@ public class TabsFeature(MainWindow window) : Feature(window)
     }
 
     public TabBrowser GetTabBrowserById(string tabId) =>
-        _tabBrowsersByWorkspace.SelectMany(ws => ws.Value).Concat(_pinnedTabBrowsers).FirstOrDefault(t => t.Id == tabId) ?? throw new ArgumentException("Tab does not exist");
+        _tabBrowsers.FirstOrDefault(t => t.Id == tabId) ?? throw new ArgumentException("Tab does not exist");
 }

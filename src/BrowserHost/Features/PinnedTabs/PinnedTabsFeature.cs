@@ -16,6 +16,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
     // - Horizontal layout for pinned tabs (scalable)
     // - A different icon for unpinning
     // - Handle updates to pinned tabs (e.g. title, favicon, address)
+    // - Error when trying to bookmark a pinned tab
 
     private PinnedTabDataV1 _pinnedTabData = null!;
 
