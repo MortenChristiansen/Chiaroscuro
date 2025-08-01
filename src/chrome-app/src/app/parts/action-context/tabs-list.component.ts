@@ -40,7 +40,7 @@ interface FolderDto {
       [nxtSortablejs]="sortablePersistedTabs"
       [config]="sortableOptions"
     >
-      @for (tabOrFolder of sortablePersistedTabs; track tabOrFolder.id) { @if
+      @for (tabOrFolder of sortablePersistedTabs; track getFolderTrackingKey(tabOrFolder, $index)) { @if
       (!isFolder(tabOrFolder)) { @let tab = tabOrFolder;
       <tabs-list-tab
         [tab]="tab"
@@ -140,6 +140,9 @@ export class TabsListComponent implements OnInit {
         e.from.classList.contains('tab-folder')
       ) {
         this.persistedTabs.set(this.sortablePersistedTabs);
+        
+        // Check if a folder containing the active tab was moved to index 0
+        this.handleFolderMovedToStart(e);
       }
       if (e.from.id === 'ephemeral-tabs') {
         this.ephemeralTabs.set(this.sortableEphemeralTabs);
@@ -436,5 +439,28 @@ export class TabsListComponent implements OnInit {
 
   containsActiveTab(folder: FolderDto): boolean {
     return folder.tabs.some((t) => t.id === this.activeTabId());
+  }
+
+  private handleFolderMovedToStart(event: any) {
+    // Check if a folder was moved to index 0 and contains the active tab
+    if (event.newIndex === 0 && event.from.id === 'persistent-tabs') {
+      const firstItem = this.sortablePersistedTabs[0];
+      if (this.isFolder(firstItem) && this.containsActiveTab(firstItem)) {
+        // Force a re-render by updating the persistedTabs signal again after a short delay
+        // This helps reset any animation state that might have been corrupted
+        setTimeout(() => {
+          this.persistedTabs.set([...this.sortablePersistedTabs]);
+        }, 10);
+      }
+    }
+  }
+
+  getFolderTrackingKey(tabOrFolder: Tab | FolderDto, index: number): string {
+    // For folders containing the active tab, include position in tracking key
+    // to force re-creation when moved to index 0
+    if (this.isFolder(tabOrFolder) && this.containsActiveTab(tabOrFolder)) {
+      return `${tabOrFolder.id}-${index}`;
+    }
+    return tabOrFolder.id;
   }
 }
