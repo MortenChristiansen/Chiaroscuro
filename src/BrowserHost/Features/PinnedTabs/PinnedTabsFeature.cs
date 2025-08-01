@@ -8,12 +8,6 @@ namespace BrowserHost.Features.PinnedTabs;
 
 public class PinnedTabsFeature(MainWindow window) : Feature(window)
 {
-    // TODO
-    // - Drag to reorder pinned tabs?
-    // - Drag to unpin pinned tab
-    // - Drag to pin tab
-    // - Tabs feature should handle workspace deletion to clean up loaded tabs
-
     private PinnedTabDataV1 _pinnedTabData = null!;
 
     public override void Configure()
