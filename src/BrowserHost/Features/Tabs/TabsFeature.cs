@@ -123,7 +123,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
     private void ToggleCurrentTabBookmark()
     {
         var tab = Window.CurrentTab;
-        if (tab == null) return;
+        if (tab == null || Window.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id)) return;
 
         Window.ActionContext.ToggleTabBookmark(tab.Id);
     }

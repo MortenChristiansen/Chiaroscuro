@@ -16,7 +16,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
     // - Horizontal layout for pinned tabs (scalable)
     // - A different icon for unpinning
     // - Handle updates to pinned tabs (e.g. title, favicon, address)
-    // - Error when trying to bookmark a pinned tab
+    // - Tabs feature should handle workspace deletion to clean up loaded tabs
 
     private PinnedTabDataV1 _pinnedTabData = null!;
 
@@ -100,4 +100,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
 
     public PinnedTabDtoV1[] GetPinnedTabs() =>
         _pinnedTabData.PinnedTabs;
+
+    public bool IsTabPinned(string tabId) =>
+        _pinnedTabData.PinnedTabs.Any(t => t.Id == tabId);
 }
