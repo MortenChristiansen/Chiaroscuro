@@ -50,6 +50,11 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         });
         PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => UpdatePinnedTabState(e.TabId));
         PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => UpdatePinnedTabState(e.TabId));
+        PubSub.Subscribe<TabClosedEvent>(e =>
+        {
+            RemovePinnedTabFromState(e.Tab.Id);
+            NotifyFrontendOfUpdatedPinnedTabs();
+        });
     }
 
     private void NotifyFrontendOfUpdatedPinnedTabs()
