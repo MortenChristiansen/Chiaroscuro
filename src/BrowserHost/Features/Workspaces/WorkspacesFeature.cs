@@ -1,4 +1,5 @@
-﻿using BrowserHost.Features.Tabs;
+﻿using BrowserHost.Features.PinnedTabs;
+using BrowserHost.Features.Tabs;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
@@ -140,6 +141,9 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     {
         var currentTab = Window.CurrentTab;
         if (currentTab == null)
+            return;
+
+        if (Window.GetFeature<PinnedTabsFeature>().IsTabPinned(currentTab.Id))
             return;
 
         var tab = GetTabById(currentTab.Id);
