@@ -118,7 +118,7 @@ public static class NavigationHistoryStateManager
             return [];
 
         var suggestions = history
-            .Where(x => !IsIgnoredAddress(x.Key)) // In case some where saved before the ignore logic was implemented
+            .Where(x => !IsIgnoredAddress(x.Key)) // In case some were saved before the ignore logic was implemented
             .Select(x => (Item: x, Score: GetRelevanceScore(x.Key, searchText)))
             .Where(x => x.Score > 0)
             .OrderByDescending(x => x.Score)
