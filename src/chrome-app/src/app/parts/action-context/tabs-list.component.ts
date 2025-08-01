@@ -230,6 +230,9 @@ export class TabsListComponent implements OnInit {
         this.activeTabId.set(activeTabId);
         this.tabsInitialized.set(true);
       },
+      setActiveTab: (tabId: TabId) => {
+        this.activeTabId.set(tabId);
+      },
       updateFolders: (folders: Folder[]) => {
         this.persistedTabs.set(
           this.createPersistedTabsWithFolders(
@@ -243,7 +246,8 @@ export class TabsListComponent implements OnInit {
         this.updateTab(tabId, { title }),
       updateFavicon: (tabId: TabId, favicon: string | null) =>
         this.updateTab(tabId, { favicon }),
-      closeTab: (tabId: TabId) => this.closeTab(tabId, false),
+      closeTab: (tabId: TabId, activateNext: boolean) =>
+        this.closeTab(tabId, false, activateNext),
       toggleTabBookmark: (tabId: TabId) => this.toggleBookmark(tabId),
     });
   }
@@ -353,7 +357,7 @@ export class TabsListComponent implements OnInit {
     );
   }, this.saveTabsDebounceDelay);
 
-  closeTab(tabId: TabId, updateBackend = true) {
+  closeTab(tabId: TabId, updateBackend = true, activateNext = true) {
     this.tabActivationOrderStack.remove(tabId);
     this.persistedTabs.update((currentTabs) =>
       currentTabs
@@ -368,7 +372,7 @@ export class TabsListComponent implements OnInit {
       currentTabs.filter((t) => t.id !== tabId)
     );
 
-    if (this.activeTabId() === tabId) {
+    if (activateNext && this.activeTabId() === tabId) {
       const newSelectedTabId =
         this.persistedTabs().length == 0 && this.ephemeralTabs().length == 0
           ? undefined
