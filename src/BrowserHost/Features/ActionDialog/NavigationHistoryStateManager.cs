@@ -25,6 +25,9 @@ public static class NavigationHistoryStateManager
     {
         var normalizedAddress = NormalizeAddress(address);
 
+        if (IsIgnoredAddress(normalizedAddress))
+            return;
+
         try
         {
             MainWindow.Instance?.Dispatcher.Invoke(() =>
@@ -55,6 +58,9 @@ public static class NavigationHistoryStateManager
             Debug.WriteLine($"Failed to save navigation history: {e.Message}");
         }
     }
+
+    private static bool IsIgnoredAddress(string address) =>
+        string.IsNullOrWhiteSpace(address) || address.StartsWith("file://", StringComparison.OrdinalIgnoreCase);
 
     private static string NormalizeAddress(string address)
     {
@@ -112,6 +118,7 @@ public static class NavigationHistoryStateManager
             return [];
 
         var suggestions = history
+            .Where(x => !IsIgnoredAddress(x.Key)) // In case some were saved before the ignore logic was implemented
             .Select(x => (Item: x, Score: GetRelevanceScore(x.Key, searchText)))
             .Where(x => x.Score > 0)
             .OrderByDescending(x => x.Score)
