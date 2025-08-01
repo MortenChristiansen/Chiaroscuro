@@ -11,6 +11,7 @@ namespace BrowserHost.Features.Tabs;
 
 public class TabsFeature(MainWindow window) : Feature(window)
 {
+    private List<TabBrowser> _pinnedTabBrowsers = [];
     private readonly Dictionary<string, List<TabBrowser>> _tabBrowsersByWorkspace = [];
     private string? _currentWorkspaceId;
 
@@ -62,9 +63,20 @@ public class TabsFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<TabMovedToNewWorkspaceEvent>(e =>
         {
             var tab = GetTabBrowserById(e.TabId);
-
             _tabBrowsersByWorkspace[e.OldWorkspaceId].Remove(tab);
             _tabBrowsersByWorkspace[e.NewWorkspaceId].Add(tab);
+        });
+        PubSub.Subscribe<TabPinnedEvent>(e =>
+        {
+            var tab = GetTabBrowserById(e.TabId);
+            _pinnedTabBrowsers.Add(tab);
+            TabBrowsers!.Remove(tab);
+        });
+        PubSub.Subscribe<TabUnpinnedEvent>(e =>
+        {
+            var tab = _pinnedTabBrowsers.First(t => t.Id == e.TabId);
+            _pinnedTabBrowsers.Remove(tab);
+            TabBrowsers!.Add(tab);
         });
     }
 
@@ -77,7 +89,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
     {
         var pinedTabsFeature = Window.GetFeature<PinnedTabsFeature>();
         var tabs = pinedTabsFeature.GetPinnedTabs();
-        _tabBrowsersByWorkspace[PinnedTabsFeature.WorkspaceId] = [.. tabs.Select(t => AddExistingTab(t.Id, t.Address, t.Title, t.Favicon))];
+        _pinnedTabBrowsers = [.. tabs.Select(t => AddExistingTab(t.Id, t.Address, t.Title, t.Favicon))];
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -137,5 +149,5 @@ public class TabsFeature(MainWindow window) : Feature(window)
     }
 
     public TabBrowser GetTabBrowserById(string tabId) =>
-        _tabBrowsersByWorkspace.SelectMany(ws => ws.Value).FirstOrDefault(t => t.Id == tabId) ?? throw new ArgumentException("Tab does not exist");
+        _tabBrowsersByWorkspace.SelectMany(ws => ws.Value).Concat(_pinnedTabBrowsers).FirstOrDefault(t => t.Id == tabId) ?? throw new ArgumentException("Tab does not exist");
 }

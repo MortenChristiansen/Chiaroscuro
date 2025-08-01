@@ -1,5 +1,4 @@
 ﻿using BrowserHost.Features.Tabs;
-using BrowserHost.Features.Workspaces;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
@@ -17,9 +16,6 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
     // - Horizontal layout for pinned tabs (scalable)
     // - A different icon for unpinning
     // - Handle updates to pinned tabs (e.g. title, favicon, address)
-    // - Are we absolutely sure that treating pinned tabs as something of a workspace makes sense?
-
-    public const string WorkspaceId = "pinned-tabs-workspace";
 
     private PinnedTabDataV1 _pinnedTabData = null!;
 
@@ -39,25 +35,21 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
             });
             NotifyFrontendOfUpdatedPinnedTabs();
         });
-        PubSub.Subscribe<PinnedTabUnpinnedEvent>(e => UnpinTab(e.TabId));
-        PubSub.Subscribe<TabMovedToNewWorkspaceEvent>(e =>
+        PubSub.Subscribe<TabPinnedEvent>(e =>
         {
-            var workspaceFeature = Window.GetFeature<WorkspacesFeature>();
-            if (e.MoveType == WorkspaceTabMoveType.Pin)
-            {
-                var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
-                var activateTabId = Window.CurrentTab?.Id;
-                AddPinnedTabToState(new PinnedTabDtoV1(e.TabId, tab.Title, tab.Favicon, tab.Address), activateTabId);
-                NotifyFrontendOfUpdatedPinnedTabs();
-                Window.ActionContext.CloseTab(e.TabId);
-            }
-            if (e.MoveType == WorkspaceTabMoveType.Unpin)
-            {
-                var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
-                RemovePinnedTabFromState(e.TabId);
-                NotifyFrontendOfUpdatedPinnedTabs();
-                Window.ActionContext.AddTab(new(e.TabId, tab.Title, tab.Favicon, DateTimeOffset.UtcNow)); // We don't currently store creation info for pinned tabs
-            }
+            var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
+            var activateTabId = Window.CurrentTab?.Id;
+            AddPinnedTabToState(new PinnedTabDtoV1(e.TabId, tab.Title, tab.Favicon, tab.Address), activateTabId);
+            NotifyFrontendOfUpdatedPinnedTabs();
+            Window.ActionContext.CloseTab(e.TabId);
+            NotifyFrontendOfUpdatedPinnedTabs();
+        });
+        PubSub.Subscribe<TabUnpinnedEvent>(e =>
+        {
+            var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
+            RemovePinnedTabFromState(e.TabId);
+            NotifyFrontendOfUpdatedPinnedTabs();
+            Window.ActionContext.AddTab(new(e.TabId, tab.Title, tab.Favicon, DateTimeOffset.UtcNow)); // We don't currently store creation info for pinned tabs
         });
     }
 
@@ -95,9 +87,9 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         if (e.Key == Key.P && Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && activeTabId != null)
         {
             if (_pinnedTabData.ActiveTabId != null)
-                UnpinTab(_pinnedTabData.ActiveTabId);
+                PubSub.Publish(new TabUnpinnedEvent(_pinnedTabData.ActiveTabId));
             else
-                PinTab(activeTabId);
+                PubSub.Publish(new TabPinnedEvent(activeTabId));
 
             return true;
         }
@@ -105,28 +97,6 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         return base.HandleOnPreviewKeyDown(e);
     }
 
-    private void PinTab(string activeTabId)
-    {
-        PubSub.Publish(new TabMovedToNewWorkspaceEvent(
-            activeTabId,
-            Window.GetFeature<WorkspacesFeature>().CurrentWorkspace.WorkspaceId,
-            WorkspaceId,
-            WorkspaceTabMoveType.Pin
-        ));
-    }
-
-    private void UnpinTab(string tabId)
-    {
-        PubSub.Publish(new TabMovedToNewWorkspaceEvent(
-            tabId,
-            WorkspaceId,
-            Window.GetFeature<WorkspacesFeature>().CurrentWorkspace.WorkspaceId,
-            WorkspaceTabMoveType.Unpin
-        ));
-    }
-
-    public PinnedTabDtoV1[] GetPinnedTabs()
-    {
-        return _pinnedTabData.PinnedTabs;
-    }
+    public PinnedTabDtoV1[] GetPinnedTabs() =>
+        _pinnedTabData.PinnedTabs;
 }
