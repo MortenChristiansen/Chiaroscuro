@@ -12,7 +12,6 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
     // - Drag to reorder pinned tabs?
     // - Drag to unpin pinned tab
     // - Drag to pin tab
-    // - A different icon for unpinning
     // - Handle updates to pinned tabs (e.g. title, favicon, address)
     // - Tabs feature should handle workspace deletion to clean up loaded tabs
 
@@ -101,4 +100,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
 
     public bool IsTabPinned(string tabId) =>
         _pinnedTabData.PinnedTabs.Any(t => t.Id == tabId);
+
+    public string? GetActivePinnedTabId() =>
+        _pinnedTabData.ActiveTabId;
 }

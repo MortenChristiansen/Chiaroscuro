@@ -42,6 +42,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
         {
             var workspaceFeature = Window.GetFeature<WorkspacesFeature>();
+            var pinnedTabsFeature = Window.GetFeature<PinnedTabsFeature>();
             var workspace = workspaceFeature.GetWorkspaceById(e.WorkspaceId);
 
             if (!_loadedWorkspaceIds.Contains(e.WorkspaceId))
@@ -50,7 +51,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
                 _loadedWorkspaceIds.Add(e.WorkspaceId);
             }
 
-            var activeTabId = workspace.Tabs.FirstOrDefault(t => t.IsActive)?.TabId;
+            var activeTabId = pinnedTabsFeature.GetActivePinnedTabId() ?? workspace.Tabs.FirstOrDefault(t => t.IsActive)?.TabId;
             var tabs = workspaceFeature.GetTabsForWorkspace(e.WorkspaceId);
             Window.ActionContext.SetTabs(
                 [.. tabs.Select(t => new TabDto(t.TabId, t.Title, t.Favicon, t.Created))],
