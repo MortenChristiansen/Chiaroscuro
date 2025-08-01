@@ -230,6 +230,9 @@ export class TabsListComponent implements OnInit {
         this.activeTabId.set(activeTabId);
         this.tabsInitialized.set(true);
       },
+      setActiveTab: (tabId: TabId) => {
+        this.activeTabId.set(tabId);
+      },
       updateFolders: (folders: Folder[]) => {
         this.persistedTabs.set(
           this.createPersistedTabsWithFolders(

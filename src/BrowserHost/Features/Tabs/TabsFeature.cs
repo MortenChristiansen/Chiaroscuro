@@ -28,8 +28,10 @@ public class TabsFeature(MainWindow window) : Feature(window)
             }
         });
         PubSub.Subscribe<TabActivatedEvent>(e =>
-            Window.SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId))
-        );
+        {
+            Window.SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId));
+            Window.ActionContext.SetActiveTab(e.TabId);
+        });
         PubSub.Subscribe<TabClosedEvent>(e =>
         {
             _tabBrowsers.Remove(e.Tab);

@@ -9,11 +9,9 @@ namespace BrowserHost.Features.PinnedTabs;
 public class PinnedTabsFeature(MainWindow window) : Feature(window)
 {
     // TODO
-    // - Click to activate pinned tab
     // - Drag to reorder pinned tabs?
     // - Drag to unpin pinned tab
     // - Drag to pin tab
-    // - Horizontal layout for pinned tabs (scalable)
     // - A different icon for unpinning
     // - Handle updates to pinned tabs (e.g. title, favicon, address)
     // - Tabs feature should handle workspace deletion to clean up loaded tabs

@@ -43,4 +43,9 @@ public static class ActionContextBrowserExtensions
     {
         browser.CallClientApi("toggleTabBookmark", tabId.ToJsonString());
     }
+
+    public static void SetActiveTab(this ActionContextBrowser browser, string? tabId)
+    {
+        browser.CallClientApi("setActiveTab", tabId.ToJsonString());
+    }
 }
