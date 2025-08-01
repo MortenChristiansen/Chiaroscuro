@@ -38,7 +38,6 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
             var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
             var activateTabId = Window.CurrentTab?.Id;
             AddPinnedTabToState(new PinnedTabDtoV1(e.TabId, tab.Title, tab.Favicon, tab.Address), activateTabId);
-            NotifyFrontendOfUpdatedPinnedTabs();
             Window.ActionContext.CloseTab(e.TabId);
             NotifyFrontendOfUpdatedPinnedTabs();
         });
@@ -100,6 +99,9 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
     private void UpdatePinnedTabState(string tabId)
     {
         var updatedTab = Window.GetFeature<TabsFeature>().GetTabBrowserById(tabId);
+        if (!IsTabPinned(tabId))
+            return;
+
         _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
         {
             PinnedTabs = [.. _pinnedTabData.PinnedTabs.Where(t => t.Id != tabId), new PinnedTabDtoV1(tabId, updatedTab.Title, updatedTab.Favicon, updatedTab.Address)]

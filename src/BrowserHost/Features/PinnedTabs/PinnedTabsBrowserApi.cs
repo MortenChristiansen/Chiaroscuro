@@ -3,7 +3,6 @@ using BrowserHost.Features.Tabs;
 using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.PinnedTabs;
-public record ActivatePinnedTabEvent(string TabId); // Use this or the existing event?
 public record TabPinnedEvent(string TabId);
 public record TabUnpinnedEvent(string TabId);
 
