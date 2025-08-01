@@ -40,8 +40,9 @@ interface FolderDto {
       [nxtSortablejs]="sortablePersistedTabs"
       [config]="sortableOptions"
     >
-      @for (tabOrFolder of sortablePersistedTabs; track tabOrFolder.id) { @if
-      (!isFolder(tabOrFolder)) { @let tab = tabOrFolder;
+      @for (tabOrFolder of sortablePersistedTabs; track
+      getTrackingKey(tabOrFolder, $index)) { @if (!isFolder(tabOrFolder)) { @let
+      tab = tabOrFolder;
       <tabs-list-tab
         [tab]="tab"
         [isActive]="tab.id == activeTabId()"
@@ -86,7 +87,7 @@ interface FolderDto {
       [nxtSortablejs]="sortableEphemeralTabs"
       [config]="sortableOptions"
     >
-      @for (tab of sortableEphemeralTabs; track tab.id) {
+      @for (tab of sortableEphemeralTabs; track getTrackingKey(tab, $index)) {
       <tabs-list-tab
         [tab]="tab"
         [isActive]="tab.id == activeTabId()"
@@ -436,5 +437,10 @@ export class TabsListComponent implements OnInit {
 
   containsActiveTab(folder: FolderDto): boolean {
     return folder.tabs.some((t) => t.id === this.activeTabId());
+  }
+
+  // If we just track by id, Angular can get confused when reordering items, causing layout issues
+  getTrackingKey(tabOrFolder: Tab | FolderDto, index: number): string {
+    return `${tabOrFolder.id}-${index}`;
   }
 }
