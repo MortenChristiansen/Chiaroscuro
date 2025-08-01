@@ -5,6 +5,7 @@ using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
 using BrowserHost.Features.Folders;
+using BrowserHost.Features.PinnedTabs;
 using BrowserHost.Features.Tabs;
 using BrowserHost.Features.Workspaces;
 using BrowserHost.Features.Zoom;
@@ -53,6 +54,7 @@ public partial class MainWindow : Window
             new CustomWindowChromeFeature(this),
             new ActionDialogFeature(this),
             new TabsFeature(this),
+            new PinnedTabsFeature(this),
             new DevToolFeature(this),
             new FileDownloadsFeature(this),
             new ZoomFeature(this),

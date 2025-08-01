@@ -29,3 +29,9 @@ export interface Folder {
   startIndex: number;
   endIndex: number;
 }
+
+export interface PinnedTab {
+  id: TabId;
+  title: string | null;
+  favicon: string | null;
+}

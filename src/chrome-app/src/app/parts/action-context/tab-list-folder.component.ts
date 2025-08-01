@@ -17,7 +17,6 @@ import {
 
 @Component({
   selector: 'tabs-list-folder',
-  standalone: true,
   animations: [
     trigger('expandCollapse', [
       state('open', style({ height: '*', opacity: 1, overflow: 'visible' })),

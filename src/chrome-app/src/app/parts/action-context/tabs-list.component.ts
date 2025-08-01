@@ -40,8 +40,9 @@ interface FolderDto {
       [nxtSortablejs]="sortablePersistedTabs"
       [config]="sortableOptions"
     >
-      @for (tabOrFolder of sortablePersistedTabs; track tabOrFolder.id) { @if
-      (!isFolder(tabOrFolder)) { @let tab = tabOrFolder;
+      @for (tabOrFolder of sortablePersistedTabs; track
+      getTrackingKey(tabOrFolder, $index)) { @if (!isFolder(tabOrFolder)) { @let
+      tab = tabOrFolder;
       <tabs-list-tab
         [tab]="tab"
         [isActive]="tab.id == activeTabId()"
@@ -86,7 +87,7 @@ interface FolderDto {
       [nxtSortablejs]="sortableEphemeralTabs"
       [config]="sortableOptions"
     >
-      @for (tab of sortableEphemeralTabs; track tab.id) {
+      @for (tab of sortableEphemeralTabs; track getTrackingKey(tab, $index)) {
       <tabs-list-tab
         [tab]="tab"
         [isActive]="tab.id == activeTabId()"
@@ -230,6 +231,9 @@ export class TabsListComponent implements OnInit {
         this.activeTabId.set(activeTabId);
         this.tabsInitialized.set(true);
       },
+      setActiveTab: (tabId: TabId) => {
+        this.activeTabId.set(tabId);
+      },
       updateFolders: (folders: Folder[]) => {
         this.persistedTabs.set(
           this.createPersistedTabsWithFolders(
@@ -243,7 +247,8 @@ export class TabsListComponent implements OnInit {
         this.updateTab(tabId, { title }),
       updateFavicon: (tabId: TabId, favicon: string | null) =>
         this.updateTab(tabId, { favicon }),
-      closeTab: (tabId: TabId) => this.closeTab(tabId, false),
+      closeTab: (tabId: TabId, activateNext: boolean) =>
+        this.closeTab(tabId, false, activateNext),
       toggleTabBookmark: (tabId: TabId) => this.toggleBookmark(tabId),
     });
   }
@@ -353,7 +358,7 @@ export class TabsListComponent implements OnInit {
     );
   }, this.saveTabsDebounceDelay);
 
-  closeTab(tabId: TabId, updateBackend = true) {
+  closeTab(tabId: TabId, updateBackend = true, activateNext = true) {
     this.tabActivationOrderStack.remove(tabId);
     this.persistedTabs.update((currentTabs) =>
       currentTabs
@@ -368,7 +373,7 @@ export class TabsListComponent implements OnInit {
       currentTabs.filter((t) => t.id !== tabId)
     );
 
-    if (this.activeTabId() === tabId) {
+    if (activateNext && this.activeTabId() === tabId) {
       const newSelectedTabId =
         this.persistedTabs().length == 0 && this.ephemeralTabs().length == 0
           ? undefined
@@ -432,5 +437,10 @@ export class TabsListComponent implements OnInit {
 
   containsActiveTab(folder: FolderDto): boolean {
     return folder.tabs.some((t) => t.id === this.activeTabId());
+  }
+
+  // If we just track by id, Angular can get confused when reordering items, causing layout issues
+  getTrackingKey(tabOrFolder: Tab | FolderDto, index: number): string {
+    return `${tabOrFolder.id}-${index}`;
   }
 }
