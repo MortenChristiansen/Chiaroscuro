@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { PinnedTabsApi } from './pinnedTabsApi';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
-import { PinnedTab } from './server-models';
+import { PinnedTab, TabId } from './server-models';
 import { FaviconComponent } from '../../shared/favicon.component';
 import { CommonModule } from '@angular/common';
 
@@ -64,6 +64,16 @@ export class PinnedTabsListComponent implements OnInit {
         this.pinnedTabs.set(tabs);
         this.activeTabId.set(activeTabId);
       },
+      updateTitle: (tabId: TabId, title: string | null) =>
+        this.updateTab(tabId, { title }),
+      updateFavicon: (tabId: TabId, favicon: string | null) =>
+        this.updateTab(tabId, { favicon }),
     });
+  }
+
+  private updateTab(tabId: TabId, updates: Partial<PinnedTab>) {
+    this.pinnedTabs.update((tabs) =>
+      tabs.map((tab) => (tab.id === tabId ? { ...tab, ...updates } : tab))
+    );
   }
 }
