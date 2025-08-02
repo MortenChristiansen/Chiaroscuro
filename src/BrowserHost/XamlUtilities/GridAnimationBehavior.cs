@@ -71,8 +71,7 @@ public class GridAnimationBehavior : DependencyObject
     private static void OnIsExpandedChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
     {
         var duration = GetDuration(dependencyObject);
-        var rowDefinition = dependencyObject as RowDefinition;
-        if (rowDefinition != null)
+        if (dependencyObject is RowDefinition rowDefinition)
         {
             // The IsExpanded attached property of a RowDefinition changed
             if ((bool)e.NewValue)
@@ -92,8 +91,7 @@ public class GridAnimationBehavior : DependencyObject
             }
         }
 
-        var columnDefinition = dependencyObject as ColumnDefinition;
-        if (columnDefinition != null)
+        if (dependencyObject is ColumnDefinition columnDefinition)
         {
             // The IsExpanded attached property of a ColumnDefinition changed
             if ((bool)e.NewValue)

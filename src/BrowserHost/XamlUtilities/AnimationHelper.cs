@@ -4,19 +4,10 @@ using System.Windows.Controls;
 using System.Windows.Media.Animation;
 
 namespace BrowserHost.XamlUtilities;
+
 public static class AnimationHelper
 {
-    /// <summary>
-    /// Animate expand/collapse of a grid column. 
-    /// </summary>
-    /// <param name="gridColumn">The grid column to expand/collapse.</param>
-    /// <param name="expandedWidth">The expanded width.</param>
-    /// <param name="milliseconds">The milliseconds component of the duration.</param>
-    /// <param name="collapsedWidth">The width when collapsed.</param>
-    /// <param name="minWidth">The minimum width of the column.</param>
-    /// <param name="duration">The duration.</param>
-    public static void AnimateGridColumnExpandCollapse(ColumnDefinition gridColumn, bool expand, double expandedWidth, double collapsedWidth,
-        double minWidth, TimeSpan duration)
+    public static void AnimateGridColumnExpandCollapse(ColumnDefinition gridColumn, bool expand, double expandedWidth, double collapsedWidth, double minWidth, TimeSpan duration)
     {
         if (expand && gridColumn.ActualWidth >= expandedWidth)
             // It's as wide as it needs to be.
@@ -26,23 +17,21 @@ public static class AnimationHelper
             // It's already collapsed.
             return;
 
-        Storyboard storyBoard = new Storyboard();
-
-        GridLengthAnimation animation = new GridLengthAnimation();
-        animation.From = new GridLength(gridColumn.ActualWidth);
-        animation.To = new GridLength(expand ? expandedWidth : collapsedWidth);
-        animation.Duration = duration;
+        var storyBoard = new Storyboard();
+        var animation = new GridLengthAnimation
+        {
+            From = new GridLength(gridColumn.ActualWidth),
+            To = new GridLength(expand ? expandedWidth : collapsedWidth),
+            Duration = duration
+        };
 
         // Set delegate that will fire on completion.
         animation.Completed += delegate
         {
             // Set the animation to null on completion. This allows the grid to be resized manually
             gridColumn.BeginAnimation(ColumnDefinition.WidthProperty, null);
-
             // Set the final value manually.
             gridColumn.Width = new GridLength(expand ? expandedWidth : collapsedWidth);
-
-            // Set the minimum width.
             gridColumn.MinWidth = minWidth;
         };
 
@@ -56,14 +45,6 @@ public static class AnimationHelper
         storyBoard.Begin();
     }
 
-    /// <summary>
-    /// Animate expand/collapse of a grid row. 
-    /// </summary>
-    /// <param name="gridRow">The grid row to expand/collapse.</param>
-    /// <param name="expandedHeight">The expanded height.</param>
-    /// <param name="collapsedHeight">The collapesed height.</param>
-    /// <param name="minHeight">The minimum height.</param>
-    /// <param name="duration">The duration.</param>
     public static void AnimateGridRowExpandCollapse(RowDefinition gridRow, bool expand, double expandedHeight, double collapsedHeight, double minHeight, TimeSpan duration)
     {
         if (expand && gridRow.ActualHeight >= expandedHeight)
@@ -74,23 +55,21 @@ public static class AnimationHelper
             // It's already collapsed.
             return;
 
-        Storyboard storyBoard = new Storyboard();
-
-        GridLengthAnimation animation = new GridLengthAnimation();
-        animation.From = new GridLength(gridRow.ActualHeight);
-        animation.To = new GridLength(expand ? expandedHeight : collapsedHeight);
-        animation.Duration = duration;
+        var storyBoard = new Storyboard();
+        GridLengthAnimation animation = new GridLengthAnimation
+        {
+            From = new GridLength(gridRow.ActualHeight),
+            To = new GridLength(expand ? expandedHeight : collapsedHeight),
+            Duration = duration
+        };
 
         // Set delegate that will fire on completioon.
         animation.Completed += delegate
         {
             // Set the animation to null on completion. This allows the grid to be resized manually
             gridRow.BeginAnimation(RowDefinition.HeightProperty, null);
-
             // Set the final height.
             gridRow.Height = new GridLength(expand ? expandedHeight : collapsedHeight);
-
-            // Set the minimum height.
             gridRow.MinHeight = minHeight;
         };
 

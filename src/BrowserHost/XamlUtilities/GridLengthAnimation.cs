@@ -34,10 +34,8 @@ public class GridLengthAnimation : AnimationTimeline
         get { return typeof(GridLength); }
     }
 
-    protected override Freezable CreateInstanceCore()
-    {
-        return new GridLengthAnimation();
-    }
+    protected override Freezable CreateInstanceCore() =>
+        new GridLengthAnimation();
 
     public override object GetCurrentValue(object defaultOriginValue, object defaultDestinationValue, AnimationClock animationClock)
     {
