@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace BrowserHost.Converter;
+namespace BrowserHost.XamlUtilities;
 
 internal class BorderClipConverter : IMultiValueConverter
 {
