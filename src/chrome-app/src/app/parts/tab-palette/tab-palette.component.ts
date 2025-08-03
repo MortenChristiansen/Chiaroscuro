@@ -2,7 +2,12 @@ import { Component } from '@angular/core';
 
 @Component({
   selector: 'tab-palette',
-  template: `TAB PALETTE`,
+  template: `
+    <div
+      class="w-full h-full flex-1 min-h-0 bg-gray-800 rounded-lg shadow-lg p-4 flex flex-col gap-4 border border-gray-700"
+      style="position: relative; top: 0; left: 0;right: 0; bottom: 0;"
+    ></div>
+  `,
   styles: ``,
 })
 export default class TabPaletteComponent {

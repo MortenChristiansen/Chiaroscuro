@@ -2,6 +2,11 @@
 
 @import "tailwindcss";
 
+html,
+body {
+  height: 100%;
+}
+
 @theme {
   --breakpoint-xxs: 18rem;
   --breakpoint-xs: 24rem;
