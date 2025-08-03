@@ -6,6 +6,16 @@ namespace BrowserHost.XamlUtilities;
 
 public class GridAnimationBehavior : DependencyObject
 {
+    public static void Initialize(RowDefinition rowDefinition)
+    {
+        SetGridCellSize(rowDefinition, rowDefinition.Height.Value);
+    }
+
+    public static void Initialize(ColumnDefinition columnDefinition)
+    {
+        SetGridCellSize(columnDefinition, columnDefinition.Width.Value);
+    }
+
     #region Attached IsExpanded DependencyProperty
 
     /// <summary>

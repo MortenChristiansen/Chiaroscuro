@@ -30,6 +30,7 @@ namespace BrowserHost;
 public partial class MainWindow : Window
 {
     private readonly List<Feature> _features;
+    private bool _tabPaletteHasBeenShown;
 
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
@@ -216,10 +217,18 @@ public partial class MainWindow : Window
         if (TabPaletteBrowserControl.Visibility == Visibility.Visible)
             return;
 
+        TabPaletteColumn.Width = new GridLength(350);
+
+        if (!_tabPaletteHasBeenShown)
+        {
+            // We need to initialize the animation because the ActualWidth property does not have a value yet
+            GridAnimationBehavior.Initialize(TabPaletteColumn);
+            _tabPaletteHasBeenShown = true;
+        }
+
         TabPaletteBrowserControl.Visibility = Visibility.Visible;
         TabPaletteGridSplitter.Visibility = Visibility.Visible;
         // Set the desired expanded width for the column before expanding
-        TabPaletteColumn.Width = new GridLength(350);
         var duration = TimeSpan.FromMilliseconds(300);
         GridAnimationBehavior.SetDuration(TabPaletteColumn, duration);
         GridAnimationBehavior.SetIsExpanded(TabPaletteColumn, true);
