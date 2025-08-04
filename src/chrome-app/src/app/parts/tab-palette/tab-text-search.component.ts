@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
+import { IconButtonComponent } from '../../shared/icon-button.component';
 import { Component, signal, OnInit, computed } from '@angular/core';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { TabPaletteApi } from './tabPaletteApi';
 
 @Component({
   selector: 'tab-text-search',
-  imports: [CommonModule],
+  imports: [CommonModule, IconButtonComponent],
   template: `
     <div class="flex flex-col gap-2 w-full">
       <div class="flex items-center gap-2">
@@ -15,30 +16,66 @@ import { TabPaletteApi } from './tabPaletteApi';
           class="flex-1 px-2 py-1 rounded border border-gray-600 bg-gray-900 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Find in page..."
           [(value)]="searchTerm"
+          (keydown.escape)="cancelSearch()"
           (keydown.enter)="onSearchTermChange(input.value)"
         />
-        <button
-          class="px-2 py-1 rounded bg-gray-700 text-gray-200 hover:bg-gray-600 disabled:opacity-50"
+        <icon-button
           [disabled]="!hasMatches()"
           (click)="goToPrev()"
+          title="Previous match"
         >
-          &#8593;
-        </button>
-        <button
-          class="px-2 py-1 rounded bg-gray-700 text-gray-200 hover:bg-gray-600 disabled:opacity-50"
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            width="20"
+            height="20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M10 5a1 1 0 01.7.3l5 5a1 1 0 01-1.4 1.4L11 8.42V15a1 1 0 11-2 0V8.42l-3.3 3.3a1 1 0 01-1.4-1.42l5-5A1 1 0 0110 5z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </icon-button>
+        <icon-button
           [disabled]="!hasMatches()"
           (click)="goToNext()"
+          title="Next match"
         >
-          &#8595;
-        </button>
-        <button
-          class="px-2 py-1 rounded bg-gray-600 text-gray-300 hover:bg-gray-500"
-          (click)="cancelSearch()"
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            width="20"
+            height="20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M10 15a1 1 0 01-.7-.3l-5-5a1 1 0 011.4-1.4L9 11.58V5a1 1 0 112 0v6.58l3.3-3.3a1 1 0 111.4 1.42l-5 5A1 1 0 0110 15z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </icon-button>
+        <icon-button
+          (click)="cancelSearch(); input.focus()"
           [disabled]="!searchTerm()"
           title="Cancel search"
         >
-          &#10006;
-        </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            width="20"
+            height="20"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M10 8.586l4.95-4.95a1 1 0 111.414 1.414L11.414 10l4.95 4.95a1 1 0 01-1.414 1.414L10 11.414l-4.95 4.95a1 1 0 01-1.414-1.414L8.586 10l-4.95-4.95A1 1 0 115.05 3.636L10 8.586z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </icon-button>
       </div>
       <div class="text-xs text-gray-400 h-4">
         @if(totalMatches() > 0) { Match {{ currentMatch() }} of
@@ -47,6 +84,7 @@ import { TabPaletteApi } from './tabPaletteApi';
       </div>
     </div>
   `,
+  standalone: true,
   styles: ``,
 })
 export class TabTextSearchComponent implements OnInit {
@@ -65,6 +103,9 @@ export class TabTextSearchComponent implements OnInit {
         console.log('Search status changed:', totalMatches);
         this.totalMatches.set(totalMatches);
         if (this.currentMatch() === null) this.currentMatch.set(1);
+      },
+      init: () => {
+        this.resetSearch();
       },
     });
   }
@@ -92,9 +133,13 @@ export class TabTextSearchComponent implements OnInit {
   }
 
   async cancelSearch() {
+    this.resetSearch();
+    await this.api.stopFinding();
+  }
+
+  private resetSearch() {
     this.searchTerm.set('');
     this.totalMatches.set(0);
     this.currentMatch.set(null);
-    await this.api.stopFinding();
   }
 }

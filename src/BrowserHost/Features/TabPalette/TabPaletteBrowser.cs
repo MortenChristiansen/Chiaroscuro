@@ -15,4 +15,9 @@ public class TabPaletteBrowser : Browser<TabPaletteBrowserApi>
     {
         CallClientApi("findStatusChanged", $"{totalMatches}");
     }
+
+    public void Init()
+    {
+        CallClientApi("init");
+    }
 }

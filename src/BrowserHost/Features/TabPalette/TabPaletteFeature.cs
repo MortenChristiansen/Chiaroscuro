@@ -1,4 +1,5 @@
-﻿using BrowserHost.Utilities;
+﻿using BrowserHost.Features.Tabs;
+using BrowserHost.Utilities;
 using CefSharp;
 using System.Windows.Input;
 
@@ -9,52 +10,47 @@ public record TabPaletteDismissedEvent();
 
 public class TabPaletteFeature(MainWindow window) : Feature(window)
 {
+    private bool _tabPaletteIsOpen;
+
     public override void Configure()
     {
-        PubSub.Subscribe<TabPaletteRequestedEvent>((_) =>
-        {
-            Window.ShowTabPalette();
-        });
-        PubSub.Subscribe<TabPaletteDismissedEvent>((_) =>
-        {
-            Window.HideTabPalette();
-        });
-        PubSub.Subscribe<FindTextEvent>((e) =>
-        {
-            if (Window.CurrentTab == null) return;
-            Window.CurrentTab.GetBrowser().Find(e.Term, true, false, findNext: true);
-        });
-        PubSub.Subscribe<NextTextMatchEvent>((e) =>
-        {
-            if (Window.CurrentTab == null) return;
-            Window.CurrentTab.GetBrowser().Find(e.Term, forward: true, false, findNext: true);
-        });
-        PubSub.Subscribe<PrevTextMatchEvent>((e) =>
-        {
-            if (Window.CurrentTab == null) return;
-            Window.CurrentTab.GetBrowser().Find(e.Term, forward: false, false, findNext: true);
-        });
-        PubSub.Subscribe<StopFindingTextEvent>((_) =>
-        {
-            if (Window.CurrentTab == null) return;
-            Window.CurrentTab.GetBrowser().StopFinding(true);
-        });
-        PubSub.Subscribe<FindStatusChangedEvent>((e) =>
-        {
-            Window.TabPaletteBrowserControl.FindStatusChanged(e.Matches);
-        });
+        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => OpenTabPalette());
+        PubSub.Subscribe<TabPaletteDismissedEvent>((_) => CloseTabPalette());
+        PubSub.Subscribe<TabDeactivatedEvent>((e) => CloseTabPalette());
+        PubSub.Subscribe<FindTextEvent>((e) => Window.CurrentTab?.GetBrowser().Find(e.Term, true, false, findNext: true));
+        PubSub.Subscribe<NextTextMatchEvent>((e) => Window.CurrentTab?.GetBrowser().Find(e.Term, forward: true, false, findNext: true));
+        PubSub.Subscribe<PrevTextMatchEvent>((e) => Window.CurrentTab?.GetBrowser().Find(e.Term, forward: false, false, findNext: true));
+        PubSub.Subscribe<StopFindingTextEvent>((_) => Window.CurrentTab?.GetBrowser().StopFinding(true));
+        PubSub.Subscribe<FindStatusChangedEvent>((e) => Window.TabPaletteBrowserControl.FindStatusChanged(e.Matches));
+    }
+
+    public void OpenTabPalette()
+    {
+        _tabPaletteIsOpen = true;
+        Window.TabPaletteBrowserControl.Init();
+        Window.ShowTabPalette();
+    }
+
+    private void CloseTabPalette()
+    {
+        _tabPaletteIsOpen = false;
+        Window.HideTabPalette();
+        Window.CurrentTab?.GetBrowser().StopFinding(true);
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        // TODO: Do we want any shortcuts for this specifically?
         if (e.Key == Key.F1)
         {
-            PubSub.Publish(new TabPaletteRequestedEvent());
-        }
-        if (e.Key == Key.F2)
-        {
-            PubSub.Publish(new TabPaletteDismissedEvent());
+            if (_tabPaletteIsOpen)
+            {
+                PubSub.Publish(new TabPaletteDismissedEvent());
+
+            }
+            else
+            {
+                PubSub.Publish(new TabPaletteRequestedEvent());
+            }
         }
 
         return base.HandleOnPreviewKeyDown(e);
