@@ -3,6 +3,7 @@ using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
+using BrowserHost.Features.TabPalette;
 using BrowserHost.Utilities;
 using CefSharp;
 using System;
@@ -35,6 +36,7 @@ public class TabBrowser : Browser
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
         RequestHandler = new RequestHandler(Id);
+        FindHandler = new FindHandler();
 
         BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
     }
