@@ -63,7 +63,7 @@ public static class AnimationHelper
             Duration = duration
         };
 
-        // Set delegate that will fire on completioon.
+        // Set delegate that will fire on completion.
         animation.Completed += delegate
         {
             // Set the animation to null on completion. This allows the grid to be resized manually
