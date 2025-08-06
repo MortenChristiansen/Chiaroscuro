@@ -77,11 +77,12 @@ import { TabPaletteApi } from './tabPaletteApi';
           </svg>
         </icon-button>
       </div>
+      @if(totalMatches() !== null) {
       <div class="text-xs text-gray-400 h-4">
-        @if(totalMatches() > 0) { Match {{ currentMatch() }} of
-        {{ totalMatches() }}
-        } @else { No matches }
+        @if(totalMatches()! > 0) {
+        {{ totalMatches() }} matches } @else { No matches }
       </div>
+      }
     </div>
   `,
   standalone: true,
@@ -89,9 +90,10 @@ import { TabPaletteApi } from './tabPaletteApi';
 })
 export class TabTextSearchComponent implements OnInit {
   searchTerm = signal('');
-  totalMatches = signal(0);
-  currentMatch = signal<number | null>(null);
-  hasMatches = computed(() => this.totalMatches() > 0);
+  totalMatches = signal<number | null>(null);
+  hasMatches = computed(
+    () => this.totalMatches() != null && this.totalMatches()! > 0
+  );
 
   private api!: TabPaletteApi;
 
@@ -102,7 +104,6 @@ export class TabTextSearchComponent implements OnInit {
       findStatusChanged: (totalMatches: number) => {
         console.log('Search status changed:', totalMatches);
         this.totalMatches.set(totalMatches);
-        if (this.currentMatch() === null) this.currentMatch.set(1);
       },
       init: () => {
         this.resetSearch();
@@ -118,17 +119,11 @@ export class TabTextSearchComponent implements OnInit {
 
   async goToNext() {
     if (!this.hasMatches()) return;
-    this.currentMatch.update((previous) =>
-      previous === this.totalMatches() ? 1 : previous! + 1
-    );
     await this.api.nextMatch(this.searchTerm());
   }
 
   async goToPrev() {
     if (!this.hasMatches()) return;
-    this.currentMatch.update((previous) =>
-      previous === 1 ? this.totalMatches() : previous! - 1
-    );
     await this.api.prevMatch(this.searchTerm());
   }
 
@@ -139,7 +134,6 @@ export class TabTextSearchComponent implements OnInit {
 
   private resetSearch() {
     this.searchTerm.set('');
-    this.totalMatches.set(0);
-    this.currentMatch.set(null);
+    this.totalMatches.set(null);
   }
 }

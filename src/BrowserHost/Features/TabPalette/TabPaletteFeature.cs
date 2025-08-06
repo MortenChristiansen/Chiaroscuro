@@ -1,4 +1,4 @@
-﻿using BrowserHost.Features.Tabs;
+using BrowserHost.Features.Tabs;
 using BrowserHost.Utilities;
 using CefSharp;
 using System.Windows.Input;
@@ -16,7 +16,7 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
     {
         PubSub.Subscribe<TabPaletteRequestedEvent>((_) => OpenTabPalette());
         PubSub.Subscribe<TabPaletteDismissedEvent>((_) => CloseTabPalette());
-        PubSub.Subscribe<TabDeactivatedEvent>((e) => CloseTabPalette());
+        PubSub.Subscribe<TabDeactivatedEvent>((_) => CloseTabPalette());
         PubSub.Subscribe<FindTextEvent>((e) => Window.CurrentTab?.GetBrowser().Find(e.Term, true, false, findNext: true));
         PubSub.Subscribe<NextTextMatchEvent>((e) => Window.CurrentTab?.GetBrowser().Find(e.Term, forward: true, false, findNext: true));
         PubSub.Subscribe<PrevTextMatchEvent>((e) => Window.CurrentTab?.GetBrowser().Find(e.Term, forward: false, false, findNext: true));
