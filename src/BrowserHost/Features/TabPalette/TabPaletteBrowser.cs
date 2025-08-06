@@ -11,7 +11,7 @@ public class TabPaletteBrowser : Browser<TabPaletteBrowserApi>
         : base("/tab-palette", disableContextMenu: true)
     { }
 
-    public void FindStatusChanged(int totalMatches)
+    public void FindStatusChanged(int? totalMatches)
     {
         CallClientApi("findStatusChanged", $"{totalMatches}");
     }

@@ -16,7 +16,6 @@ import { TabPaletteApi } from './tabPaletteApi';
           class="flex-1 px-2 py-1 rounded border border-gray-600 bg-gray-900 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Find in page..."
           [(value)]="searchTerm"
-          (keydown.escape)="cancelSearch()"
           (keydown.enter)="onSearchTermChange(input.value)"
         />
         <icon-button
@@ -59,7 +58,7 @@ import { TabPaletteApi } from './tabPaletteApi';
         </icon-button>
         <icon-button
           (click)="cancelSearch(); input.focus()"
-          [disabled]="!searchTerm()"
+          [disabled]="totalMatches() === null"
           title="Cancel search"
         >
           <svg
@@ -101,9 +100,9 @@ export class TabTextSearchComponent implements OnInit {
     this.api = await loadBackendApi<TabPaletteApi>('api');
 
     exposeApiToBackend({
-      findStatusChanged: (totalMatches: number) => {
+      findStatusChanged: (totalMatches?: number) => {
         console.log('Search status changed:', totalMatches);
-        this.totalMatches.set(totalMatches);
+        this.totalMatches.set(totalMatches ?? null);
       },
       init: () => {
         this.resetSearch();
