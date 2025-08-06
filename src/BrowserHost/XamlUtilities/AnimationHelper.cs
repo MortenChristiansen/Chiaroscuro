@@ -39,7 +39,6 @@ public static class AnimationHelper
 
         Storyboard.SetTarget(animation, gridColumn);
         Storyboard.SetTargetProperty(animation, new PropertyPath(ColumnDefinition.WidthProperty));
-        storyBoard.Children.Add(animation);
 
         // Begin the animation.
         storyBoard.Begin();
@@ -77,7 +76,6 @@ public static class AnimationHelper
 
         Storyboard.SetTarget(animation, gridRow);
         Storyboard.SetTargetProperty(animation, new PropertyPath(RowDefinition.HeightProperty));
-        storyBoard.Children.Add(animation);
 
         // Begin the animation.
         storyBoard.Begin();
