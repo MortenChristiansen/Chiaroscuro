@@ -6,9 +6,11 @@ using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
 using BrowserHost.Features.Folders;
 using BrowserHost.Features.PinnedTabs;
+using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.Tabs;
 using BrowserHost.Features.Workspaces;
 using BrowserHost.Features.Zoom;
+using BrowserHost.XamlUtilities;
 using CefSharp;
 using CefSharp.Wpf;
 using System;
@@ -19,6 +21,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using Velopack;
 using Velopack.Sources;
 
@@ -27,6 +30,7 @@ namespace BrowserHost;
 public partial class MainWindow : Window
 {
     private readonly List<Feature> _features;
+    private bool _tabPaletteHasBeenShown;
 
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
@@ -60,7 +64,8 @@ public partial class MainWindow : Window
             new ZoomFeature(this),
             new DragDropFeature(this),
             new WorkspacesFeature(this),
-            new FoldersFeature(this)
+            new FoldersFeature(this),
+            new TabPaletteFeature(this),
         ];
         _features.ForEach(f => f.Configure());
 
@@ -205,5 +210,46 @@ public partial class MainWindow : Window
         {
             border.Background = new SolidColorBrush(newColor);
         }
+    }
+
+    public void ShowTabPalette()
+    {
+        if (TabPaletteBrowserControl.Visibility == Visibility.Visible)
+            return;
+
+        TabPaletteColumn.Width = new GridLength(350);
+
+        if (!_tabPaletteHasBeenShown)
+        {
+            // We need to initialize the animation because the ActualWidth property does not have a value yet
+            GridAnimationBehavior.Initialize(TabPaletteColumn);
+            _tabPaletteHasBeenShown = true;
+        }
+
+        TabPaletteBrowserControl.Visibility = Visibility.Visible;
+        TabPaletteGridSplitter.Visibility = Visibility.Visible;
+        // Set the desired expanded width for the column before expanding
+        var duration = TimeSpan.FromMilliseconds(300);
+        GridAnimationBehavior.SetDuration(TabPaletteColumn, duration);
+        GridAnimationBehavior.SetIsExpanded(TabPaletteColumn, true);
+    }
+
+    public void HideTabPalette()
+    {
+        if (TabPaletteBrowserControl.Visibility != Visibility.Visible)
+            return;
+
+        var duration = TimeSpan.FromMilliseconds(200);
+        GridAnimationBehavior.SetDuration(TabPaletteColumn, duration);
+        GridAnimationBehavior.SetIsExpanded(TabPaletteColumn, false);
+        // Hide controls after animation completes
+        var timer = new DispatcherTimer { Interval = duration };
+        timer.Tick += (s, e) =>
+        {
+            timer.Stop();
+            TabPaletteBrowserControl.Visibility = Visibility.Collapsed;
+            TabPaletteGridSplitter.Visibility = Visibility.Collapsed;
+        };
+        timer.Start();
     }
 }

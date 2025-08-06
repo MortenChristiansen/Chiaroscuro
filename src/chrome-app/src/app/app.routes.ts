@@ -16,4 +16,8 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./parts/action-context/action-context.component'),
   },
+  {
+    path: 'tab-palette',
+    loadComponent: () => import('./parts/tab-palette/tab-palette.component'),
+  },
 ];

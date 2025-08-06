@@ -1,7 +1,7 @@
 ﻿<Application x:Class="BrowserHost.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:converter="clr-namespace:BrowserHost.Converter"
+             xmlns:converter="clr-namespace:BrowserHost.XamlUtilities"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <converter:TitleConverter x:Key="TitleConverter"/>

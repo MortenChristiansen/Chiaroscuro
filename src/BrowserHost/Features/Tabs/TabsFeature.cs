@@ -29,14 +29,14 @@ public class TabsFeature(MainWindow window) : Feature(window)
         });
         PubSub.Subscribe<TabActivatedEvent>(e =>
         {
-            Window.SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId));
+            SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId));
             Window.ActionContext.SetActiveTab(e.TabId);
         });
         PubSub.Subscribe<TabClosedEvent>(e =>
         {
             _tabBrowsers.Remove(e.Tab);
             if (e.Tab == Window.CurrentTab)
-                Window.SetCurrentTab(null);
+                SetCurrentTab(null);
             e.Tab.Dispose();
         });
         PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
@@ -60,8 +60,16 @@ public class TabsFeature(MainWindow window) : Feature(window)
                 [.. workspace.Folders.Select(f => new FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
             );
             var activeTabBrowser = activeTabId != null ? GetTabBrowserById(activeTabId) : null;
-            Window.SetCurrentTab(activeTabBrowser);
+            SetCurrentTab(activeTabBrowser);
         });
+    }
+
+    private void SetCurrentTab(TabBrowser? tab)
+    {
+        if (Window.CurrentTab != null && tab?.Id != Window.CurrentTab.Id)
+            PubSub.Publish(new TabDeactivatedEvent(Window.CurrentTab.Id));
+
+        Window.SetCurrentTab(tab);
     }
 
     public override void Start()
@@ -99,7 +107,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
         var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.UtcNow);
         Window.ActionContext.AddTab(tab, activate: true);
-        Window.Dispatcher.Invoke(() => Window.SetCurrentTab(browser));
+        Window.Dispatcher.Invoke(() => SetCurrentTab(browser));
 
         return browser;
     }
