@@ -20,4 +20,8 @@ export const routes: Routes = [
     path: 'tab-palette',
     loadComponent: () => import('./parts/tab-palette/tab-palette.component'),
   },
+  {
+    path: 'settings',
+    loadComponent: () => import('./content-pages/settings/settings.component'),
+  },
 ];

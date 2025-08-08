@@ -47,6 +47,7 @@ static class ContentServer
         .WithStaticFolder("/action-dialog", chromeAppActionDialog, true, m => m.WithContentCaching())
         .WithStaticFolder("/action-context", tabs, true, m => m.WithContentCaching())
         .WithStaticFolder("/tab-palette", tabs, true, m => m.WithContentCaching())
+        .WithStaticFolder("/settings", tabs, true, m => m.WithContentCaching())
         ;
     }
 #endif
