@@ -111,7 +111,7 @@ public static class NavigationHistoryStateManager
         lock (_cacheLock)
         {
             EnsureCacheLoaded();
-            history = _cachedHistory;
+            history = _cachedHistory.ToDictionary();
         }
 
         if (string.IsNullOrWhiteSpace(searchText))
@@ -119,7 +119,7 @@ public static class NavigationHistoryStateManager
 
         // Seed suggestions for all the built-in pages
         ContentServer.Pages.ToList().ForEach(p =>
-            history.Add(p, new(p, null)) // TODO: Add a proper title and favicon for built-in pages
+            history.Add(p.Address, new(p.Title, p.Favicon))
         );
 
         var suggestions = history
