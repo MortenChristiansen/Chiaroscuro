@@ -6,7 +6,12 @@ namespace BrowserHost.Features.Settings;
 public class SettingsFeature(MainWindow window) : Feature(window)
 {
     private readonly SettingsBrowserApi _browserApi = new();
-    private SettingsDataV1 _settings = SettingsStateManager.RestoreSettingsFromDisk();
+
+    // These are the settings for the current execution, loaded from disk.
+    // They are only loaded on startup.
+    public static SettingsDataV1 ExecutionSettings { get; } = SettingsStateManager.RestoreSettingsFromDisk();
+
+    private SettingsDataV1 _settings = ExecutionSettings;
 
     public override void Configure()
     {
