@@ -46,7 +46,7 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
             return;
         }
 
-        if (ContentServer.IsContentPage(e.Command))
+        if (ContentServer.IsContentPage(e.Command, out var page))
         {
             // Do we handle this as a regular page or not?
             // We want some changed behavior - namely an alias for the url and title and a dedicated icon
@@ -55,7 +55,7 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
             // Do we want to pre populate the navigation history results with all available pages?
 
             // For now, we treat it as a regular navigation command.
-            var pageUrl = ContentServer.GetUiAddress(e.Command);
+            var pageUrl = ContentServer.GetUiAddress(page.Address);
             PubSub.Publish(new NavigationStartedEvent(pageUrl, UseCurrentTab: e.Ctrl, SaveInHistory: false));
             return;
         }

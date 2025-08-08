@@ -180,7 +180,7 @@ public partial class MainWindow : Window
             CurrentTab.AddressChanged -= Tab_AddressChanged;
 
         WebContentBorder.Child = tab;
-        ChromeUI.ChangeAddress(tab?.Address);
+        ChromeUI.ChangeAddress(GetAddressForPresentation(tab?.Address));
 
         if (tab != null)
             tab.AddressChanged += Tab_AddressChanged;
@@ -188,7 +188,15 @@ public partial class MainWindow : Window
 
     private void Tab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        ChromeUI.ChangeAddress($"{e.NewValue}");
+        ChromeUI.ChangeAddress(GetAddressForPresentation($"{e.NewValue}"));
+    }
+
+    private static string? GetAddressForPresentation(string? address)
+    {
+        if (address != null && ContentServer.IsContentPage(address, out var contentPage, ContentPageUrlMode.Absolute))
+            return contentPage.Address;
+
+        return address;
     }
 
     private static void OnWorkspaceColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
