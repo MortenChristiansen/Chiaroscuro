@@ -6,6 +6,7 @@ using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
 using BrowserHost.Features.Folders;
 using BrowserHost.Features.PinnedTabs;
+using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.Tabs;
 using BrowserHost.Features.Workspaces;
@@ -66,6 +67,7 @@ public partial class MainWindow : Window
             new WorkspacesFeature(this),
             new FoldersFeature(this),
             new TabPaletteFeature(this),
+            new SettingsFeature(this)
         ];
         _features.ForEach(f => f.Configure());
 

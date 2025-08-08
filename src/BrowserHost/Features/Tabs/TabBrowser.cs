@@ -80,4 +80,9 @@ public class TabBrowser : Browser
             base.OnAddressChanged(oldValue, newValue);
         }
     }
+
+    public void RegisterContentPageApi<TApi>(TApi api, string name) where TApi : BrowserApi
+    {
+        RegisterSecondaryApi(api, name);
+    }
 }

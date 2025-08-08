@@ -109,6 +109,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
         Window.ActionContext.AddTab(tab, activate: true);
         Window.Dispatcher.Invoke(() => SetCurrentTab(browser));
 
+        PubSub.Publish(new TabBrowserCreatedEvent(browser));
         return browser;
     }
 
@@ -118,6 +119,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
 
+        PubSub.Publish(new TabBrowserCreatedEvent(browser));
         return browser;
     }
 
