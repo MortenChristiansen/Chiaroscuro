@@ -6,6 +6,9 @@ using System.IO;
 using System.Threading.Tasks;
 #endif
 
+using System;
+using System.Linq;
+
 namespace BrowserHost;
 
 static class ContentServer
@@ -29,6 +32,20 @@ static class ContentServer
 
     public static string GetUiAddress(string path) =>
         _host + path;
+
+    public static bool IsContentServerUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return false;
+        return url.StartsWith(_host, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static readonly string[] Pages = ["/settings"];
+
+    public static bool IsContentPage(string url)
+    {
+        return Pages.Contains(url.Trim(), StringComparer.OrdinalIgnoreCase);
+    }
 
 #if !DEBUG
     private static WebServer CreateWebServer()

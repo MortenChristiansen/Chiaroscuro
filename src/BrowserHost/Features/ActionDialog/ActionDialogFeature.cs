@@ -40,6 +40,26 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
             return;
         }
 
+        if (ContentServer.IsContentServerUrl(e.Command))
+        {
+            // We don't handle content server URLs
+            return;
+        }
+
+        if (ContentServer.IsContentPage(e.Command))
+        {
+            // Do we handle this as a regular page or not?
+            // We want some changed behavior - namely an alias for the url and title and a dedicated icon
+            // How do we want this to be persisted in workspaces.json and navigationHistory.json?
+            // Do we want the tab to be bookmarkable and pinnable?
+            // Do we want to pre populate the navigation history results with all available pages?
+
+            // For now, we treat it as a regular navigation command.
+            var pageUrl = ContentServer.GetUiAddress(e.Command);
+            PubSub.Publish(new NavigationStartedEvent(pageUrl, UseCurrentTab: e.Ctrl, SaveInHistory: false));
+            return;
+        }
+
         PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
     }
 

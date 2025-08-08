@@ -60,7 +60,7 @@ public static class NavigationHistoryStateManager
     }
 
     private static bool IsIgnoredAddress(string address) =>
-        string.IsNullOrWhiteSpace(address) || address.StartsWith("file://", StringComparison.OrdinalIgnoreCase);
+        string.IsNullOrWhiteSpace(address) || address.StartsWith("file://", StringComparison.OrdinalIgnoreCase) || ContentServer.IsContentServerUrl(address);
 
     private static string NormalizeAddress(string address)
     {
@@ -101,7 +101,7 @@ public static class NavigationHistoryStateManager
             Debug.WriteLine($"Failed to load navigation history: {e.Message}");
         }
 
-        return new Dictionary<string, NavigationHistoryEntry>();
+        return [];
     }
 
     public static List<NavigationSuggestion> GetSuggestions(string searchText, int maxSuggestions = 5)
@@ -116,6 +116,11 @@ public static class NavigationHistoryStateManager
 
         if (string.IsNullOrWhiteSpace(searchText))
             return [];
+
+        // Seed suggestions for all the built-in pages
+        ContentServer.Pages.ToList().ForEach(p =>
+            history.Add(p, new(p, null)) // TODO: Add a proper title and favicon for built-in pages
+        );
 
         var suggestions = history
             .Where(x => !IsIgnoredAddress(x.Key)) // In case some were saved before the ignore logic was implemented
