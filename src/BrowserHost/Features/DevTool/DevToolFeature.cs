@@ -43,7 +43,6 @@ public class DevToolFeature(MainWindow window) : Feature(window)
         var currentTab = Window.CurrentTab;
         if (currentTab == null) return;
 
-        var browserHost = currentTab.GetBrowserHost();
         ToggleDevTools(currentTab.GetBrowserHost());
     }
 
