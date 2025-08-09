@@ -25,6 +25,7 @@ and uses Angular for the window chrome parts of the UI.
   - Never use `@Input` or `@Output` (instead use `input` and `output` signal based functions).
 - Make sure there are no type errors in the code.
 - Components are standalone by default.
+- Do not prefix component selectors with `app-` or any other prefix.
 
 ## C# Features
 - Use new language features where applicable.

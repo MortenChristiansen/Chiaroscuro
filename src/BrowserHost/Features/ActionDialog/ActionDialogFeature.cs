@@ -40,6 +40,19 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
             return;
         }
 
+        if (ContentServer.IsContentServerUrl(e.Command))
+        {
+            // We don't handle content server URLs
+            return;
+        }
+
+        if (ContentServer.IsContentPage(e.Command, out var page))
+        {
+            var pageUrl = ContentServer.GetUiAddress(page.Address);
+            PubSub.Publish(new NavigationStartedEvent(pageUrl, UseCurrentTab: e.Ctrl, SaveInHistory: false));
+            return;
+        }
+
         PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
     }
 

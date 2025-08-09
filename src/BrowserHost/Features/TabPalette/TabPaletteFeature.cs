@@ -57,6 +57,9 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
 
     private void CloseTabPalette()
     {
+        if (!_tabPaletteIsOpen)
+            return;
+
         _tabPaletteIsOpen = false;
         Window.HideTabPalette();
         PubSub.Publish(new StopFindingTextEvent());

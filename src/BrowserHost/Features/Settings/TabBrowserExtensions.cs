@@ -1,0 +1,10 @@
+﻿using BrowserHost.Features.Tabs;
+using BrowserHost.Utilities;
+
+namespace BrowserHost.Features.Settings;
+
+public static class TabBrowserExtensions
+{
+    public static void SettingsLoaded(this TabBrowser browser, SettingsDataV1 settings) =>
+        browser.CallClientApi("settingsLoaded", settings.ToJsonObject());
+}

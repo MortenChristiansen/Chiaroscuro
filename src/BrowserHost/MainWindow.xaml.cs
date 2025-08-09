@@ -6,6 +6,7 @@ using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
 using BrowserHost.Features.Folders;
 using BrowserHost.Features.PinnedTabs;
+using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.Tabs;
 using BrowserHost.Features.Workspaces;
@@ -66,6 +67,7 @@ public partial class MainWindow : Window
             new WorkspacesFeature(this),
             new FoldersFeature(this),
             new TabPaletteFeature(this),
+            new SettingsFeature(this)
         ];
         _features.ForEach(f => f.Configure());
 
@@ -180,7 +182,7 @@ public partial class MainWindow : Window
             CurrentTab.AddressChanged -= Tab_AddressChanged;
 
         WebContentBorder.Child = tab;
-        ChromeUI.ChangeAddress(tab?.Address);
+        ChromeUI.ChangeAddress(GetAddressForPresentation(tab?.Address));
 
         if (tab != null)
             tab.AddressChanged += Tab_AddressChanged;
@@ -188,7 +190,15 @@ public partial class MainWindow : Window
 
     private void Tab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        ChromeUI.ChangeAddress($"{e.NewValue}");
+        ChromeUI.ChangeAddress(GetAddressForPresentation($"{e.NewValue}"));
+    }
+
+    private static string? GetAddressForPresentation(string? address)
+    {
+        if (address != null && ContentServer.IsContentPage(address, out var contentPage, ContentPageUrlMode.Absolute))
+            return contentPage.Address;
+
+        return address;
     }
 
     private static void OnWorkspaceColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
