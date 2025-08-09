@@ -25,6 +25,9 @@ public static class NavigationHistoryStateManager
     {
         var normalizedAddress = NormalizeAddress(address);
 
+        if (IsIgnoredAddress(normalizedAddress))
+            return;
+
         try
         {
             MainWindow.Instance?.Dispatcher.Invoke(() =>
@@ -55,6 +58,9 @@ public static class NavigationHistoryStateManager
             Debug.WriteLine($"Failed to save navigation history: {e.Message}");
         }
     }
+
+    private static bool IsIgnoredAddress(string address) =>
+        string.IsNullOrWhiteSpace(address) || address.StartsWith("file://", StringComparison.OrdinalIgnoreCase) || ContentServer.IsContentServerUrl(address);
 
     private static string NormalizeAddress(string address)
     {
@@ -95,7 +101,7 @@ public static class NavigationHistoryStateManager
             Debug.WriteLine($"Failed to load navigation history: {e.Message}");
         }
 
-        return new Dictionary<string, NavigationHistoryEntry>();
+        return [];
     }
 
     public static List<NavigationSuggestion> GetSuggestions(string searchText, int maxSuggestions = 5)
@@ -105,13 +111,16 @@ public static class NavigationHistoryStateManager
         lock (_cacheLock)
         {
             EnsureCacheLoaded();
-            history = _cachedHistory;
+            history = _cachedHistory.ToDictionary();
         }
 
         if (string.IsNullOrWhiteSpace(searchText))
             return [];
 
+        SeedSuggestionsForBuiltInContentPages(history);
+
         var suggestions = history
+            .Where(x => !IsIgnoredAddress(x.Key)) // In case some were saved before the ignore logic was implemented
             .Select(x => (Item: x, Score: GetRelevanceScore(x.Key, searchText)))
             .Where(x => x.Score > 0)
             .OrderByDescending(x => x.Score)
@@ -121,6 +130,13 @@ public static class NavigationHistoryStateManager
             .ToList();
 
         return suggestions;
+    }
+
+    private static void SeedSuggestionsForBuiltInContentPages(Dictionary<string, NavigationHistoryEntry> history)
+    {
+        ContentServer.Pages.ToList().ForEach(p =>
+            history.Add(p.Address, new(p.Title, p.Favicon))
+        );
     }
 
     private static int GetRelevanceScore(string url, string searchText)

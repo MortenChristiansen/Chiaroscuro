@@ -1,4 +1,5 @@
-﻿using CefSharp;
+﻿using BrowserHost.Features.Settings;
+using CefSharp;
 using CefSharp.Wpf;
 using System;
 using System.IO;
@@ -22,11 +23,14 @@ public class ProgramPublishSingleFile
         if (exitCode >= 0)
             return exitCode;
 
+        var appSettings = SettingsFeature.ExecutionSettings;
+
         var settings = new CefSettings()
         {
             //By default CefSharp will use an in-memory cache, you need to specify a Cache Folder to persist data
             CachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CefSharp\\Cache"),
-            BrowserSubprocessPath = System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName
+            BrowserSubprocessPath = System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName,
+            UserAgent = appSettings.UserAgent ?? "",
         };
 
         //Example of setting a command line argument

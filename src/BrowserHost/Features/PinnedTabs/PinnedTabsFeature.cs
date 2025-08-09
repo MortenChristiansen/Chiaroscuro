@@ -81,7 +81,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
     {
         var activeTabId = Window.CurrentTab?.Id;
 
-        if (e.Key == Key.P && Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && activeTabId != null)
+        if (e.Key == Key.P && Keyboard.Modifiers == ModifierKeys.Control && activeTabId != null)
         {
             if (_pinnedTabData.ActiveTabId != null)
                 PubSub.Publish(new TabUnpinnedEvent(_pinnedTabData.ActiveTabId));

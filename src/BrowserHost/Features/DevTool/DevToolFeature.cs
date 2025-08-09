@@ -28,6 +28,13 @@ public class DevToolFeature(MainWindow window) : Feature(window)
             return true;
         }
 
+        // For some reason, F10 needs to be handled as SystemKey
+        if ((e.Key == Key.F10 || e.SystemKey == Key.F10) && Debugger.IsAttached)
+        {
+            ToggleTabPalettetDevTools();
+            return true;
+        }
+
         return base.HandleOnPreviewKeyDown(e);
     }
 
@@ -36,19 +43,21 @@ public class DevToolFeature(MainWindow window) : Feature(window)
         var currentTab = Window.CurrentTab;
         if (currentTab == null) return;
 
-        var browserHost = currentTab.GetBrowserHost();
-        if (browserHost != null)
-        {
-            if (browserHost.HasDevTools)
-                browserHost.CloseDevTools();
-            else
-                browserHost.ShowDevTools();
-        }
+        ToggleDevTools(currentTab.GetBrowserHost());
     }
 
     private void ToggleActionContextDevTools()
     {
-        var browserHost = Window.ActionContext.GetBrowserHost();
+        ToggleDevTools(Window.ActionContext.GetBrowserHost());
+    }
+
+    private void ToggleTabPalettetDevTools()
+    {
+        ToggleDevTools(Window.TabPaletteBrowserControl.GetBrowserHost());
+    }
+
+    private static void ToggleDevTools(IBrowserHost browserHost)
+    {
         if (browserHost != null)
         {
             if (browserHost.HasDevTools)

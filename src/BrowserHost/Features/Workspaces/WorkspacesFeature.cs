@@ -105,7 +105,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        if (Keyboard.Modifiers == ModifierKeys.Control || Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
         {
             var index = e.Key switch
             {
@@ -124,7 +124,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             if (index >= 0 && index < _workspaces.Length && _workspaces[index] != CurrentWorkspace)
             {
                 var targetWorkspace = _workspaces[index];
-                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
                 {
                     MoveCurrentTabToWorkspace(targetWorkspace);
                 }
