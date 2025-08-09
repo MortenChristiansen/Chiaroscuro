@@ -11,7 +11,7 @@ public class FoldersFeature(MainWindow window) : Feature(window)
 {
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.G && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        if (e.Key == Key.G && Keyboard.Modifiers == ModifierKeys.Control)
         {
             ToggleCurrentTabFolder();
             return true;

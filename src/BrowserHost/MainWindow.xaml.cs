@@ -135,7 +135,7 @@ public partial class MainWindow : Window
         // Too small to be handled by features, handle here
         if (e.Key == Key.F5)
         {
-            var ignoreCache = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+            var ignoreCache = Keyboard.Modifiers == ModifierKeys.Control;
             CurrentTab.Reload(ignoreCache);
         }
     }
