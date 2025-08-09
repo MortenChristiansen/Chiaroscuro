@@ -11,7 +11,7 @@ import {
 import { settingsSchema } from './settings-schema';
 
 @Component({
-  selector: 'settings',
+  selector: 'settings-page',
   imports: [CommonModule, FormsModule],
   template: `
     <div
@@ -90,7 +90,7 @@ import { settingsSchema } from './settings-schema';
   `,
   styles: ``,
 })
-export default class SettingsComponent implements OnInit {
+export default class SettingsPageComponent implements OnInit {
   schema = settingsSchema;
 
   // Local state: saved and currently edited values.
@@ -187,7 +187,7 @@ export default class SettingsComponent implements OnInit {
   }
 
   private defaultForField(field: SettingField) {
-    if (field.defaultValue !== undefined) return field.defaultValue as any;
+    if (field.defaultValue !== undefined) return field.defaultValue;
     switch (field.type) {
       case 'string':
         return '';
@@ -209,7 +209,7 @@ export default class SettingsComponent implements OnInit {
     ]);
     for (const key of keys) {
       const field = this.schema.find((f) => f.key === key);
-      const value = (plain as any)[key];
+      const value = plain[key];
       if (value === undefined) {
         result[key] = this.defaultForKey(key);
         continue;

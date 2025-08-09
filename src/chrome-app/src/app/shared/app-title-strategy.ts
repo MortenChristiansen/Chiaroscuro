@@ -19,7 +19,7 @@ export class AppTitleStrategy extends TitleStrategy {
     }
 
     const primary = this.getPrimary(snapshot.root);
-    const favicon = (primary?.data as any)?.['favicon'] as string | undefined;
+    const favicon = primary?.data['favicon'] as string | undefined;
     if (favicon) {
       this.setFavicon(favicon);
     }
