@@ -17,7 +17,8 @@ public class SettingsFeature(MainWindow window) : Feature(window)
     {
         PubSub.Subscribe<TabBrowserCreatedEvent>(e =>
         {
-            e.TabBrowser.RegisterContentPageApi(_browserApi, "settingsApi");
+            if (ContentServer.IsSettingsPage(e.TabBrowser.Address))
+                e.TabBrowser.RegisterContentPageApi(_browserApi, "settingsApi");
         });
         PubSub.Subscribe<SettingsPageLoadingEvent>(e =>
         {

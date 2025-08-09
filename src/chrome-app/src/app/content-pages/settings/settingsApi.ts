@@ -7,9 +7,9 @@ export type PlainSettings = Record<string, string | number | boolean>;
 export type SettingType = 'string' | 'boolean' | 'integer';
 
 export interface SettingFieldBase {
-  key: string; // dot-separated key like 'editor.fontSize'
-  name: string; // display name
-  description: string; // help text
+  key: string;
+  name: string;
+  description: string;
   defaultValue?: SettingPrimitive;
 }
 

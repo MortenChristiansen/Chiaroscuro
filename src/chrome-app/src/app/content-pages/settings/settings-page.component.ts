@@ -93,7 +93,6 @@ import { settingsSchema } from './settings-schema';
 export default class SettingsPageComponent implements OnInit {
   schema = settingsSchema;
 
-  // Local state: saved and currently edited values.
   private savedValues = signal<SettingsValues>({});
   currentValues = signal<SettingsValues>({});
 
@@ -124,7 +123,6 @@ export default class SettingsPageComponent implements OnInit {
     });
   }
 
-  // UI helpers to coerce values for controls
   asString(v: unknown): string {
     return typeof v === 'string' ? v : '';
   }
@@ -161,10 +159,8 @@ export default class SettingsPageComponent implements OnInit {
   save() {
     const values = this.currentValues();
     const plain = this.toPlain(values);
-    Promise.resolve(this.api.saveSettings(plain)).then(() => {
-      // Consider settings saved successfully; update saved snapshot
-      this.savedValues.set({ ...values });
-    });
+    this.savedValues.set({ ...values });
+    this.api.saveSettings(plain);
   }
 
   reset() {

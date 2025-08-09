@@ -32,3 +32,9 @@ You can search via a number of providers from the action dialog:
 - GitHub: `!gh <query>`
 - ChatGPT: `!ai <query>`
 - YouTube: `!y <query>`
+
+## Content Pages
+
+These are the addresses which are handled by the application to provide special functionality.
+
+- `/settings`: Edit global settings for the application.

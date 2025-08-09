@@ -117,10 +117,7 @@ public static class NavigationHistoryStateManager
         if (string.IsNullOrWhiteSpace(searchText))
             return [];
 
-        // Seed suggestions for all the built-in pages
-        ContentServer.Pages.ToList().ForEach(p =>
-            history.Add(p.Address, new(p.Title, p.Favicon))
-        );
+        SeedSuggestionsForBuiltInContentPages(history);
 
         var suggestions = history
             .Where(x => !IsIgnoredAddress(x.Key)) // In case some were saved before the ignore logic was implemented
@@ -133,6 +130,13 @@ public static class NavigationHistoryStateManager
             .ToList();
 
         return suggestions;
+    }
+
+    private static void SeedSuggestionsForBuiltInContentPages(Dictionary<string, NavigationHistoryEntry> history)
+    {
+        ContentServer.Pages.ToList().ForEach(p =>
+            history.Add(p.Address, new(p.Title, p.Favicon))
+        );
     }
 
     private static int GetRelevanceScore(string url, string searchText)

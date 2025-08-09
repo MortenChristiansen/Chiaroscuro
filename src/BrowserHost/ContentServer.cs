@@ -66,6 +66,10 @@ static class ContentServer
         return contentPage != null;
     }
 
+    public static bool IsSettingsPage(string url) =>
+        IsContentPage(url, out var contentPage, ContentPageUrlMode.Absolute) &&
+        contentPage.Address.Equals("/settings", StringComparison.OrdinalIgnoreCase);
+
 #if !DEBUG
     private static WebServer CreateWebServer()
     {
