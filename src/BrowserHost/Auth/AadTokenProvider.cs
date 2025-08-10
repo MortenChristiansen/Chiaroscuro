@@ -11,8 +11,10 @@ public class AadTokenProvider(string clientId, string[] scopes)
     private readonly IPublicClientApplication _pca =
         PublicClientApplicationBuilder
             .Create(clientId)
+            .WithDefaultRedirectUri()
             .WithBroker(new BrokerOptions(BrokerOptions.OperatingSystems.Windows))
             .Build();
+
     private AuthenticationResult? _lastResult;
 
     public async Task<string> GetAccessTokenAsync()
@@ -20,18 +22,19 @@ public class AadTokenProvider(string clientId, string[] scopes)
         // Try silent first
         try
         {
-            var accounts = await _pca.GetAccountsAsync().ConfigureAwait(false);
+            var accounts = await _pca.GetAccountsAsync();
             var account = accounts.FirstOrDefault();
             _lastResult = await _pca.AcquireTokenSilent(scopes, account)
-                                    .ExecuteAsync().ConfigureAwait(false);
+                                    .ExecuteAsync();
             return _lastResult.AccessToken;
         }
         catch (MsalUiRequiredException)
         {
             // Fall back to interactive using OS broker (WAM)
             _lastResult = await _pca.AcquireTokenInteractive(scopes)
+                                    //.WithPrompt(Prompt.SelectAccount)
                                     .WithUseEmbeddedWebView(false) // ensure system broker / OS prompt
-                                    .ExecuteAsync().ConfigureAwait(false);
+                                    .ExecuteAsync();
             return _lastResult.AccessToken;
         }
     }
