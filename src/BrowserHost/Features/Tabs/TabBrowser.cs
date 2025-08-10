@@ -1,4 +1,5 @@
-﻿using BrowserHost.CefInfrastructure;
+﻿using BrowserHost.Auth;
+using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DragDrop;
@@ -35,7 +36,7 @@ public class TabBrowser : Browser
 
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
-        RequestHandler = new RequestHandler(Id);
+        RequestHandler = new WinAuthHandler(Id);
         FindHandler = new FindHandler();
 
         BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);

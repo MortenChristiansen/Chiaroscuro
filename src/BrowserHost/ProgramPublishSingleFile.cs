@@ -37,8 +37,8 @@ public class ProgramPublishSingleFile
                 ["auth-negotiate-delegate-whitelist"] = "*.microsoftonline.com,*.windows.net,login.windows.net,login.microsoftonline.com",
 
                 // Optional helpful flags
-                ["disable-features"] = "NetworkService", // sometimes helps with SPNEGO; test carefully
-                ["enable-npapi"] = "1"
+                //["disable-features"] = "NetworkService", // sometimes helps with SPNEGO; test carefully
+                //["enable-npapi"] = "1"
             }
         };
 
@@ -52,7 +52,6 @@ public class ProgramPublishSingleFile
         //https://peter.sh/experiments/chromium-command-line-switches/#use-fake-ui-for-media-stream
         settings.CefCommandLineArgs.Add("use-fake-ui-for-media-stream");
         //For screen sharing add (see https://bitbucket.org/chromiumembedded/cef/issues/2582/allow-run-time-handling-of-media-access#comment-58677180)
-        settings.CefCommandLineArgs.Add("enable-usermedia-screen-capturing");
         settings.CefCommandLineArgs.Add("enable-usermedia-screen-capturing");
 
         //Don't perform a dependency check
