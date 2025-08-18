@@ -13,7 +13,12 @@ public class Options
         return new Options
         {
             ForceAppRegistration = args.Contains("--forceAppRegistration"),
-            LaunchUrl = args.FirstOrDefault(arg => Uri.IsWellFormedUriString(arg, UriKind.Absolute))
+            LaunchUrl = GetLaunchUrl(args)
         };
+    }
+
+    public static string? GetLaunchUrl(string[] args)
+    {
+        return args.FirstOrDefault(arg => Uri.IsWellFormedUriString(arg, UriKind.Absolute));
     }
 }
