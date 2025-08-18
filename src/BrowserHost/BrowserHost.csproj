@@ -13,6 +13,9 @@
     <OutputType>WinExe</OutputType>
     <TargetFrameworks>net9.0-windows</TargetFrameworks>
     <UseWPF>true</UseWPF>
+	  <AssemblyTitle>Chiaroscuro</AssemblyTitle>
+	  <Product>Chiaroscuro</Product>
+	  <FileDescription>Chiaroscuro</FileDescription>
 	  <RootNamespace>BrowserHost</RootNamespace>
 	  <ApplicationIcon>logo.ico</ApplicationIcon>
 	  <ApplicationManifest>app.manifest</ApplicationManifest>

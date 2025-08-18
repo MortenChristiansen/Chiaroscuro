@@ -6,6 +6,7 @@
         xmlns:ac="clr-namespace:BrowserHost.Features.ActionContext"
         xmlns:chrome="clr-namespace:BrowserHost.Features.CustomWindowChrome"
         xmlns:tp="clr-namespace:BrowserHost.Features.TabPalette"
+        Title="Chiaroscuro"
         Background="Transparent"
         UseLayoutRounding="True"
         WindowState="Normal">

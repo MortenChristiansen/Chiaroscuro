@@ -23,8 +23,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using Velopack;
-using Velopack.Sources;
 
 namespace BrowserHost;
 
@@ -91,11 +89,10 @@ public partial class MainWindow : Window
     {
         try
         {
-            var mgr = new UpdateManager(new GithubSource("https://github.com/MortenChristiansen/Chiaroscuro", accessToken: null, prerelease: false, downloader: null));
-            if (mgr.CurrentVersion is null)
+            if (!App.UpdateManager.IsInstalled)
                 return;
 
-            var updateInfo = await mgr.CheckForUpdatesAsync();
+            var updateInfo = await App.UpdateManager.CheckForUpdatesAsync();
             if (updateInfo != null)
             {
                 var result = MessageBox.Show(
@@ -108,8 +105,8 @@ public partial class MainWindow : Window
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    await mgr.DownloadUpdatesAsync(updateInfo);
-                    mgr.ApplyUpdatesAndRestart(updateInfo);
+                    await App.UpdateManager.DownloadUpdatesAsync(updateInfo);
+                    App.UpdateManager.ApplyUpdatesAndRestart(updateInfo);
                 }
             }
         }

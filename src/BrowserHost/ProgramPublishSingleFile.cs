@@ -1,8 +1,13 @@
-﻿using BrowserHost.Features.Settings;
+﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Features.Settings;
+using BrowserHost.Utilities;
 using CefSharp;
 using CefSharp.Wpf;
+using NuGet.Versioning;
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Runtime.Versioning;
 using Velopack;
 
 namespace BrowserHost;
@@ -15,9 +20,17 @@ namespace BrowserHost;
 public class ProgramPublishSingleFile
 {
     [STAThread]
+    [SupportedOSPlatform("windows")]
     public static int Main(string[] args)
     {
-        VelopackApp.Build().Run();
+        VelopackApp
+            .Build()
+            .OnFirstRun(WindowsRegistrator.RegisterApplication)
+            .OnRestarted(WindowsRegistrator.RegisterApplication)
+            .Run();
+
+        if (App.Options.ForceAppRegistration)
+            WindowsRegistrator.RegisterApplication(new SemanticVersion(0, 0, 0));
 
         var exitCode = CefSharp.BrowserSubprocess.SelfHost.Main(args);
         if (exitCode >= 0)
@@ -29,7 +42,7 @@ public class ProgramPublishSingleFile
         {
             //By default CefSharp will use an in-memory cache, you need to specify a Cache Folder to persist data
             CachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CefSharp\\Cache"),
-            BrowserSubprocessPath = System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName,
+            BrowserSubprocessPath = Process.GetCurrentProcess().MainModule!.FileName,
             UserAgent = appSettings.UserAgent ?? "",
         };
 
@@ -50,7 +63,7 @@ public class ProgramPublishSingleFile
         //constructor for purposes of providing a self contained single file example we call it here.
         //You could remove this code and use the CefSharp.MinimalExample.Wpf.App example if you 
         //set BrowserSubprocessPath to an absolute path to your main application exe.
-        Cef.Initialize(settings, performDependencyCheck: false);
+        Cef.Initialize(settings, performDependencyCheck: false, new BrowserProcessHandler());
 
         var app = new App();
         app.InitializeComponent();
