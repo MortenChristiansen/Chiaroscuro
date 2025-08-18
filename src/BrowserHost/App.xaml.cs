@@ -11,6 +11,7 @@ namespace BrowserHost;
 public partial class App : Application
 {
     public static UpdateManager UpdateManager { get; } = new(new GithubSource("https://github.com/MortenChristiansen/Chiaroscuro", accessToken: null, prerelease: false, downloader: null));
+    public static Options Options { get; } = Options.Parse(Environment.GetCommandLineArgs());
 
     public App()
     {

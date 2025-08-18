@@ -1,4 +1,5 @@
-﻿using BrowserHost.Features.PinnedTabs;
+﻿using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.PinnedTabs;
 using BrowserHost.Features.Tabs;
 using BrowserHost.Utilities;
 using System;
@@ -98,6 +99,9 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     {
         Window.WorkspaceColor = GetCurrentWorkspaceColor();
         PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspaceId));
+
+        if (App.Options.LaunchUrl != null)
+            PubSub.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true));
     }
 
     private Color GetCurrentWorkspaceColor() =>

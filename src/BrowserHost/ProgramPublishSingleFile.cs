@@ -6,7 +6,6 @@ using NuGet.Versioning;
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.Versioning;
 using Velopack;
 
@@ -29,10 +28,8 @@ public class ProgramPublishSingleFile
             .OnRestarted(RegisterApplication)
             .Run();
 
-        if (args.Contains("forceAppRegistration"))
-        {
+        if (App.Options.ForceAppRegistration)
             RegisterApplication(new SemanticVersion(0, 0, 0));
-        }
 
         var exitCode = CefSharp.BrowserSubprocess.SelfHost.Main(args);
         if (exitCode >= 0)
