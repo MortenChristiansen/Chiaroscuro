@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace BrowserHost.Features.Tabs;
+namespace BrowserHost.Features.ActionContext.Tabs;
 
 public record TabActivatedEvent(string TabId, TabBrowser? PreviousTab);
 public record TabDeactivatedEvent(string TabId);

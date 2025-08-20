@@ -1,7 +1,7 @@
 ﻿using BrowserHost.Utilities;
 using CefSharp;
 
-namespace BrowserHost.Features.Tabs;
+namespace BrowserHost.Features.ActionContext.Tabs;
 
 public class ResourceRequestHandler(string tabId) : CefSharp.Handler.ResourceRequestHandler
 {

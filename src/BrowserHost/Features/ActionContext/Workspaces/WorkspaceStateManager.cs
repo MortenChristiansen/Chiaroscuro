@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 
-namespace BrowserHost.Features.Workspaces;
+namespace BrowserHost.Features.ActionContext.Workspaces;
 
 public record WorkspacesDataDtoV1(WorkspaceDtoV1[] Workspaces);
 public record WorkspaceDtoV1(string WorkspaceId, string Name, string Color, string Icon, WorkspaceTabStateDtoV1[] Tabs, int EphemeralTabStartIndex)

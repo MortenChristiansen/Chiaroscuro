@@ -1,8 +1,8 @@
 ﻿using BrowserHost.CefInfrastructure;
-using BrowserHost.Features.Tabs;
+using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
 
-namespace BrowserHost.Features.PinnedTabs;
+namespace BrowserHost.Features.ActionContext.PinnedTabs;
 public record TabPinnedEvent(string TabId);
 public record TabUnpinnedEvent(string TabId);
 

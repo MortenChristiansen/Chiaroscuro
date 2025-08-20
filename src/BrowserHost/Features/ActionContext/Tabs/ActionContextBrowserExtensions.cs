@@ -2,7 +2,7 @@
 using BrowserHost.Utilities;
 using System;
 
-namespace BrowserHost.Features.Tabs;
+namespace BrowserHost.Features.ActionContext.Tabs;
 
 public record TabDto(string Id, string? Title, string? Favicon, DateTimeOffset Created);
 public record FolderDto(string Id, string Name, int StartIndex, int EndIndex);

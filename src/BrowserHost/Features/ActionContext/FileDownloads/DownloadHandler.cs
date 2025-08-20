@@ -1,7 +1,7 @@
 using CefSharp;
 using System.IO;
 
-namespace BrowserHost.Features.FileDownloads;
+namespace BrowserHost.Features.ActionContext.FileDownloads;
 
 public class DownloadHandler(string downloadDirectory) : IDownloadHandler
 {

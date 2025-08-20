@@ -2,7 +2,7 @@
 using BrowserHost.Utilities;
 using System;
 
-namespace BrowserHost.Features.Workspaces;
+namespace BrowserHost.Features.ActionContext.Workspaces;
 
 public record WorkspaceActivatedEvent(string WorkspaceId);
 public record WorkspaceCreatedEvent(string WorkspaceId, string Name, string Icon, string Color);

@@ -1,7 +1,7 @@
 ﻿using BrowserHost.Features.ActionContext;
 using BrowserHost.Utilities;
 
-namespace BrowserHost.Features.PinnedTabs;
+namespace BrowserHost.Features.ActionContext.PinnedTabs;
 
 public record PinnedTabDto(string Id, string? Title, string? Favicon);
 

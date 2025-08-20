@@ -1,8 +1,7 @@
 ﻿using BrowserHost.CefInfrastructure;
-using BrowserHost.Features.ActionContext;
+using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DragDrop;
-using BrowserHost.Features.FileDownloads;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Utilities;
 using CefSharp;
@@ -11,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 
-namespace BrowserHost.Features.Tabs;
+namespace BrowserHost.Features.ActionContext.Tabs;
 
 public class TabBrowser : Browser
 {
