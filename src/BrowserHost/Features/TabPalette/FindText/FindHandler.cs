@@ -2,7 +2,7 @@
 using CefSharp;
 using CefSharp.Structs;
 
-namespace BrowserHost.Features.TabPalette;
+namespace BrowserHost.Features.TabPalette.FindText;
 
 public class FindHandler : CefSharp.Handler.FindHandler
 {

@@ -8,6 +8,7 @@ using BrowserHost.Features.Folders;
 using BrowserHost.Features.PinnedTabs;
 using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
+using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.Tabs;
 using BrowserHost.Features.Workspaces;
 using BrowserHost.Features.Zoom;
@@ -65,6 +66,7 @@ public partial class MainWindow : Window
             new WorkspacesFeature(this),
             new FoldersFeature(this),
             new TabPaletteFeature(this),
+            new FindTextFeature(this),
             new SettingsFeature(this)
         ];
         _features.ForEach(f => f.Configure());

@@ -1,19 +1,16 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Features.TabPalette.FindText;
 
 namespace BrowserHost.Features.TabPalette;
 
-
-public class TabPaletteBrowser : Browser<TabPaletteBrowserApi>
+public class TabPaletteBrowser : Browser
 {
-    public override TabPaletteBrowserApi Api { get; } = new();
+    public FindTextBrowserApi FindTextApi { get; } = new();
 
     public TabPaletteBrowser()
         : base("/tab-palette", disableContextMenu: true)
-    { }
-
-    public void FindStatusChanged(int? totalMatches)
     {
-        CallClientApi("findStatusChanged", $"{totalMatches}");
+        RegisterSecondaryApi(FindTextApi, "findTextApi");
     }
 
     public void Init()

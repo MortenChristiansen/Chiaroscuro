@@ -97,7 +97,7 @@ export class TabTextSearchComponent implements OnInit {
   private api!: TabPaletteApi;
 
   async ngOnInit() {
-    this.api = await loadBackendApi<TabPaletteApi>('api');
+    this.api = await loadBackendApi<TabPaletteApi>('findTextApi');
 
     exposeApiToBackend({
       findStatusChanged: (totalMatches?: number) => {

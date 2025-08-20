@@ -3,7 +3,7 @@ using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.FileDownloads;
-using BrowserHost.Features.TabPalette;
+using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Utilities;
 using CefSharp;
 using System;
