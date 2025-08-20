@@ -11,6 +11,7 @@ using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.FindText;
+using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.XamlUtilities;
 using CefSharp;
@@ -67,6 +68,7 @@ public partial class MainWindow : Window
             new FoldersFeature(this),
             new TabPaletteFeature(this),
             new FindTextFeature(this),
+            new TabCustomizationFeature(this),
             new SettingsFeature(this)
         ];
         _features.ForEach(f => f.Configure());
