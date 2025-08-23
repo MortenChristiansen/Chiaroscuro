@@ -1,4 +1,5 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Utilities;
 using System.Linq;
 
@@ -15,6 +16,11 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
             Window.ActionContext.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
         });
         PubSub.Subscribe<TabClosedEvent>((e) => TabCustomizationStateManager.DeleteCustomization(e.Tab.Id));
+        PubSub.Subscribe<EphemeralTabsExpiredEvent>((e) =>
+        {
+            foreach (var tabId in e.TabIds)
+                TabCustomizationStateManager.DeleteCustomization(tabId);
+        });
 
         InitializeCustomizations();
     }

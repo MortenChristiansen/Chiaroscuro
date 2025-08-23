@@ -8,6 +8,7 @@ public record WorkspaceActivatedEvent(string WorkspaceId);
 public record WorkspaceCreatedEvent(string WorkspaceId, string Name, string Icon, string Color);
 public record WorkspaceUpdatedEvent(string WorkspaceId, string Name, string Icon, string Color);
 public record WorkspaceDeletedEvent(string WorkspaceId);
+public record EphemeralTabsExpiredEvent(string[] TabIds);
 
 public class WorkspacesBrowserApi() : BrowserApi
 {
