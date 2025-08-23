@@ -28,7 +28,7 @@ public class ZoomFeature(MainWindow window) : Feature(window)
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Back && Keyboard.Modifiers == ModifierKeys.Control)
+        if (e.Key == Key.Delete && Keyboard.Modifiers == ModifierKeys.Control)
         {
             if (Window.CurrentTab is not null)
             {
