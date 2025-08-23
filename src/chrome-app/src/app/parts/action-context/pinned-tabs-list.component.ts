@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { PinnedTabsApi } from './pinnedTabsApi';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
-import { PinnedTab, TabId } from './server-models';
+import { PinnedTab, TabCustomization, TabId } from './server-models';
 import { FaviconComponent } from '../../shared/favicon.component';
 import { CommonModule } from '@angular/common';
 
@@ -18,7 +18,9 @@ import { CommonModule } from '@angular/common';
             'bg-white/20 hover:bg-white/30': activeTabId() == tab.id,
           }"
           (click)="api.activateTab(tab.id)"
-          [attr.title]="tab.title ?? 'Loading...'"
+          [attr.title]="
+            getTabCustomization(tab)?.customTitle ?? tab.title ?? 'Loading...'
+          "
         >
           <favicon [src]="tab.favicon" class="w-5 h-5" />
           <button
@@ -52,6 +54,7 @@ import { CommonModule } from '@angular/common';
 export class PinnedTabsListComponent implements OnInit {
   pinnedTabs = signal<PinnedTab[]>([]);
   activeTabId = signal<string | null>(null);
+  tabCustomizations = signal<TabCustomization[]>([]);
 
   api!: PinnedTabsApi;
 
@@ -67,7 +70,18 @@ export class PinnedTabsListComponent implements OnInit {
         this.updateTab(tabId, { title }),
       updateFavicon: (tabId: TabId, favicon: string | null) =>
         this.updateTab(tabId, { favicon }),
+      setTabCustomizations: (customizations: TabCustomization[]) =>
+        this.tabCustomizations.set(customizations),
+      updateTabCustomization: (customization: TabCustomization) =>
+        this.tabCustomizations.update((current) => [
+          ...current.filter((c) => c.tabId != customization.tabId),
+          customization,
+        ]),
     });
+  }
+
+  getTabCustomization(tab: PinnedTab) {
+    return this.tabCustomizations().find((c) => c.tabId === tab.id);
   }
 
   private updateTab(tabId: TabId, updates: Partial<PinnedTab>) {
