@@ -1,5 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import { Tab } from './server-models';
+import { Tab, TabCustomization } from './server-models';
 import { CommonModule } from '@angular/common';
 import { FaviconComponent } from '../../shared/favicon.component';
 
@@ -15,7 +15,9 @@ import { FaviconComponent } from '../../shared/favicon.component';
       (click)="onSelectTab()"
     >
       <favicon [src]="tab().favicon" class="drag-handle w-4 h-4 mr-2" />
-      <span class="truncate flex-1">{{ tab().title ?? 'Loading...' }}</span>
+      <span class="truncate flex-1">{{
+        customization()?.customTitle ?? tab().title ?? 'Loading...'
+      }}</span>
       <button
         class="close-button opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
         (click)="onCloseTab($event)"
@@ -43,6 +45,7 @@ import { FaviconComponent } from '../../shared/favicon.component';
 export class TabsListTabComponent {
   tab = input.required<Tab>();
   isActive = input.required<boolean>();
+  customization = input<TabCustomization>();
   selectTab = output<void>();
   closeTab = output<void>();
 

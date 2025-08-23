@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { TabTextSearchComponent } from './tab-text-search.component';
+import { TabCustomizationEditorComponent } from './tab-customization-editor.component';
 
 @Component({
   selector: 'tab-palette',
@@ -9,10 +10,11 @@ import { TabTextSearchComponent } from './tab-text-search.component';
       style="position: relative; top: 0; left: 0;right: 0; bottom: 0;"
     >
       <tab-text-search />
+      <tab-customization-editor />
     </div>
   `,
   styles: ``,
-  imports: [TabTextSearchComponent],
+  imports: [TabTextSearchComponent, TabCustomizationEditorComponent],
 })
 export default class TabPaletteComponent {
   // This component is currently empty and serves as a placeholder.

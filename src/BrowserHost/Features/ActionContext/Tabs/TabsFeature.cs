@@ -1,13 +1,13 @@
+using BrowserHost.Features.ActionContext.PinnedTabs;
+using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Features.ActionDialog;
-using BrowserHost.Features.PinnedTabs;
-using BrowserHost.Features.Workspaces;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
 
-namespace BrowserHost.Features.Tabs;
+namespace BrowserHost.Features.ActionContext.Tabs;
 
 public class TabsFeature(MainWindow window) : Feature(window)
 {

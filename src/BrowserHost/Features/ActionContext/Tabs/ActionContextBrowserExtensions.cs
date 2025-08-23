@@ -1,11 +1,11 @@
-﻿using BrowserHost.Features.ActionContext;
-using BrowserHost.Utilities;
+﻿using BrowserHost.Utilities;
 using System;
 
-namespace BrowserHost.Features.Tabs;
+namespace BrowserHost.Features.ActionContext.Tabs;
 
 public record TabDto(string Id, string? Title, string? Favicon, DateTimeOffset Created);
 public record FolderDto(string Id, string Name, int StartIndex, int EndIndex);
+public record TabCustomizationDto(string TabId, string? CustomTitle);
 
 public static class ActionContextBrowserExtensions
 {
@@ -47,5 +47,15 @@ public static class ActionContextBrowserExtensions
     public static void SetActiveTab(this ActionContextBrowser browser, string? tabId)
     {
         browser.CallClientApi("setActiveTab", tabId.ToJsonString());
+    }
+
+    public static void SetTabCustomizations(this ActionContextBrowser browser, TabCustomizationDto[] customizations)
+    {
+        browser.CallClientApi("setTabCustomizations", customizations.ToJsonObject());
+    }
+
+    public static void UpdateTabCustomization(this ActionContextBrowser browser, TabCustomizationDto customization)
+    {
+        browser.CallClientApi("updateTabCustomization", customization.ToJsonObject());
     }
 }

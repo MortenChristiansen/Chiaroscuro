@@ -5,7 +5,7 @@ using System.IO;
 using System.Text.Json;
 using System.Threading;
 
-namespace BrowserHost.Features.PinnedTabs;
+namespace BrowserHost.Features.ActionContext.PinnedTabs;
 
 public record PinnedTabDataV1(PinnedTabDtoV1[] PinnedTabs, string? ActiveTabId);
 public record PinnedTabDtoV1(string Id, string? Title, string? Favicon, string Address);

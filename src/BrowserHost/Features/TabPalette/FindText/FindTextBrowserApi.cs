@@ -1,7 +1,7 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Utilities;
 
-namespace BrowserHost.Features.TabPalette;
+namespace BrowserHost.Features.TabPalette.FindText;
 
 public record FindTextEvent(string Term);
 public record NextTextMatchEvent(string Term);
@@ -9,7 +9,7 @@ public record PrevTextMatchEvent(string Term);
 public record StopFindingTextEvent();
 public record FindStatusChangedEvent(int Matches);
 
-public class TabPaletteBrowserApi : BrowserApi
+public class FindTextBrowserApi : BrowserApi
 {
     public void Find(string term) =>
         PubSub.Publish(new FindTextEvent(term));

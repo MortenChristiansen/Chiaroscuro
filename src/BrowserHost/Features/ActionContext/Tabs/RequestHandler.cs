@@ -2,7 +2,7 @@
 using BrowserHost.Utilities;
 using CefSharp;
 
-namespace BrowserHost.Features.Tabs;
+namespace BrowserHost.Features.ActionContext.Tabs;
 
 public class RequestHandler(string tabId) : CefSharp.Handler.RequestHandler
 {

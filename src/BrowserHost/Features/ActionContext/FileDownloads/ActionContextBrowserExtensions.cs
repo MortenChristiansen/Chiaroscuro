@@ -1,7 +1,7 @@
 ﻿using BrowserHost.Features.ActionContext;
 using BrowserHost.Utilities;
 
-namespace BrowserHost.Features.FileDownloads;
+namespace BrowserHost.Features.ActionContext.FileDownloads;
 
 public static class ActionContextBrowserExtensions
 {

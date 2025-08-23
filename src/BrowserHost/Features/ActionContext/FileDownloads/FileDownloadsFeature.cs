@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BrowserHost.Features.FileDownloads;
+namespace BrowserHost.Features.ActionContext.FileDownloads;
 
 public class FileDownloadsFeature(MainWindow window) : Feature(window)
 {

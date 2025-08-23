@@ -2,7 +2,7 @@
 using BrowserHost.Utilities;
 using System;
 
-namespace BrowserHost.Features.Workspaces;
+namespace BrowserHost.Features.ActionContext.Workspaces;
 
 public record WorkspaceDescriptionDto(string Id, string Name, string Color, string Icon);
 public record WorkspaceDto(string Id, string Name, string Color, string Icon, TabDto[] Tabs, int EphemeralTabStartIndex, string? ActiveTabId, FolderDto[] Folders) : WorkspaceDescriptionDto(Id, Name, Color, Icon);

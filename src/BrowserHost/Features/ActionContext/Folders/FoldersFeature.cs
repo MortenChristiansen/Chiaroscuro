@@ -1,11 +1,11 @@
-﻿using BrowserHost.Features.Tabs;
-using BrowserHost.Features.Workspaces;
+﻿using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
 using System.Windows.Input;
 
-namespace BrowserHost.Features.Folders;
+namespace BrowserHost.Features.ActionContext.Folders;
 
 public class FoldersFeature(MainWindow window) : Feature(window)
 {

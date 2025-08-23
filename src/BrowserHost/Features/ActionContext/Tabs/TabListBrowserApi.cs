@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace BrowserHost.Features.Tabs;
+namespace BrowserHost.Features.ActionContext.Tabs;
 
 public record TabActivatedEvent(string TabId, TabBrowser? PreviousTab);
 public record TabDeactivatedEvent(string TabId);
@@ -12,9 +12,10 @@ public record TabClosedEvent(TabBrowser Tab);
 public record TabsChangedEvent(TabUiStateDto[] Tabs, int EphemeralTabStartIndex, FolderUiStateDto[] Folders);
 public record TabUrlLoadedSuccessfullyEvent(string TabId);
 public record TabFaviconUrlChangedEvent(string TabId, string? NewFaviconUrl);
+public record TabBrowserCreatedEvent(TabBrowser TabBrowser);
+
 public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 public record FolderUiStateDto(string Id, string Name, int StartIndex, int EndIndex);
-public record TabBrowserCreatedEvent(TabBrowser TabBrowser);
 
 public class TabListBrowserApi : BrowserApi
 {

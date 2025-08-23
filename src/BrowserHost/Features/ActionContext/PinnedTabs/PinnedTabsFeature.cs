@@ -1,10 +1,10 @@
-﻿using BrowserHost.Features.Tabs;
+﻿using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
 using System.Windows.Input;
 
-namespace BrowserHost.Features.PinnedTabs;
+namespace BrowserHost.Features.ActionContext.PinnedTabs;
 
 public class PinnedTabsFeature(MainWindow window) : Feature(window)
 {

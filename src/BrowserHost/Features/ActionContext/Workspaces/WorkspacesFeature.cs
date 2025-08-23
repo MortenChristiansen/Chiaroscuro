@@ -1,13 +1,13 @@
-﻿using BrowserHost.Features.ActionDialog;
-using BrowserHost.Features.PinnedTabs;
-using BrowserHost.Features.Tabs;
+﻿using BrowserHost.Features.ActionContext.PinnedTabs;
+using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.ActionDialog;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace BrowserHost.Features.Workspaces;
+namespace BrowserHost.Features.ActionContext.Workspaces;
 
 public class WorkspacesFeature(MainWindow window) : Feature(window)
 {
@@ -18,10 +18,6 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     public override void Configure()
     {
-        _workspaces = WorkspaceStateManager.RestoreWorkspacesFromDisk();
-        _currentWorkspaceId = _workspaces[0].WorkspaceId;
-        RestoreWorkspaces();
-
         var tabsFeature = Window.GetFeature<TabsFeature>();
         PubSub.Subscribe<TabsChangedEvent>(e =>
             _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
@@ -97,6 +93,10 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     public override void Start()
     {
+        _workspaces = WorkspaceStateManager.RestoreWorkspacesFromDisk();
+        _currentWorkspaceId = _workspaces[0].WorkspaceId;
+        RestoreFrontendWorkspaces();
+
         Window.WorkspaceColor = GetCurrentWorkspaceColor();
         PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspaceId));
 
@@ -174,7 +174,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         Window.ActionContext.WorkspacesChanged([.. _workspaces.Select(ws => new WorkspaceDescriptionDto(ws.WorkspaceId, ws.Name, ws.Color, ws.Icon))]);
     }
 
-    private void RestoreWorkspaces()
+    private void RestoreFrontendWorkspaces()
     {
         Window.ActionContext.SetWorkspaces(
             [.. _workspaces.Select(ws => new WorkspaceDto(

@@ -1,7 +1,7 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Utilities;
 
-namespace BrowserHost.Features.FileDownloads;
+namespace BrowserHost.Features.ActionContext.FileDownloads;
 
 public record DownloadItemDto(int Id, string FileName, int Progress, bool IsCompleted, bool IsCancelled);
 
