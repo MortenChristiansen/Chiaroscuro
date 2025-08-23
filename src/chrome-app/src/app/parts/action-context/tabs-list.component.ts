@@ -1,7 +1,13 @@
 import { Component, computed, effect, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FolderIndexStateDto, TabListApi } from './tabListApi';
-import { Folder, FolderId, Tab, TabId } from './server-models';
+import {
+  Folder,
+  FolderId,
+  Tab,
+  TabCustomization,
+  TabId,
+} from './server-models';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { TabsListTabComponent } from './tabs-list-tab.component';
 import { debounce } from '../../shared/utils';
@@ -46,6 +52,7 @@ interface FolderDto {
       <tabs-list-tab
         [tab]="tab"
         [isActive]="tab.id == activeTabId()"
+        [customization]="getTabCustomization(tab)"
         (selectTab)="activeTabId.set(tab.id)"
         (closeTab)="closeTab(tab.id, true)"
       />
@@ -67,6 +74,7 @@ interface FolderDto {
           <tabs-list-tab
             [tab]="tab"
             [isActive]="tab.id == activeTabId()"
+            [customization]="getTabCustomization(tab)"
             (selectTab)="activeTabId.set(tab.id)"
             (closeTab)="closeTab(tab.id, true)"
           />
@@ -91,6 +99,7 @@ interface FolderDto {
       <tabs-list-tab
         [tab]="tab"
         [isActive]="tab.id == activeTabId()"
+        [customization]="getTabCustomization(tab)"
         (selectTab)="activeTabId.set(tab.id)"
         (closeTab)="closeTab(tab.id, true)"
       />
@@ -109,6 +118,7 @@ export class TabsListComponent implements OnInit {
   ephemeralTabs = signal<Tab[]>([]);
   activeTabId = signal<TabId | undefined>(undefined);
   tabsInitialized = signal(false);
+  tabCustomizations = signal<TabCustomization[]>([]);
   private saveTabsDebounceDelay = 1000;
   private tabActivationOrderStack = new Stack<TabId>();
   private folderOpenState: Record<string, boolean> = {};
@@ -250,7 +260,18 @@ export class TabsListComponent implements OnInit {
       closeTab: (tabId: TabId, activateNext: boolean) =>
         this.closeTab(tabId, false, activateNext),
       toggleTabBookmark: (tabId: TabId) => this.toggleBookmark(tabId),
+      setTabCustomizations: (customizations: TabCustomization[]) =>
+        this.tabCustomizations.set(customizations),
+      updateTabCustomization: (customization: TabCustomization) =>
+        this.tabCustomizations.update((current) => [
+          ...current.filter((c) => c.tabId != customization.tabId),
+          customization,
+        ]),
     });
+  }
+
+  getTabCustomization(tab: Tab) {
+    return this.tabCustomizations().find((c) => c.tabId === tab.id);
   }
 
   private createPersistedTabsWithFolders(

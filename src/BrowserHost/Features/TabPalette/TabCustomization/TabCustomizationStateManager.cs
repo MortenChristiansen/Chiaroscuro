@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace BrowserHost.Features.TabPalette.TabCustomization;
 
-public readonly record struct TabCustomizationDataV1(string? CustomTitle);
+public record TabCustomizationDataV1(string TabId, string? CustomTitle);
 
 public static class TabCustomizationStateManager
 {
@@ -33,40 +33,68 @@ public static class TabCustomizationStateManager
 
     public static TabCustomizationDataV1 GetCustomization(string tabId)
     {
+        // We prepopulate the cache when loading all customizations, so if we miss here it means
+        // that there is no customization saved for this tab.
+
         lock (_lock)
         {
             if (_cachedPerTab.TryGetValue(tabId, out var cached))
                 return cached;
 
-            var file = GetCustomizationFilePath(tabId);
-            var data = new TabCustomizationDataV1(null);
+            return new TabCustomizationDataV1(tabId, null);
+        }
+    }
+
+    public static IReadOnlyCollection<TabCustomizationDataV1> GetAllCustomizations()
+    {
+        // This is not a very efficient implementation, but this is only called once.
+        // We may want to optimize this later if needed.
+
+        lock (_lock)
+        {
+            var results = new List<TabCustomizationDataV1>();
 
             try
             {
-                if (File.Exists(file))
+                if (Directory.Exists(RootFolder))
                 {
-                    var json = File.ReadAllText(file);
-                    var versioned = JsonSerializer.Deserialize<PersistentData>(json);
-                    if (versioned?.Version == _currentVersion)
+                    foreach (var dir in Directory.EnumerateDirectories(RootFolder))
                     {
-                        var payload = JsonSerializer.Deserialize<PersistentData<TabCustomizationDataV1>>(json)?.Data;
-                        if (payload.HasValue)
-                            data = payload.Value;
+                        var file = Path.Combine(dir, "customization.json");
+                        if (!File.Exists(file))
+                            continue;
+                        try
+                        {
+                            var json = File.ReadAllText(file);
+                            var versioned = JsonSerializer.Deserialize<PersistentData>(json);
+                            if (versioned?.Version == _currentVersion)
+                            {
+                                var tabId = Path.GetFileName(dir);
+                                var data = JsonSerializer.Deserialize<PersistentData<TabCustomizationDataV1>>(json)?.Data ?? new(tabId, null);
+                                _cachedPerTab[data.TabId] = data;
+                            }
+                        }
+                        catch (Exception e) when (!Debugger.IsAttached)
+                        {
+                            Debug.WriteLine($"Failed to read tab customization file '{file}': {e.Message}");
+                        }
                     }
                 }
             }
             catch (Exception e) when (!Debugger.IsAttached)
             {
-                Debug.WriteLine($"Failed to read tab customization for '{tabId}': {e.Message}");
+                Debug.WriteLine($"Failed to enumerate tab customizations: {e.Message}");
             }
 
-            _cachedPerTab[tabId] = data;
-            return data;
+            results.AddRange(_cachedPerTab.Values);
+            return results.AsReadOnly();
         }
     }
 
-    public static TabCustomizationDataV1 SaveCustomization(string tabId, TabCustomizationDataV1 data)
+    public static TabCustomizationDataV1 SaveCustomization(TabCustomizationDataV1 data)
     {
+        var tabId = data.TabId;
+
         lock (_lock)
         {
             if (_cachedPerTab.TryGetValue(tabId, out var existing) && existing.Equals(data))
