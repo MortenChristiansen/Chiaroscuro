@@ -105,6 +105,10 @@ export default class ActionDialogComponent implements OnInit {
       updateSuggestions: (suggestions: NavigationSuggestion[]) => {
         this.suggestions.set(suggestions);
       },
+      deleteCurrentWord: () => {
+        const input = this.dialog()!.nativeElement;
+        this.deleteCurrentWord(input);
+      },
     });
   }
 
@@ -242,5 +246,44 @@ export default class ActionDialogComponent implements OnInit {
   private async executeAction(value: string, ctrl: boolean) {
     await this.api.execute(value, ctrl);
     await this.api.dismissActionDialog();
+  }
+
+  private deleteCurrentWord(input: HTMLInputElement) {
+    const value = input.value;
+    const cursorPosition = input.selectionStart || 0;
+    
+    // Find the start of the current word by moving backwards from cursor
+    let wordStart = cursorPosition;
+    
+    // Skip any trailing whitespace
+    while (wordStart > 0 && /\s/.test(value[wordStart - 1])) {
+      wordStart--;
+    }
+    
+    // Find the beginning of the word (non-whitespace characters)
+    while (wordStart > 0 && !/\s/.test(value[wordStart - 1])) {
+      wordStart--;
+    }
+    
+    // Create new value with word deleted
+    const newValue = value.substring(0, wordStart) + value.substring(cursorPosition);
+    
+    // Set flag to prevent onInputChange from updating userTypedText incorrectly
+    this.isUpdatingInput = true;
+    
+    // Update input value
+    input.value = newValue;
+    this.userTypedText = newValue;
+    
+    // Position cursor at the deletion point
+    if (input.setSelectionRange) {
+      input.setSelectionRange(wordStart, wordStart);
+    }
+    
+    // Reset flag and notify of value change
+    setTimeout(() => {
+      this.isUpdatingInput = false;
+      this.notifyValueChanged(this.userTypedText);
+    }, 0);
   }
 }

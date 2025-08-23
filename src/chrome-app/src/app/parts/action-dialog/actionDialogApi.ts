@@ -10,4 +10,5 @@ export interface ActionDialogApi extends Api {
   execute: (command: string, ctrl: boolean) => Promise<void>;
   dismissActionDialog: () => Promise<void>;
   notifyValueChanged: (value: string) => Promise<void>;
+  deleteCurrentWord: () => Promise<void>;
 }

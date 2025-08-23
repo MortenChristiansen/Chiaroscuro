@@ -99,6 +99,17 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
             ShowDialog();
             return true;
         }
+        
+        // Handle Ctrl+Backspace for word deletion when action dialog is visible
+        if (e.Key == Key.Back && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (Window.ActionDialog.Visibility == Visibility.Visible)
+            {
+                Window.ActionDialog.CallClientApi("deleteCurrentWord");
+                return true;
+            }
+        }
+        
         return false;
     }
 
