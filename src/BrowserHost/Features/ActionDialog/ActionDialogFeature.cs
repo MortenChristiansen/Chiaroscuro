@@ -24,6 +24,8 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => HandlePageHistoryChange(e.TabId));
     }
 
+    private const string DefaultSearchProviderKey = "g";
+
     private static readonly SearchProvider[] _searchProviders =
     [
         new SearchProvider("Google", "g", "https://www.google.com/search?q={0}"),
@@ -53,6 +55,13 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
             return;
         }
 
+        // If command contains neither '!' nor '.', treat it as a search query using the default search provider
+        if (!e.Command.Contains('!') && !e.Command.Contains('.'))
+        {
+            HandleDefaultSearchCommand(e);
+            return;
+        }
+
         PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
     }
 
@@ -70,6 +79,17 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
             return;
 
         var urlEncodedQuery = WebUtility.UrlEncode(query);
+        var url = string.Format(provider.Pattern, urlEncodedQuery);
+        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
+    }
+
+    private static void HandleDefaultSearchCommand(CommandExecutedEvent e)
+    {
+        var provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, DefaultSearchProviderKey, StringComparison.OrdinalIgnoreCase));
+        if (provider == null)
+            return;
+
+        var urlEncodedQuery = WebUtility.UrlEncode(e.Command);
         var url = string.Format(provider.Pattern, urlEncodedQuery);
         PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
     }
