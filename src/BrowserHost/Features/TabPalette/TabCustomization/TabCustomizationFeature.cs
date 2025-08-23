@@ -12,7 +12,7 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<TabCustomizationChangedEvent>((e) =>
         {
             var customization = TabCustomizationStateManager.SaveCustomization(new(e.TabId, e.CustomTitle));
-            Window.ActionContext.UpdateTabCustomization(new(customization.TabId, customization.CustomTitle));
+            Window.ActionContext.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
         });
         PubSub.Subscribe<TabClosedEvent>((e) => TabCustomizationStateManager.DeleteCustomization(e.Tab.Id));
 

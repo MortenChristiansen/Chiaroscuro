@@ -91,8 +91,15 @@ public static class TabCustomizationStateManager
         }
     }
 
-    public static TabCustomizationDataV1 SaveCustomization(TabCustomizationDataV1 data)
+    public static TabCustomizationDataV1? SaveCustomization(TabCustomizationDataV1 data)
     {
+        if (data == new TabCustomizationDataV1(data.TabId, null))
+        {
+            // No customization to save
+            DeleteCustomization(data.TabId);
+            return null;
+        }
+
         var tabId = data.TabId;
 
         lock (_lock)
