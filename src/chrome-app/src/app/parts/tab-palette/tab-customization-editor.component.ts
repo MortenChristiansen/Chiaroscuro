@@ -60,7 +60,6 @@ import { TabCustomizationApi } from './tabCustomizationApi';
   `,
 })
 export class TabCustomizationEditorComponent implements OnInit {
-  // provided by backend via exposed API; null means clear
   title = signal('');
   initialTitle = signal<string | null>(null);
 
@@ -69,7 +68,6 @@ export class TabCustomizationEditorComponent implements OnInit {
   async ngOnInit() {
     this.api = await loadBackendApi<TabCustomizationApi>('tabCustomizationApi');
 
-    // Expose methods for backend to push current custom title
     exposeApiToBackend({
       initCustomTitle: (currentTitle: string | null) => {
         this.initialTitle.set(currentTitle);
