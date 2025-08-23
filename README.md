@@ -33,6 +33,8 @@ You can search via a number of providers from the action dialog:
 - ChatGPT: `!ai <query>`
 - YouTube: `!y <query>`
 
+Additionally, any command that contains neither a `!` character nor a `.` character will automatically be treated as a Google search. For example, typing `hello world` will search for "hello world" on Google.
+
 ## Content Pages
 
 These are the addresses which are handled by the application to provide special functionality.
