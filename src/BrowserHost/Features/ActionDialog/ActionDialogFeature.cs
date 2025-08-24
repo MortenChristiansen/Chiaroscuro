@@ -24,8 +24,6 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => HandlePageHistoryChange(e.TabId));
     }
 
-    private const string DefaultSearchProviderKey = "g";
-
     private static readonly SearchProvider[] _searchProviders =
     [
         new SearchProvider("Google", "g", "https://www.google.com/search?q={0}"),
@@ -33,6 +31,7 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
         new SearchProvider("ChatGPT", "ai", "https://chat.openai.com/?q={0}"),
         new SearchProvider("YouTube", "y", "https://www.youtube.com/results?search_query={0}"),
     ];
+    private static readonly SearchProvider _defaultSearchProvider = _searchProviders[0];
 
     private void HandleCommandExecuted(CommandExecutedEvent e)
     {
@@ -58,7 +57,7 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
         // If command contains neither '!' nor '.', treat it as a search query using the default search provider
         if (!e.Command.Contains('!') && !e.Command.Contains('.'))
         {
-            HandleDefaultSearchCommand(e);
+            ExecuteProviderQuery(e, e.Command, _defaultSearchProvider);
             return;
         }
 
@@ -78,18 +77,12 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
         if (provider == null)
             return;
 
-        var urlEncodedQuery = WebUtility.UrlEncode(query);
-        var url = string.Format(provider.Pattern, urlEncodedQuery);
-        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
+        ExecuteProviderQuery(e, query, provider);
     }
 
-    private static void HandleDefaultSearchCommand(CommandExecutedEvent e)
+    private static void ExecuteProviderQuery(CommandExecutedEvent e, string query, SearchProvider provider)
     {
-        var provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, DefaultSearchProviderKey, StringComparison.OrdinalIgnoreCase));
-        if (provider == null)
-            return;
-
-        var urlEncodedQuery = WebUtility.UrlEncode(e.Command);
+        var urlEncodedQuery = WebUtility.UrlEncode(query);
         var url = string.Format(provider.Pattern, urlEncodedQuery);
         PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
     }
