@@ -54,8 +54,7 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
             return;
         }
 
-        // If command contains neither '!' nor '.', treat it as a search query using the default search provider
-        if (!e.Command.Contains('!') && !e.Command.Contains('.'))
+        if (HandleUsingDefaultSearchProvider(e))
         {
             ExecuteProviderQuery(e, e.Command, _defaultSearchProvider);
             return;
@@ -63,6 +62,9 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
 
         PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
     }
+
+    private static bool HandleUsingDefaultSearchProvider(CommandExecutedEvent e) =>
+        !e.Command.Contains('!') && !e.Command.Contains('.');
 
     private static void HandleSearchProviderCommand(CommandExecutedEvent e)
     {
