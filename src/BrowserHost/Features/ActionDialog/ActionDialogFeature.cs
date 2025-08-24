@@ -31,6 +31,7 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
         new SearchProvider("ChatGPT", "ai", "https://chat.openai.com/?q={0}"),
         new SearchProvider("YouTube", "y", "https://www.youtube.com/results?search_query={0}"),
     ];
+    private static readonly SearchProvider _defaultSearchProvider = _searchProviders[0];
 
     private void HandleCommandExecuted(CommandExecutedEvent e)
     {
@@ -53,8 +54,17 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
             return;
         }
 
+        if (HandleUsingDefaultSearchProvider(e))
+        {
+            ExecuteProviderQuery(e, e.Command, _defaultSearchProvider);
+            return;
+        }
+
         PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
     }
+
+    private static bool HandleUsingDefaultSearchProvider(CommandExecutedEvent e) =>
+        !e.Command.Contains('!') && !e.Command.Contains('.');
 
     private static void HandleSearchProviderCommand(CommandExecutedEvent e)
     {
@@ -69,6 +79,11 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
         if (provider == null)
             return;
 
+        ExecuteProviderQuery(e, query, provider);
+    }
+
+    private static void ExecuteProviderQuery(CommandExecutedEvent e, string query, SearchProvider provider)
+    {
         var urlEncodedQuery = WebUtility.UrlEncode(query);
         var url = string.Format(provider.Pattern, urlEncodedQuery);
         PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
