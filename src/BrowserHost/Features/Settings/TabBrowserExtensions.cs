@@ -5,6 +5,6 @@ namespace BrowserHost.Features.Settings;
 
 public static class TabBrowserExtensions
 {
-    public static void SettingsLoaded(this TabBrowser browser, SettingsDataV1 settings) =>
+    public static void SettingsLoaded(this TabBrowser browser, SettingUiStateDto settings) =>
         browser.CallClientApi("settingsLoaded", settings.ToJsonObject());
 }

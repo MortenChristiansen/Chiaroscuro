@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace BrowserHost.Features.Settings;
 
-public record SettingsDataV1(string? UserAgent);
+public record SettingsDataV1(string? UserAgent, string[]? SsoEnabledDomains);
 
 public static class SettingsStateManager
 {
@@ -69,7 +69,7 @@ public static class SettingsStateManager
             {
                 Debug.WriteLine($"Failed to restore settings state: {e.Message}");
             }
-            return _lastSavedSettingsData ?? new SettingsDataV1(null);
+            return _lastSavedSettingsData ?? new SettingsDataV1(null, []);
         }
     }
 
