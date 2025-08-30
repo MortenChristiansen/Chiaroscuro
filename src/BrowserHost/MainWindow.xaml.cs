@@ -15,7 +15,6 @@ using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
 using BrowserHost.XamlUtilities;
-using CefSharp;
 using CefSharp.Wpf;
 using System;
 using System.Collections.Generic;
@@ -138,7 +137,7 @@ public partial class MainWindow : Window
         if (e.Key == Key.F5)
         {
             var ignoreCache = Keyboard.Modifiers == ModifierKeys.Control;
-            CurrentTab.Reload(ignoreCache);
+            CurrentTab?.Reload(ignoreCache);
         }
     }
 

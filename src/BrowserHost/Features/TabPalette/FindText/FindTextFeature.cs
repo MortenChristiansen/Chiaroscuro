@@ -1,6 +1,5 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
-using CefSharp;
 using System.Windows.Input;
 
 namespace BrowserHost.Features.TabPalette.FindText;
@@ -45,23 +44,23 @@ public class FindTextFeature(MainWindow window) : Feature(window)
 
     private void StartFinding(string term)
     {
-        Window.CurrentTab?.GetBrowser().Find(term, true, false, findNext: true);
+        Window.CurrentTab?.Find(term, true, false, findNext: true);
         _findingTextTerm = term;
     }
 
     private void FindNext(string term)
     {
-        Window.CurrentTab?.GetBrowser().Find(term, forward: true, false, findNext: true);
+        Window.CurrentTab?.Find(term, forward: true, false, findNext: true);
     }
 
     private void FindPrevious(string term)
     {
-        Window.CurrentTab?.GetBrowser().Find(term, forward: false, false, findNext: true);
+        Window.CurrentTab?.Find(term, forward: false, false, findNext: true);
     }
 
     private void StopFinding()
     {
-        Window.CurrentTab?.GetBrowser().StopFinding(true);
+        Window.CurrentTab?.StopFinding(true);
         Window.TabPaletteBrowserControl.FindStatusChanged(null);
         _findingTextTerm = null;
     }

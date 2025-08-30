@@ -1,89 +1,54 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.ActionContext;
-using BrowserHost.Features.ActionContext.FileDownloads;
-using BrowserHost.Features.ActionContext.Tabs;
-using BrowserHost.Features.CustomWindowChrome;
-using BrowserHost.Features.DragDrop;
-using BrowserHost.Features.TabPalette.FindText;
-using BrowserHost.Utilities;
-using CefSharp;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using BrowserHost.Tab.CefSharp;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace BrowserHost.Tab;
 
-public class TabBrowser : Browser
+public class TabBrowser : UserControl
 {
-    private readonly ActionContextBrowser _actionContextBrowser;
+    private readonly ITabWebBrowser _browser;
 
-    public string Id { get; }
-    public string? Favicon { get; private set; }
-    public string? ManualAddress { get; private set; }
+    public string Id => _browser.Id;
+    public string? Favicon => _browser.Favicon;
+    public string? ManualAddress => _browser.ManualAddress;
+    public string Address => _browser.Address;
+    public string Title
+    {
+        get => _browser.Title;
+        set => _browser.Title = value;
+    }
+    public bool IsLoading => _browser.IsLoading;
+    public bool CanGoBack => _browser.CanGoBack;
+    public bool CanGoForward => _browser.CanGoForward;
+    public bool HasDevTools => _browser.HasDevTools;
+
+    public event DependencyPropertyChangedEventHandler? AddressChanged
+    {
+        add => _browser.AddressChanged += value;
+        remove => _browser.AddressChanged -= value;
+    }
 
     public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon)
     {
-        Id = id;
-        Favicon = favicon;
-        SetAddress(address, setManualAddress);
-
-        TitleChanged += OnTitleChanged;
-        LoadingStateChanged += OnLoadingStateChanged;
-
-        DisplayHandler = new FaviconDisplayHandler(OnFaviconAddressesChanged);
-        _actionContextBrowser = actionContextBrowser;
-
-        var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        DownloadHandler = new DownloadHandler(downloadsPath);
-        RequestHandler = new RequestHandler(Id);
-        FindHandler = new FindHandler();
-
-        BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
+        _browser = new CefSharpTabBrowserAdapter(id, address, actionContextBrowser, setManualAddress, favicon);
+        Content = _browser.AsUIElement();
     }
 
-    private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
-    {
-        _actionContextBrowser.UpdateTabTitle(Id, (string)e.NewValue);
-    }
-
-    private void OnFaviconAddressesChanged(IList<string> addresses)
-    {
-        Favicon = addresses.FirstOrDefault();
-        PubSub.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
-        Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
-    }
-
-    private void OnLoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)
-    {
-        PubSub.Publish(new TabLoadingStateChangedEvent(Id, e.IsLoading));
-    }
-
-    public void SetAddress(string address, bool setManualAddress)
-    {
-        Address = address;
-        if (setManualAddress)
-            ManualAddress = address;
-    }
-
-    protected override void OnAddressChanged(string oldValue, string newValue)
-    {
-        if (DragDropFeature.IsDragging && oldValue != null && newValue.StartsWith("file://"))
-        {
-            // This is a workaround to prevent the current address from being set
-            // when dragging and dropping files into the browser. Instead, we want
-            // open a new tab with the file URL. This is not directly possible,
-            // so we have to revert the change 
-            GetBrowser().GoBack();
-        }
-        else
-        {
-            base.OnAddressChanged(oldValue, newValue);
-        }
-    }
-
-    public void RegisterContentPageApi<TApi>(TApi api, string name) where TApi : BrowserApi
-    {
-        RegisterSecondaryApi(api, name);
-    }
+    public void SetAddress(string address, bool setManualAddress) => _browser.SetAddress(address, setManualAddress);
+    public void RegisterContentPageApi(BrowserApi api, string name) => _browser.RegisterContentPageApi(api, name);
+    public void Reload(bool ignoreCache = false) => _browser.Reload(ignoreCache);
+    public void Dispose() => _browser.Dispose();
+    public void Back() => _browser.Back();
+    public void Forward() => _browser.Forward();
+    public void CallClientApi(string api, string? arguments = null) => _browser.CallClientApi(api, arguments);
+    public Task<double> GetZoomLevelAsync() => _browser.GetZoomLevelAsync();
+    public void ResetZoomLevel() => _browser.SetZoomLevel(_browser.DefaultZoomLevel);
+    public void SetZoomLevel(double level) => _browser.SetZoomLevel(level);
+    public void Find(string searchText, bool forward, bool matchCase, bool findNext) => _browser.Find(searchText, forward, matchCase, findNext);
+    public void StopFinding(bool clearSelection) => _browser.StopFinding(clearSelection);
+    public void ShowDevTools() => _browser.ShowDevTools();
+    public void CloseDevTools() => _browser.CloseDevTools();
 }
