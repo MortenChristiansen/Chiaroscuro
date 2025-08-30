@@ -13,6 +13,7 @@ using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
+using BrowserHost.Tab;
 using BrowserHost.XamlUtilities;
 using CefSharp;
 using CefSharp.Wpf;

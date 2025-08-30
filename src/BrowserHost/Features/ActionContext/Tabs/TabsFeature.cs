@@ -1,6 +1,7 @@
 using BrowserHost.Features.ActionContext.PinnedTabs;
 using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;

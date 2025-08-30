@@ -1,4 +1,5 @@
 using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using CefSharp;
 using System.Diagnostics;

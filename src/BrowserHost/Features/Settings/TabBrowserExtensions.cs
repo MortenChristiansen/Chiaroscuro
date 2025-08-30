@@ -1,4 +1,4 @@
-﻿using BrowserHost.Features.ActionContext.Tabs;
+﻿using BrowserHost.Tab;
 using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.Settings;
