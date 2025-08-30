@@ -132,6 +132,7 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
         Window.ActionDialog.Visibility = Visibility.Visible;
         Window.ActionDialog.Focus();
         Window.ActionDialog.CallClientApi("showDialog");
+        PubSub.Publish(new ActionDialogShownEvent());
 
         if (Window.ActionDialog.RenderTransform is not ScaleTransform)
         {
