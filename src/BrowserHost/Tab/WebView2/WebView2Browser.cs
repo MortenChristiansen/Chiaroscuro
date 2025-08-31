@@ -29,10 +29,11 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private CoreWebView2Controller? _controller;
     private CoreWebView2? _core;
     private readonly Border _hostSurface = new() { Background = Brushes.Transparent };
-    private readonly WebView2SnapshotOverlay _snapshotOverlay = new();
     private string? _pendingNavigateTo;
     private string? _lastAddressSnapshot;
     private double _zoomFactor = 1.0;
+    private readonly WebView2SnapshotOverlay _snapshotOverlay = new();
+    private readonly WebView2FindManager _findManager = new();
 
     private static readonly DependencyProperty AddressProperty = DependencyProperty.Register(
         nameof(Address), typeof(string), typeof(WebView2Browser), new PropertyMetadata(string.Empty));
@@ -100,6 +101,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         var hwnd = new WindowInteropHelper(parentWindow).Handle;
         _controller = await _sharedEnvironment.CreateCoreWebView2ControllerAsync(hwnd);
         _core = _controller.CoreWebView2;
+        _findManager.Initialize(_core);
         UpdateControllerBounds();
         WireCoreEvents(actionContextBrowser);
         ApplySettings();
@@ -232,8 +234,10 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             try { _controller.ZoomFactor = clamped; } catch { }
         }
     }
-    public void Find(string searchText, bool forward, bool matchCase, bool findNext) { }
-    public void StopFinding(bool clearSelection) { }
+
+    public void Find(string searchText, bool forward, bool matchCase, bool findNext) => _findManager.Find(searchText, forward, matchCase, findNext);
+    public void StopFinding(bool clearSelection) => _findManager.StopFinding(clearSelection);
+
     public UIElement AsUIElement() => _hostSurface;
     public void ShowDevTools() => _core?.OpenDevToolsWindow();
     public void CloseDevTools() { }
