@@ -43,6 +43,9 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private readonly WebView2FindManager _findManager = new();
     private readonly WebView2RoundedCornerManager _roundedCornerManager = new(CornerRadiusPx);
 
+    // Cache of last applied bounds to avoid redundant work
+    private int _lastX = -1, _lastY = -1, _lastW = -1, _lastH = -1;
+
     private static readonly DependencyProperty AddressProperty = DependencyProperty.Register(
         nameof(Address), typeof(string), typeof(WebView2Browser), new PropertyMetadata(string.Empty));
 
@@ -212,6 +215,9 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         var y = (int)Math.Round(topLeft.Y * dpiY);
         var w = (int)Math.Round(size.Width * dpiX);
         var h = (int)Math.Round(size.Height * dpiY);
+        // Skip if bounds unchanged
+        if (x == _lastX && y == _lastY && w == _lastW && h == _lastH) return;
+        _lastX = x; _lastY = y; _lastW = w; _lastH = h;
         _controller.Bounds = new System.Drawing.Rectangle(x, y, w, h);
         _roundedCornerManager.ApplyRoundedRegion(w, h);
     }
