@@ -56,6 +56,7 @@ public partial class MainWindow : Window
 
         _features =
         [
+            new SettingsFeature(this),
             new CustomWindowChromeFeature(this),
             new ActionDialogFeature(this),
             new TabsFeature(this),
@@ -69,7 +70,6 @@ public partial class MainWindow : Window
             new TabPaletteFeature(this),
             new FindTextFeature(this),
             new TabCustomizationFeature(this),
-            new SettingsFeature(this)
         ];
         _features.ForEach(f => f.Configure());
 

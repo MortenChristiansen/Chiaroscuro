@@ -1,6 +1,9 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.ActionContext;
+using BrowserHost.Features.Settings;
 using BrowserHost.Tab.CefSharp;
+using BrowserHost.Tab.WebView2;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -31,10 +34,33 @@ public class TabBrowser : UserControl
         remove => _browser.AddressChanged -= value;
     }
 
-    public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon)
+    public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, SettingsDataV1 settings)
     {
-        _browser = new CefSharpTabBrowserAdapter(id, address, actionContextBrowser, setManualAddress, favicon);
+        _browser = CreateBrowser(id, address, actionContextBrowser, setManualAddress, favicon, settings);
         Content = _browser.AsUIElement();
+    }
+
+    private static ITabWebBrowser CreateBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, SettingsDataV1 settings)
+    {
+        var ssoDomains = settings.SsoEnabledDomains ?? [];
+        var isSsoDomain = !ContentServer.IsContentServerUrl(address) && ssoDomains.Any(domain => HasDomain(address, domain));
+
+        if (isSsoDomain)
+            return new WebView2Browser(id, address, actionContextBrowser, setManualAddress, favicon);
+
+        return new CefSharpTabBrowserAdapter(id, address, actionContextBrowser, setManualAddress, favicon);
+    }
+
+    private static bool HasDomain(string address, string domain)
+    {
+        if (string.IsNullOrWhiteSpace(address) || string.IsNullOrWhiteSpace(domain))
+            return false;
+
+        var normalizedAddress = address.Contains("://") ? address.Split("://")[1] : address;
+        if (normalizedAddress.StartsWith("www."))
+            normalizedAddress = normalizedAddress.Substring(4);
+
+        return normalizedAddress.StartsWith(domain);
     }
 
     public void SetAddress(string address, bool setManualAddress) => _browser.SetAddress(address, setManualAddress);

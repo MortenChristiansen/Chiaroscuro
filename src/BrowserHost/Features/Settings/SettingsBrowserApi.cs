@@ -7,6 +7,7 @@ namespace BrowserHost.Features.Settings;
 
 public record SettingsPageLoadingEvent();
 public record SettingsSavedEvent(SettingUiStateDto Settings);
+public record ApplicationSettingsChangedEvent(SettingsDataV1 Settings);
 
 public record SettingUiStateDto(string? UserAgent, string[] SsoEnabledDomains);
 

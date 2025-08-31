@@ -28,6 +28,12 @@ public class SettingsFeature(MainWindow window) : Feature(window)
         {
             var mappedSettings = new SettingsDataV1(e.Settings.UserAgent, e.Settings.SsoEnabledDomains);
             _settings = SettingsStateManager.SaveSettings(mappedSettings);
+            PubSub.Publish(new ApplicationSettingsChangedEvent(_settings));
         });
+    }
+
+    public override void Start()
+    {
+        PubSub.Publish(new ApplicationSettingsChangedEvent(_settings));
     }
 }

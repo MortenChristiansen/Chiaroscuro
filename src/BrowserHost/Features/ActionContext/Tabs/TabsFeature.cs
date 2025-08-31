@@ -1,6 +1,7 @@
 using BrowserHost.Features.ActionContext.PinnedTabs;
 using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.Settings;
 using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using System;
@@ -14,6 +15,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
 {
     private readonly List<TabBrowser> _tabBrowsers = [];
     private readonly HashSet<string> _loadedWorkspaceIds = [];
+    private SettingsDataV1? _applicationSettings;
 
     public override void Configure()
     {
@@ -63,6 +65,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
             var activeTabBrowser = activeTabId != null ? GetTabBrowserById(activeTabId) : null;
             SetCurrentTab(activeTabBrowser);
         });
+        PubSub.Subscribe<ApplicationSettingsChangedEvent>(e => _applicationSettings = e.Settings);
     }
 
     private void SetCurrentTab(TabBrowser? tab)
@@ -103,7 +106,10 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
     private TabBrowser AddNewTab(string address, bool saveInHistory)
     {
-        var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null);
+        if (_applicationSettings == null)
+            throw new InvalidOperationException("Cannot find application settings");
+
+        var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null, _applicationSettings);
         _tabBrowsers.Add(browser);
 
         var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.UtcNow);
@@ -116,7 +122,10 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
     private TabBrowser AddExistingTab(string id, string address, string? title, string? favicon)
     {
-        var browser = new TabBrowser(id, address, Window.ActionContext, setManualAddress: false, favicon);
+        if (_applicationSettings == null)
+            throw new InvalidOperationException("Cannot find application settings");
+
+        var browser = new TabBrowser(id, address, Window.ActionContext, setManualAddress: false, favicon, _applicationSettings);
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
 

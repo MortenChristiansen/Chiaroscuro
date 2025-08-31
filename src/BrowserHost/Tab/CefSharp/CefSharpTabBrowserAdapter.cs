@@ -46,5 +46,15 @@ public class CefSharpTabBrowserAdapter(string id, string address, ActionContextB
     public void StopFinding(bool clearSelection) => _cefBrowser.StopFinding(clearSelection);
     public UIElement AsUIElement() => _cefBrowser;
     public void ShowDevTools() => _cefBrowser.ShowDevTools();
-    public void CloseDevTools() => _cefBrowser.CloseDevTools();
+    public void CloseDevTools()
+    {
+        try
+        {
+            _cefBrowser.CloseDevTools();
+        }
+        catch
+        {
+            // Might fail if the tab is disposed
+        }
+    }
 }

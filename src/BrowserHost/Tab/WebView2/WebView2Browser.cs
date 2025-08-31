@@ -284,6 +284,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             {
                 _controller.AcceleratorKeyPressed -= Controller_AcceleratorKeyPressed;
                 _controller.Close();
+                _controller = null;
             }
         }
         catch { }
