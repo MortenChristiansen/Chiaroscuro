@@ -28,12 +28,20 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private bool _isLoading;
     private CoreWebView2Controller? _controller;
     private CoreWebView2? _core;
-    private readonly Border _hostSurface = new() { Background = Brushes.Transparent };
+
+    private const int CornerRadiusPx = 8; // Match CefSharp visual
+    private readonly Border _hostSurface = new()
+    {
+        Background = Brushes.Transparent,
+        CornerRadius = new CornerRadius(CornerRadiusPx)
+    };
+
     private string? _pendingNavigateTo;
     private string? _lastAddressSnapshot;
     private double _zoomFactor = 1.0;
     private readonly WebView2SnapshotOverlay _snapshotOverlay = new();
     private readonly WebView2FindManager _findManager = new();
+    private readonly WebView2RoundedCornerManager _roundedCornerManager = new(CornerRadiusPx);
 
     private static readonly DependencyProperty AddressProperty = DependencyProperty.Register(
         nameof(Address), typeof(string), typeof(WebView2Browser), new PropertyMetadata(string.Empty));
@@ -98,14 +106,16 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         }
         var parentWindow = Window.GetWindow(_hostSurface);
         if (parentWindow == null) return;
-        var hwnd = new WindowInteropHelper(parentWindow).Handle;
-        _controller = await _sharedEnvironment.CreateCoreWebView2ControllerAsync(hwnd);
+        var parentHwnd = new WindowInteropHelper(parentWindow).Handle;
+        _roundedCornerManager.SetParentWindowHandle(parentHwnd);
+        _controller = await _sharedEnvironment.CreateCoreWebView2ControllerAsync(parentHwnd);
         _core = _controller.CoreWebView2;
         _findManager.Initialize(_core);
         UpdateControllerBounds();
         WireCoreEvents(actionContextBrowser);
         ApplySettings();
         if (_pendingNavigateTo != null) { _core.Navigate(_pendingNavigateTo); _pendingNavigateTo = null; }
+        _roundedCornerManager.EnsureChildWindowAsync(Dispatcher, () => _controller?.Bounds.Width ?? 0, () => _controller?.Bounds.Height ?? 0);
     }
 
     private void WireCoreEvents(ActionContextBrowser actionContextBrowser)
@@ -139,6 +149,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         if (_controller != null)
         {
             try { _controller.ZoomFactor = _zoomFactor; } catch { }
+            try { _controller.DefaultBackgroundColor = System.Drawing.Color.Transparent; } catch { }
         }
     }
 
@@ -190,6 +201,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         var w = (int)Math.Round(size.Width * dpiX);
         var h = (int)Math.Round(size.Height * dpiY);
         _controller.Bounds = new System.Drawing.Rectangle(x, y, w, h);
+        _roundedCornerManager.ApplyRoundedRegion(w, h);
     }
 
     private async void ActivateSnapshotAsync()
@@ -198,7 +210,6 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         var activated = await _snapshotOverlay.TryActivateAsync(_core);
         if (activated)
         {
-            // Hide controller after overlay visible
             _controller.IsVisible = false;
             SyncControllerVisibility();
         }
