@@ -18,7 +18,7 @@ namespace BrowserHost.Tab.WebView2;
 
 public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 {
-    private static CoreWebView2Environment? _sharedEnvironment;
+    private static readonly Lazy<Task<CoreWebView2Environment>> _environment = new(CreateEnvironment);
     private readonly string _id;
     private readonly string? _initialManualAddress;
     private readonly string? _initialFavicon;
@@ -94,24 +94,26 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             DeactivateSnapshot();
     }
 
+    private static async Task<CoreWebView2Environment> CreateEnvironment()
+    {
+        var userDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WebView2LowLevelCache");
+        Directory.CreateDirectory(userDataFolder);
+        var options = new CoreWebView2EnvironmentOptions
+        {
+            AllowSingleSignOnUsingOSPrimaryAccount = true,
+        };
+        return await CoreWebView2Environment.CreateAsync(userDataFolder: userDataFolder, options: options);
+    }
+
     private async Task EnsureControllerAsync(ActionContextBrowser actionContextBrowser)
     {
         if (_controller != null) return;
-        if (_sharedEnvironment == null)
-        {
-            var userDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WebView2LowLevelCache");
-            Directory.CreateDirectory(userDataFolder);
-            var options = new CoreWebView2EnvironmentOptions
-            {
-                AllowSingleSignOnUsingOSPrimaryAccount = true,
-            };
-            _sharedEnvironment = await CoreWebView2Environment.CreateAsync(userDataFolder: userDataFolder, options: options);
-        }
         var parentWindow = Window.GetWindow(_hostSurface);
         if (parentWindow == null) return;
         var parentHwnd = new WindowInteropHelper(parentWindow).Handle;
         _roundedCornerManager.SetParentWindowHandle(parentHwnd);
-        _controller = await _sharedEnvironment.CreateCoreWebView2ControllerAsync(parentHwnd);
+        var env = await _environment.Value;
+        _controller = await env.CreateCoreWebView2ControllerAsync(parentHwnd);
         _core = _controller.CoreWebView2;
         _findManager.Initialize(_core);
         UpdateControllerBounds();
