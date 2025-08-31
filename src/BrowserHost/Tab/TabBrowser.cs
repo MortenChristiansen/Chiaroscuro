@@ -12,7 +12,16 @@ namespace BrowserHost.Tab;
 
 public class TabBrowser : UserControl
 {
-    private readonly ITabWebBrowser _browser;
+    private ITabWebBrowser _browser;
+    private readonly ActionContextBrowser _actionContextBrowser;
+    private readonly string[] _ssoDomains;
+
+    private event DependencyPropertyChangedEventHandler? _addressChanged;
+    public event DependencyPropertyChangedEventHandler? AddressChanged
+    {
+        add => _addressChanged += value;
+        remove => _addressChanged -= value;
+    }
 
     public string Id => _browser.Id;
     public string? Favicon => _browser.Favicon;
@@ -28,27 +37,27 @@ public class TabBrowser : UserControl
     public bool CanGoForward => _browser.CanGoForward;
     public bool HasDevTools => _browser.HasDevTools;
 
-    public event DependencyPropertyChangedEventHandler? AddressChanged
-    {
-        add => _browser.AddressChanged += value;
-        remove => _browser.AddressChanged -= value;
-    }
-
     public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, SettingsDataV1 settings)
     {
-        _browser = CreateBrowser(id, address, actionContextBrowser, setManualAddress, favicon, settings);
+        _actionContextBrowser = actionContextBrowser;
+        _ssoDomains = settings.SsoEnabledDomains ?? [];
+        _browser = CreateBrowser(id, address, setManualAddress, favicon);
         Content = _browser.AsUIElement();
+        AttachBrowserEvents();
     }
 
-    private static ITabWebBrowser CreateBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, SettingsDataV1 settings)
+    private ITabWebBrowser CreateBrowser(string id, string address, bool setManualAddress, string? favicon)
     {
-        var ssoDomains = settings.SsoEnabledDomains ?? [];
-        var isSsoDomain = !ContentServer.IsContentServerUrl(address) && ssoDomains.Any(domain => HasDomain(address, domain));
-
+        var isSsoDomain = ShouldUseWebView2(address);
         if (isSsoDomain)
-            return new WebView2Browser(id, address, actionContextBrowser, setManualAddress, favicon);
+            return new WebView2Browser(id, address, _actionContextBrowser, setManualAddress, favicon);
+        return new CefSharpTabBrowserAdapter(id, address, _actionContextBrowser, setManualAddress, favicon);
+    }
 
-        return new CefSharpTabBrowserAdapter(id, address, actionContextBrowser, setManualAddress, favicon);
+    private bool ShouldUseWebView2(string address)
+    {
+        if (ContentServer.IsContentServerUrl(address)) return false;
+        return _ssoDomains.Any(domain => HasDomain(address, domain));
     }
 
     private static bool HasDomain(string address, string domain)
@@ -61,6 +70,40 @@ public class TabBrowser : UserControl
             normalizedAddress = normalizedAddress.Substring(4);
 
         return normalizedAddress.StartsWith(domain);
+    }
+
+    private void AttachBrowserEvents()
+    {
+        _browser.AddressChanged += OnBrowserAddressChanged;
+    }
+
+    private void DetachBrowserEvents()
+    {
+        _browser.AddressChanged -= OnBrowserAddressChanged;
+    }
+
+    private void OnBrowserAddressChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        _addressChanged?.Invoke(this, e);
+
+        if (_browser is CefSharpTabBrowserAdapter && e.NewValue is string newAddress && ShouldUseWebView2(newAddress))
+        {
+            UpgradeToWebView2(newAddress);
+        }
+    }
+
+    private void UpgradeToWebView2(string targetAddress)
+    {
+        var setManual = _browser.ManualAddress == targetAddress;
+        var favicon = _browser.Favicon;
+        var id = _browser.Id;
+
+        DetachBrowserEvents();
+        var old = _browser;
+        _browser = new WebView2Browser(id, targetAddress, _actionContextBrowser, setManualAddress: setManual, favicon);
+        Content = _browser.AsUIElement();
+        AttachBrowserEvents();
+        old.Dispose();
     }
 
     public void SetAddress(string address, bool setManualAddress) => _browser.SetAddress(address, setManualAddress);
