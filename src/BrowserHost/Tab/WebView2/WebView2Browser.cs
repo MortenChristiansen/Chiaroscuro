@@ -55,8 +55,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _hostSurface.LayoutUpdated += (_, _) => { if (_hostSurface.IsVisible) UpdateControllerBounds(); };
 
         // Subscribe to Action Dialog lifecycle to toggle snapshot overlay
-        PubSub.Subscribe<ActionDialogShownEvent>(_ => { if (_hostSurface.IsVisible) ActivateSnapshotAsync(); });
-        PubSub.Subscribe<ActionDialogDismissedEvent>(_ => { if (_snapshotActive) DeactivateSnapshot(); });
+        PubSub.Subscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
+        PubSub.Subscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
     }
 
     public string Id => _id;
@@ -69,6 +69,18 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     public bool CanGoForward => _core?.CanGoForward ?? false;
     public bool HasDevTools => false;
     public double DefaultZoomLevel => 1.0;
+
+    private void HandleActionDialogShownEvent(ActionDialogShownEvent _)
+    {
+        if (_hostSurface.IsVisible)
+            ActivateSnapshotAsync();
+    }
+
+    private void HandleActionDialogDismissedEvent(ActionDialogDismissedEvent _)
+    {
+        if (_snapshotActive)
+            DeactivateSnapshot();
+    }
 
     private async Task EnsureControllerAsync(ActionContextBrowser actionContextBrowser)
     {
@@ -280,6 +292,9 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     {
         try
         {
+            // Unsubscribe from PubSub events
+            PubSub.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
+            PubSub.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
             if (_controller != null)
             {
                 _controller.AcceleratorKeyPressed -= Controller_AcceleratorKeyPressed;
