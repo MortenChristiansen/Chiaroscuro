@@ -13,7 +13,6 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Tab.WebView2;
 
@@ -30,11 +29,10 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private CoreWebView2Controller? _controller;
     private CoreWebView2? _core;
     private readonly Border _hostSurface = new() { Background = Brushes.Transparent };
+    private readonly WebView2SnapshotOverlay _snapshotOverlay = new();
     private string? _pendingNavigateTo;
     private string? _lastAddressSnapshot;
-    private Image? _snapshotImage;
-    private bool _snapshotActive;
-    private double _zoomFactor = 1.0; // track requested zoom
+    private double _zoomFactor = 1.0;
 
     private static readonly DependencyProperty AddressProperty = DependencyProperty.Register(
         nameof(Address), typeof(string), typeof(WebView2Browser), new PropertyMetadata(string.Empty));
@@ -48,13 +46,15 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _initialFavicon = favicon;
         _manualAddress = _initialManualAddress;
         _pendingNavigateTo = NormalizeAddress(address);
+
+        _hostSurface.Child = _snapshotOverlay.Visual;
+
         _hostSurface.Loaded += async (_, _) => { await EnsureControllerAsync(actionContextBrowser); SyncControllerVisibility(); };
         _hostSurface.Unloaded += (_, _) => SyncControllerVisibility();
         _hostSurface.IsVisibleChanged += (_, _) => SyncControllerVisibility();
         _hostSurface.SizeChanged += (_, _) => { UpdateControllerBounds(); };
         _hostSurface.LayoutUpdated += (_, _) => { if (_hostSurface.IsVisible) UpdateControllerBounds(); };
 
-        // Subscribe to Action Dialog lifecycle to toggle snapshot overlay
         PubSub.Subscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
         PubSub.Subscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
     }
@@ -78,7 +78,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 
     private void HandleActionDialogDismissedEvent(ActionDialogDismissedEvent _)
     {
-        if (_snapshotActive)
+        if (_snapshotOverlay.IsActive)
             DeactivateSnapshot();
     }
 
@@ -110,7 +110,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     {
         if (_core == null) return;
         _core.NavigationStarting += (_, __) => _isLoading = true;
-        _core.NavigationCompleted += (_, __) =>
+        _core.NavigationCompleted += (_, args) =>
         {
             _isLoading = false;
             var newAddress = _core.Source;
@@ -118,11 +118,9 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             {
                 var previous = _lastAddressSnapshot;
                 _lastAddressSnapshot = newAddress;
-
                 AddressChanged?.Invoke(this, new DependencyPropertyChangedEventArgs(AddressProperty, previous, newAddress));
             }
-            // Invalidate snapshot after navigation (so next dialog show captures fresh view)
-            if (_snapshotActive) RefreshSnapshotAsync();
+            _snapshotOverlay.OnNavigationCompleted(success: args.IsSuccess, _core);
         };
         _core.DocumentTitleChanged += (_, __) => { _title = _core.DocumentTitle; actionContextBrowser.UpdateTabTitle(_id, _title); };
         _core.FaviconChanged += (_, __) => { _favicon = _core.FaviconUri; actionContextBrowser.UpdateTabFavicon(_id, _favicon); };
@@ -132,12 +130,10 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private void ApplySettings()
     {
         if (_core == null) return;
-
         var settings = _core.Settings;
         settings.AreDevToolsEnabled = true;
         settings.AreDefaultContextMenusEnabled = false;
-        settings.AreBrowserAcceleratorKeysEnabled = true; // we consume them
-        // Apply zoom on controller if available
+        settings.AreBrowserAcceleratorKeysEnabled = true;
         if (_controller != null)
         {
             try { _controller.ZoomFactor = _zoomFactor; } catch { }
@@ -148,30 +144,12 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private void Controller_AcceleratorKeyPressed(object? sender, CoreWebView2AcceleratorKeyPressedEventArgs e)
     {
         if (e.KeyEventKind is not (CoreWebView2KeyEventKind.KeyDown or CoreWebView2KeyEventKind.SystemKeyDown)) return;
-
         var key = KeyInterop.KeyFromVirtualKey((int)e.VirtualKey);
         var mods = Keyboard.Modifiers;
         var ctrl = (mods & ModifierKeys.Control) != 0;
         var alt = (mods & ModifierKeys.Alt) != 0;
         var forward = false;
-
-        if (alt)
-        {
-            forward = true;
-        }
-        else if (key is Key.F5 or Key.F12)
-        {
-            forward = true;
-        }
-        else if (ctrl && !_allowedCtrlEditingKeys.Contains(key))
-        {
-            forward = true;
-        }
-        else if (ctrl && key == Key.Tab)
-        {
-            forward = true;
-        }
-
+        if (alt || key is Key.F5 or Key.F12 || (ctrl && (!_allowedCtrlEditingKeys.Contains(key) || key == Key.Tab))) forward = true;
         if (forward)
         {
             e.Handled = true;
@@ -187,19 +165,16 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private void SyncControllerVisibility()
     {
         if (_controller == null) return;
-
-        var shouldBeVisible = _hostSurface.IsVisible && !_snapshotActive;
-
+        var shouldBeVisible = _hostSurface.IsVisible && !_snapshotOverlay.IsActive;
         if (_controller.IsVisible != shouldBeVisible)
             _controller.IsVisible = shouldBeVisible;
-
         if (shouldBeVisible)
             UpdateControllerBounds();
     }
 
     private void UpdateControllerBounds()
     {
-        if (_controller == null || _snapshotActive || !_hostSurface.IsVisible) return;
+        if (_controller == null || _snapshotOverlay.IsActive || !_hostSurface.IsVisible) return;
         var window = Window.GetWindow(_hostSurface);
         if (window == null) return;
         var topLeft = _hostSurface.TranslatePoint(new Point(0, 0), window);
@@ -217,44 +192,19 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 
     private async void ActivateSnapshotAsync()
     {
-        if (_snapshotActive || _core == null || _controller == null || !_hostSurface.IsVisible) return;
-
-        try
+        if (_controller == null || _core == null) return;
+        var activated = await _snapshotOverlay.TryActivateAsync(_core);
+        if (activated)
         {
-            using var ms = new MemoryStream();
-            await _core.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, ms);
-            ms.Position = 0;
-            var bmp = new BitmapImage();
-            bmp.BeginInit(); bmp.CacheOption = BitmapCacheOption.OnLoad; bmp.StreamSource = ms; bmp.EndInit(); bmp.Freeze();
-            _snapshotImage = new Image { Source = bmp, Stretch = Stretch.Fill, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-            _hostSurface.Child = _snapshotImage;
+            // Hide controller after overlay visible
             _controller.IsVisible = false;
-            _snapshotActive = true;
+            SyncControllerVisibility();
         }
-        catch { /* ignore */ }
-    }
-
-    private async void RefreshSnapshotAsync()
-    {
-        if (!_snapshotActive || _core == null) return;
-        try
-        {
-            using var ms = new MemoryStream();
-            await _core.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, ms);
-            ms.Position = 0;
-            var bmp = new BitmapImage();
-            bmp.BeginInit(); bmp.CacheOption = BitmapCacheOption.OnLoad; bmp.StreamSource = ms; bmp.EndInit(); bmp.Freeze();
-            if (_snapshotImage != null) _snapshotImage.Source = bmp;
-        }
-        catch { }
     }
 
     private void DeactivateSnapshot()
     {
-        if (!_snapshotActive) return;
-        _hostSurface.Child = null;
-        _snapshotImage = null;
-        _snapshotActive = false;
+        _snapshotOverlay.Deactivate();
         SyncControllerVisibility();
     }
 
@@ -275,7 +225,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 
     public void SetZoomLevel(double level)
     {
-        var clamped = Math.Clamp(level, 0.25, 5.0); // WebView2 supported range
+        var clamped = Math.Clamp(level, 0.25, 5.0);
         _zoomFactor = clamped;
         if (_controller != null)
         {
@@ -292,7 +242,6 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     {
         try
         {
-            // Unsubscribe from PubSub events
             PubSub.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
             PubSub.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
             if (_controller != null)
