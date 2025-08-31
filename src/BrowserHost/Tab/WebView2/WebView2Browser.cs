@@ -136,7 +136,19 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         };
         _core.DocumentTitleChanged += (_, __) => { _title = _core.DocumentTitle; actionContextBrowser.UpdateTabTitle(_id, _title); };
         _core.FaviconChanged += (_, __) => { _favicon = _core.FaviconUri; actionContextBrowser.UpdateTabFavicon(_id, _favicon); };
+        // Mimic CefSharp RequestHandler: open new window requests as background tabs instead of OS windows
+        _core.NewWindowRequested += Core_NewWindowRequested;
         _controller!.AcceleratorKeyPressed += Controller_AcceleratorKeyPressed;
+    }
+
+    private void Core_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
+    {
+        var uri = e.Uri;
+        if (!string.IsNullOrEmpty(uri))
+        {
+            PubSub.Publish(new NavigationStartedEvent(uri, UseCurrentTab: false, SaveInHistory: true));
+            e.Handled = true; // Prevent external window
+        }
     }
 
     private void ApplySettings()
@@ -259,6 +271,10 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         {
             PubSub.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
             PubSub.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
+            if (_core != null)
+            {
+                _core.NewWindowRequested -= Core_NewWindowRequested;
+            }
             if (_controller != null)
             {
                 _controller.AcceleratorKeyPressed -= Controller_AcceleratorKeyPressed;
