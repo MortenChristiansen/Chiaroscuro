@@ -74,11 +74,11 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     public string Id => _id;
     public string? Favicon => _favicon ?? _initialFavicon;
     public string? ManualAddress => _manualAddress ?? _initialManualAddress;
-    public string Address => _core?.Source ?? _pendingNavigateTo ?? string.Empty;
+    public string Address => RunOnUi(() => _core?.Source ?? _pendingNavigateTo ?? string.Empty);
     public string Title { get => _title; set => _title = value; }
     public bool IsLoading => _isLoading;
-    public bool CanGoBack => _core?.CanGoBack ?? false;
-    public bool CanGoForward => _core?.CanGoForward ?? false;
+    public bool CanGoBack => RunOnUi(() => _core?.CanGoBack ?? false);
+    public bool CanGoForward => RunOnUi(() => _core?.CanGoForward ?? false);
     public bool HasDevTools => false;
     public double DefaultZoomLevel => 1.0;
 
@@ -247,10 +247,22 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         if (normalized != null) _core.Navigate(normalized);
     }
 
+    private void RunOnUi(Action action)
+    {
+        if (Dispatcher.CheckAccess()) action();
+        else Dispatcher.Invoke(action);
+    }
+
+    private T RunOnUi<T>(Func<T> action)
+    {
+        if (Dispatcher.CheckAccess()) return action();
+        else return Dispatcher.Invoke(action);
+    }
+
     public void RegisterContentPageApi(BrowserApi api, string name) => _core?.AddHostObjectToScript(name, api);
-    public void Reload(bool ignoreCache = false) => _core?.Reload();
-    public void Back() { if (CanGoBack) _core?.GoBack(); }
-    public void Forward() { if (CanGoForward) _core?.GoForward(); }
+    public void Reload(bool ignoreCache = false) => RunOnUi(() => _core?.Reload());
+    public void Back() { if (CanGoBack) RunOnUi(() => _core?.GoBack()); }
+    public void Forward() { if (CanGoForward) RunOnUi(() => _core?.GoForward()); }
     public async Task CallClientApi(string api, string? arguments = null) { if (_core != null) await _core.ExecuteScriptAsync($"{api}({arguments ?? string.Empty});"); }
     public Task<double> GetZoomLevelAsync() => Task.FromResult(_controller?.ZoomFactor ?? _zoomFactor);
 
