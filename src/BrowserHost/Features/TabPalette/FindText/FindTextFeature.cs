@@ -44,18 +44,18 @@ public class FindTextFeature(MainWindow window) : Feature(window)
 
     private void StartFinding(string term)
     {
-        Window.CurrentTab?.Find(term, true, false, findNext: true);
+        Window.CurrentTab?.Find(term, forward: true, matchCase: false, findNext: true);
         _findingTextTerm = term;
     }
 
     private void FindNext(string term)
     {
-        Window.CurrentTab?.Find(term, forward: true, false, findNext: true);
+        Window.CurrentTab?.Find(term, forward: true, matchCase: false, findNext: true);
     }
 
     private void FindPrevious(string term)
     {
-        Window.CurrentTab?.Find(term, forward: false, false, findNext: true);
+        Window.CurrentTab?.Find(term, forward: false, matchCase: false, findNext: true);
     }
 
     private void StopFinding()
