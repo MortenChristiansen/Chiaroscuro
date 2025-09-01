@@ -97,12 +97,9 @@ import { settingsSchema } from './settings-schema';
                     Add
                   </button>
                 </div>
-                <div
-                  class="text-[10px] text-gray-500"
-                  *ngIf="asStringArray(getValue(field.key)).length === 0"
-                >
-                  No values added.
-                </div>
+                @if(asStringArray(getValue(field.key)).length === 0) {
+                <div class="text-[10px] text-gray-500">No values added.</div>
+                }
               </div>
               } @else if (field.type === 'integer') {
               <input
