@@ -37,10 +37,10 @@ public class TabBrowser : UserControl
     public bool CanGoForward => _browser.CanGoForward;
     public bool HasDevTools => _browser.HasDevTools;
 
-    public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, SettingsDataV1 settings)
+    public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon)
     {
         _actionContextBrowser = actionContextBrowser;
-        _ssoDomains = settings.SsoEnabledDomains ?? [];
+        _ssoDomains = SettingsFeature.ExecutionSettings.SsoEnabledDomains ?? [];
         _browser = CreateBrowser(id, address, setManualAddress, favicon);
         Content = _browser.AsUIElement();
         AttachBrowserEvents();
