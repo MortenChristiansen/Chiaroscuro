@@ -54,7 +54,12 @@ internal sealed class WebView2RoundedCornerManager
         var region = CreateRoundRectRgn(0, 0, width + 1, height + 1, r, r);
         if (region != IntPtr.Zero)
         {
-            SetWindowRgn(_childWebViewHwnd, region, true);
+            var result = SetWindowRgn(_childWebViewHwnd, region, true);
+            if (result == 0)
+            {
+                // OS did not take ownership; delete to prevent leak
+                DeleteObject(region);
+            }
         }
     }
 
@@ -86,6 +91,9 @@ internal sealed class WebView2RoundedCornerManager
 
     [DllImport("user32.dll")]
     private static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool DeleteObject(IntPtr hObject);
 
     private static string GetClassName(IntPtr hWnd)
     {
