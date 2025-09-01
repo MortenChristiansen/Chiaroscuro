@@ -1,5 +1,6 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -19,7 +20,12 @@ public class SettingsBrowserApi : BrowserApi
     {
         var userAgent = settings.TryGetValue("userAgent", out var o) && o is string ua ? ua : null;
         var ssoEnabledDomains = settings.TryGetValue("ssoEnabledDomains", out var o2) && o2 is IEnumerable<object> list
-            ? list.Cast<string>().ToArray()
+            ? list
+                .OfType<string>()
+                .Select(s => s.Trim())
+                .Where(s => s.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray()
             : [];
 
         var dto = new SettingUiStateDto(userAgent, ssoEnabledDomains);
