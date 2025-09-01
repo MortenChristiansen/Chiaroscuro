@@ -10,6 +10,7 @@ internal sealed class WebView2FindManager
 {
     private CoreWebView2? _core;
     private string? _findTerm;
+    private bool _matchCase;
     private int _findIndex;
     private int _findCount;
 
@@ -24,10 +25,11 @@ internal sealed class WebView2FindManager
         if (_core == null) return;
         if (string.IsNullOrWhiteSpace(searchText)) { StopFinding(true); return; }
 
-        // New term => highlight first then navigate.
-        if (_findTerm != searchText)
+        // New search if term or matchCase changed, or caller indicates not findNext
+        if (_findTerm != searchText || _matchCase != matchCase || !findNext)
         {
             _findTerm = searchText;
+            _matchCase = matchCase;
             _findIndex = 0;
             _ = RunHighlightAsync(searchText, matchCase);
             return;
