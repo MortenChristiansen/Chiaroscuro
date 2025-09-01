@@ -143,7 +143,6 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
                 _lastAddressSnapshot = newAddress;
                 AddressChanged?.Invoke(this, new DependencyPropertyChangedEventArgs(AddressProperty, previous, newAddress));
             }
-            _snapshotOverlay.OnNavigationCompleted(success: args.IsSuccess, _core);
         };
         _core.DocumentTitleChanged += (_, __) => { _title = _core.DocumentTitle; actionContextBrowser.UpdateTabTitle(_id, _title); };
         _core.FaviconChanged += (_, __) => { _favicon = _core.FaviconUri; actionContextBrowser.UpdateTabFavicon(_id, _favicon); };

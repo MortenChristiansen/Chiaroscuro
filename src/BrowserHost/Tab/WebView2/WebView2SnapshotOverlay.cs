@@ -12,8 +12,6 @@ internal sealed class WebView2SnapshotOverlay
 {
     private readonly Grid _root = new();
     private readonly Image _image;
-    private bool _preloadInProgress;
-    private bool _hasSnapshot;
     public bool IsActive { get; private set; }
 
     public WebView2SnapshotOverlay()
@@ -33,21 +31,10 @@ internal sealed class WebView2SnapshotOverlay
 
     public System.Windows.UIElement Visual => _root;
 
-    public void OnNavigationCompleted(bool success, CoreWebView2 core)
-    {
-        if (!success)
-        {
-            _hasSnapshot = false;
-            return;
-        }
-        _ = CaptureAsync(core, preload: true);
-    }
-
     public async Task<bool> TryActivateAsync(CoreWebView2 core)
     {
         if (IsActive) return true;
-        if (!_hasSnapshot)
-            await CaptureAsync(core, preload: false);
+        await CaptureAsync(core, preload: false);
         if (_image.Source == null) return false;
         _image.Visibility = System.Windows.Visibility.Visible;
         await AwaitRenderAsync();
@@ -64,8 +51,6 @@ internal sealed class WebView2SnapshotOverlay
 
     private async Task CaptureAsync(CoreWebView2 core, bool preload)
     {
-        if (preload && _preloadInProgress) return;
-        if (preload) _preloadInProgress = true;
         try
         {
             using var ms = new MemoryStream();
@@ -79,15 +64,9 @@ internal sealed class WebView2SnapshotOverlay
             bmp.EndInit();
             bmp.Freeze();
             _image.Source = bmp;
-            _hasSnapshot = true;
         }
         catch
         {
-            if (!preload) _hasSnapshot = false;
-        }
-        finally
-        {
-            if (preload) _preloadInProgress = false;
         }
     }
 
