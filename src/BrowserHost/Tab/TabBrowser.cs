@@ -3,6 +3,7 @@ using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.Settings;
 using BrowserHost.Tab.CefSharp;
 using BrowserHost.Tab.WebView2;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -60,7 +61,7 @@ public class TabBrowser : UserControl
         return _ssoDomains.Any(domain => HasDomain(address, domain));
     }
 
-    private static bool HasDomain(string address, string domain)
+    private static bool HasDomain2(string address, string domain)
     {
         if (string.IsNullOrWhiteSpace(address) || string.IsNullOrWhiteSpace(domain))
             return false;
@@ -70,6 +71,18 @@ public class TabBrowser : UserControl
             normalizedAddress = normalizedAddress.Substring(4);
 
         return normalizedAddress.StartsWith(domain);
+    }
+
+    private static bool HasDomain(string address, string domain)
+    {
+        if (string.IsNullOrWhiteSpace(address) || string.IsNullOrWhiteSpace(domain)) return false;
+        // Ensure absolute URI for reliable parsing
+        var candidate = address.Contains("://", StringComparison.Ordinal) ? address : "https://" + address;
+        if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri)) return false;
+        var host = uri.Host.TrimEnd('.').ToLowerInvariant();
+        var d = domain.Trim().TrimStart('.').ToLowerInvariant();
+        // Allow exact host or subdomain match on a dot boundary
+        return host == d || host.EndsWith("." + d, StringComparison.Ordinal);
     }
 
     private void AttachBrowserEvents()
