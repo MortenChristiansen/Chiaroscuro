@@ -2,6 +2,7 @@
 using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Utilities;
 using Microsoft.Web.WebView2.Core;
 using System;
@@ -126,10 +127,15 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private void WireCoreEvents(ActionContextBrowser actionContextBrowser)
     {
         if (_core == null) return;
-        _core.NavigationStarting += (_, __) => _isLoading = true;
+        _core.NavigationStarting += (_, __) =>
+        {
+            _isLoading = true;
+            PubSub.Publish(new TabLoadingStateChangedEvent(_id, true));
+        };
         _core.NavigationCompleted += (_, args) =>
         {
             _isLoading = false;
+            PubSub.Publish(new TabLoadingStateChangedEvent(_id, false));
             var newAddress = _core.Source;
             if (_lastAddressSnapshot != newAddress)
             {

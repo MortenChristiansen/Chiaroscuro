@@ -61,18 +61,6 @@ public class TabBrowser : UserControl
         return _ssoDomains.Any(domain => HasDomain(address, domain));
     }
 
-    private static bool HasDomain2(string address, string domain)
-    {
-        if (string.IsNullOrWhiteSpace(address) || string.IsNullOrWhiteSpace(domain))
-            return false;
-
-        var normalizedAddress = address.Contains("://") ? address.Split("://")[1] : address;
-        if (normalizedAddress.StartsWith("www."))
-            normalizedAddress = normalizedAddress.Substring(4);
-
-        return normalizedAddress.StartsWith(domain);
-    }
-
     private static bool HasDomain(string address, string domain)
     {
         if (string.IsNullOrWhiteSpace(address) || string.IsNullOrWhiteSpace(domain)) return false;
