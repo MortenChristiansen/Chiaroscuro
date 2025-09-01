@@ -267,7 +267,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         else return Dispatcher.Invoke(action);
     }
 
-    public void RegisterContentPageApi(BrowserApi api, string name) => _core?.AddHostObjectToScript(name, api);
+    public void RegisterContentPageApi(BrowserApi api, string name) => throw new InvalidOperationException("The WebView2Browser does not support content pages");
     public void Reload(bool ignoreCache = false) => RunOnUi(() => _core?.Reload());
     public void Back() { if (CanGoBack) RunOnUi(() => _core?.GoBack()); }
     public void Forward() { if (CanGoForward) RunOnUi(() => _core?.GoForward()); }
