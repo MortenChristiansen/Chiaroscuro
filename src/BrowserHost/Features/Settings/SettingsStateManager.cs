@@ -73,9 +73,14 @@ public static class SettingsStateManager
         }
     }
 
-    private static bool StateIsEqual(SettingsDataV1? data1, SettingsDataV1? data2)
+    private static bool StateIsEqual(SettingsDataV1? a, SettingsDataV1 b)
     {
-        if (data1 is null || data2 is null) return false;
-        return data1 == data2;
+        if (a is null) return false;
+        if (a.UserAgent != b.UserAgent)
+            return false;
+
+        return DataComparisons.AreArraysEqual(a.SsoEnabledDomains, b.SsoEnabledDomains);
     }
+
+
 }
