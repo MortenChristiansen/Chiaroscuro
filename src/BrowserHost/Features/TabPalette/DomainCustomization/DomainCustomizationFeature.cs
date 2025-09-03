@@ -8,10 +8,12 @@ using System.Windows;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
-public class DomainCustomizationFeature(MainWindow window) : Feature(window)
+public class DomainCustomizationFeature(MainWindow window) : Feature(window), IDisposable
 {
     private string? _currentDomain;
     private TabBrowser? _currentTab;
+    private FileSystemWatcher? _cssFileWatcher;
+    private string? _watchedCssPath;
 
     public override void Configure()
     {
@@ -83,12 +85,19 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
     private void UpdateCurrentDomain()
     {
         var newDomain = GetCurrentDomain();
-        if (newDomain != _currentDomain)
-        {
-            _currentDomain = newDomain;
-            ApplyCssToCurrentTab();
+        var domainChanged = newDomain != _currentDomain;
+        
+        _currentDomain = newDomain;
+        
+        // Update CSS file watching
+        UpdateCssFileWatcher();
+        
+        // Always apply CSS - either for domain change or SPA navigation within same domain
+        ApplyCssToCurrentTab();
 
-            // If tab palette is open, update the domain settings
+        // If domain changed and tab palette is open, update the domain settings
+        if (domainChanged)
+        {
             NotifyFrontendOfDomainUpdate(newDomain);
         }
     }
@@ -101,6 +110,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
             _currentTab.AddressChanged += OnAddressChanged;
         }
         _currentDomain = GetCurrentDomain();
+        UpdateCssFileWatcher();
         ApplyCssToCurrentTab();
     }
 
@@ -140,16 +150,25 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 
             var script = $@"
                 (function() {{
+                    const cssId = 'chiaroscuro-domain-css';
+                    const expectedCss = '{escapedCss}';
+                    
+                    // Check if the CSS is already correctly applied
+                    const existingStyle = document.getElementById(cssId);
+                    if (existingStyle && existingStyle.textContent === expectedCss) {{
+                        // CSS is already correctly applied, no need to update
+                        return;
+                    }}
+                    
                     // Remove existing custom CSS if any
-                    const existingStyle = document.getElementById('chiaroscuro-domain-css');
                     if (existingStyle) {{
                         existingStyle.remove();
                     }}
                     
                     // Add new custom CSS
                     const style = document.createElement('style');
-                    style.id = 'chiaroscuro-domain-css';
-                    style.textContent = '{escapedCss}';
+                    style.id = cssId;
+                    style.textContent = expectedCss;
                     document.head.appendChild(style);
                 }})();
             ";
@@ -193,8 +212,11 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
             // Ensure domain folder exists
             Directory.CreateDirectory(domainFolder);
 
+            // Track if this is a new CSS file
+            var isNewCssFile = !File.Exists(cssPath);
+
             // Create empty CSS file if it doesn't exist
-            if (!File.Exists(cssPath))
+            if (isNewCssFile)
             {
                 File.WriteAllText(cssPath, $"/* Custom CSS for {domain} */\n\n");
             }
@@ -208,6 +230,12 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 
             // Refresh cache after potential edit
             DomainCustomizationStateManager.RefreshCacheForDomain(domain);
+
+            // If this was a new CSS file, notify the frontend immediately
+            if (isNewCssFile)
+            {
+                NotifyFrontendOfDomainUpdate(domain);
+            }
         }
         catch (Exception ex)
         {
@@ -239,5 +267,68 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
             Debug.WriteLine($"Failed to extract domain from address {currentTab.Address}: {ex.Message}");
             return null;
         }
+    }
+
+    private void UpdateCssFileWatcher()
+    {
+        // Dispose existing watcher
+        _cssFileWatcher?.Dispose();
+        _cssFileWatcher = null;
+        _watchedCssPath = null;
+
+        if (_currentDomain == null) return;
+
+        try
+        {
+            var cssPath = DomainCustomizationStateManager.GetCustomCssPath(_currentDomain);
+            var directory = Path.GetDirectoryName(cssPath);
+            var fileName = Path.GetFileName(cssPath);
+
+            if (directory != null && Directory.Exists(directory))
+            {
+                _cssFileWatcher = new FileSystemWatcher(directory, fileName)
+                {
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
+                    EnableRaisingEvents = true
+                };
+
+                _cssFileWatcher.Changed += OnCssFileChanged;
+                _watchedCssPath = cssPath;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to setup CSS file watcher for domain {_currentDomain}: {ex.Message}");
+        }
+    }
+
+    private void OnCssFileChanged(object sender, FileSystemEventArgs e)
+    {
+        try
+        {
+            if (_currentDomain == null || e.FullPath != _watchedCssPath) return;
+
+            // Small delay to ensure file write is complete
+            System.Threading.Thread.Sleep(100);
+
+            // Refresh cache and reapply CSS
+            DomainCustomizationStateManager.RefreshCacheForDomain(_currentDomain);
+            
+            // Apply CSS to current tab on UI thread
+            Window.Dispatcher.Invoke(() =>
+            {
+                ApplyCssToCurrentTab();
+                NotifyFrontendOfDomainUpdate(_currentDomain);
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to handle CSS file change: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        _cssFileWatcher?.Dispose();
     }
 }
