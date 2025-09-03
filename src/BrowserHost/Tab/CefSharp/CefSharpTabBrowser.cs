@@ -1,5 +1,7 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.FileDownloads;
+using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.TabPalette.FindText;
@@ -10,9 +12,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 
-namespace BrowserHost.Features.ActionContext.Tabs;
+namespace BrowserHost.Tab.CefSharp;
 
-public class TabBrowser : Browser
+public class CefSharpTabBrowser : Browser
 {
     private readonly ActionContextBrowser _actionContextBrowser;
 
@@ -20,7 +22,7 @@ public class TabBrowser : Browser
     public string? Favicon { get; private set; }
     public string? ManualAddress { get; private set; }
 
-    public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon)
+    public CefSharpTabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon)
     {
         Id = id;
         Favicon = favicon;

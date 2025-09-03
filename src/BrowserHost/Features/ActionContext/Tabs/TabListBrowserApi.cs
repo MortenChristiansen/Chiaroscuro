@@ -1,4 +1,5 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;

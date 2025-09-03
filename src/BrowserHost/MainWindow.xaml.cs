@@ -13,8 +13,8 @@ using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
+using BrowserHost.Tab;
 using BrowserHost.XamlUtilities;
-using CefSharp;
 using CefSharp.Wpf;
 using System;
 using System.Collections.Generic;
@@ -56,6 +56,7 @@ public partial class MainWindow : Window
 
         _features =
         [
+            new SettingsFeature(this),
             new CustomWindowChromeFeature(this),
             new ActionDialogFeature(this),
             new TabsFeature(this),
@@ -69,7 +70,6 @@ public partial class MainWindow : Window
             new TabPaletteFeature(this),
             new FindTextFeature(this),
             new TabCustomizationFeature(this),
-            new SettingsFeature(this)
         ];
         _features.ForEach(f => f.Configure());
 
@@ -124,6 +124,12 @@ public partial class MainWindow : Window
     {
         base.OnPreviewKeyDown(e);
 
+        ProcessKeyboardEvent(e);
+    }
+
+    public void ProcessKeyboardEvent(KeyEventArgs e)
+    {
+        if (e.Handled) return; // Already handled
         foreach (var feature in _features)
         {
             if (feature.HandleOnPreviewKeyDown(e))
@@ -132,12 +138,11 @@ public partial class MainWindow : Window
                 return;
             }
         }
-
-        // Too small to be handled by features, handle here
-        if (e.Key == Key.F5)
+        if (!e.Handled && e.Key == Key.F5)
         {
             var ignoreCache = Keyboard.Modifiers == ModifierKeys.Control;
-            CurrentTab.Reload(ignoreCache);
+            CurrentTab?.Reload(ignoreCache);
+            e.Handled = true;
         }
     }
 

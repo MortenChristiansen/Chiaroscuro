@@ -3,6 +3,7 @@ using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.ActionDialog;
 
+public record ActionDialogShownEvent();
 public record ActionDialogDismissedEvent();
 public record CommandExecutedEvent(string Command, bool Ctrl);
 public record ActionDialogValueChangedEvent(string Value);

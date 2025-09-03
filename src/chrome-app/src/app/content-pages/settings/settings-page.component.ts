@@ -62,6 +62,45 @@ import { settingsSchema } from './settings-schema';
                 (ngModelChange)="onStringChange(field.key, $event)"
                 [placeholder]="field.placeholder ?? ''"
               />
+              } @else if (field.type === 'string[]') {
+              <div class="flex flex-col gap-2">
+                <div class="flex flex-wrap gap-2">
+                  @for (item of asStringArray(getValue(field.key)); let i =
+                  $index; track i) {
+                  <div
+                    class="flex items-center gap-1 bg-gray-800 px-2 py-1 rounded text-xs"
+                  >
+                    <input
+                      type="text"
+                      class="bg-transparent focus:outline-none w-32"
+                      [ngModel]="item"
+                      (ngModelChange)="
+                        onStringArrayItemChange(field.key, i, $event)
+                      "
+                      [placeholder]="field.placeholder ?? ''"
+                    />
+                    <button
+                      type="button"
+                      class="text-red-300 hover:text-red-200"
+                      (click)="removeStringArrayItem(field.key, i)"
+                      aria-label="Remove"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  }
+                  <button
+                    type="button"
+                    class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-xs"
+                    (click)="addStringArrayItem(field.key)"
+                  >
+                    Add
+                  </button>
+                </div>
+                @if(asStringArray(getValue(field.key)).length === 0) {
+                <div class="text-[10px] text-gray-500">No values added.</div>
+                }
+              </div>
               } @else if (field.type === 'integer') {
               <input
                 type="number"
@@ -132,6 +171,12 @@ export default class SettingsPageComponent implements OnInit {
   asBoolean(v: unknown): boolean {
     return typeof v === 'boolean' ? v : false;
   }
+  asStringArray(v: unknown): string[] {
+    if (Array.isArray(v)) {
+      return v.filter((x) => typeof x === 'string') as string[];
+    }
+    return [];
+  }
 
   getValue(key: string) {
     const curr = this.currentValues();
@@ -151,8 +196,23 @@ export default class SettingsPageComponent implements OnInit {
   onBooleanChange(key: string, value: boolean) {
     this.setValue(key, !!value);
   }
+  onStringArrayItemChange(key: string, index: number, value: string) {
+    const arr = [...this.asStringArray(this.getValue(key))];
+    arr[index] = value;
+    this.setValue(key, arr);
+  }
+  addStringArrayItem(key: string) {
+    const arr = [...this.asStringArray(this.getValue(key))];
+    arr.push('');
+    this.setValue(key, arr);
+  }
+  removeStringArrayItem(key: string, index: number) {
+    const arr = [...this.asStringArray(this.getValue(key))];
+    arr.splice(index, 1);
+    this.setValue(key, arr);
+  }
 
-  setValue(key: string, value: string | number | boolean | null) {
+  setValue(key: string, value: string | number | boolean | null | string[]) {
     this.currentValues.update((curr) => ({ ...curr, [key]: value }));
   }
 
@@ -187,6 +247,8 @@ export default class SettingsPageComponent implements OnInit {
     switch (field.type) {
       case 'string':
         return '';
+      case 'string[]':
+        return [];
       case 'boolean':
         return false;
       case 'integer':
@@ -219,6 +281,10 @@ export default class SettingsPageComponent implements OnInit {
       } else if (field?.type === 'string') {
         // Preserve nulls rather than turning them into the string "null"
         result[key] = value === null ? null : String(value);
+      } else if (field?.type === 'string[]') {
+        result[key] = Array.isArray(value)
+          ? value.filter((v) => typeof v === 'string')
+          : [];
       } else {
         // If schema unknown, attempt best-effort mapping
         if (typeof value === 'string' || typeof value === 'boolean') {
@@ -247,6 +313,12 @@ export default class SettingsPageComponent implements OnInit {
         result[f.key] = Boolean(v);
       } else if (f.type === 'string') {
         result[f.key] = String(v);
+      } else if (f.type === 'string[]') {
+        const arr = Array.isArray(v)
+          ? v.filter((x) => typeof x === 'string' && x.trim().length > 0)
+          : [];
+        // Save as array directly
+        if (arr.length > 0) result[f.key] = arr;
       }
     }
     return result;
