@@ -271,6 +271,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     public void Back() { if (CanGoBack) RunOnUi(() => _core?.GoBack()); }
     public void Forward() { if (CanGoForward) RunOnUi(() => _core?.GoForward()); }
     public async Task CallClientApi(string api, string? arguments = null) { if (_core != null) await _core.ExecuteScriptAsync($"{api}({arguments ?? string.Empty});"); }
+    public async Task ExecuteScriptAsync(string script) { if (_core != null) await _core.ExecuteScriptAsync(script); }
     public Task<double> GetZoomLevelAsync() => Task.FromResult(_controller?.ZoomFactor ?? _zoomFactor);
 
     public void SetZoomLevel(double level)
