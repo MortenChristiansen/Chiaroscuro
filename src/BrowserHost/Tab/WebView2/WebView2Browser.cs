@@ -299,6 +299,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             if (_core != null)
             {
                 _core.NewWindowRequested -= Core_NewWindowRequested;
+                _core = null;
             }
             if (_controller != null)
             {

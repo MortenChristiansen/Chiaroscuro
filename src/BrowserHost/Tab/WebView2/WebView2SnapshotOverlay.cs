@@ -34,7 +34,7 @@ internal sealed class WebView2SnapshotOverlay
     public async Task<bool> TryActivateAsync(CoreWebView2 core)
     {
         if (IsActive) return true;
-        await CaptureAsync(core, preload: false);
+        await CaptureAsync(core);
         if (_image.Source == null) return false;
         _image.Visibility = System.Windows.Visibility.Visible;
         await AwaitRenderAsync();
@@ -49,7 +49,7 @@ internal sealed class WebView2SnapshotOverlay
         _image.Visibility = System.Windows.Visibility.Collapsed;
     }
 
-    private async Task CaptureAsync(CoreWebView2 core, bool preload)
+    private async Task CaptureAsync(CoreWebView2 core)
     {
         try
         {
