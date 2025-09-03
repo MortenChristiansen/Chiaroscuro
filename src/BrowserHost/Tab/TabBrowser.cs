@@ -121,4 +121,5 @@ public class TabBrowser : UserControl
     public void StopFinding(bool clearSelection) => _browser.StopFinding(clearSelection);
     public void ShowDevTools() => _browser.ShowDevTools();
     public void CloseDevTools() => _browser.CloseDevTools();
+    public Task ExecuteScriptAsync(string script) => _browser.ExecuteScriptAsync(script);
 }

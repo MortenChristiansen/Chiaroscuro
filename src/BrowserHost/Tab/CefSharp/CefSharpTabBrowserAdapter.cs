@@ -1,6 +1,7 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.ActionContext;
 using CefSharp;
+using System;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -11,25 +12,37 @@ public class CefSharpTabBrowserAdapter(string id, string address, ActionContextB
     private readonly CefSharpTabBrowser _cefBrowser = new(id, address, actionContextBrowser, setManualAddress, favicon);
 
     public string Id => _cefBrowser.Id;
-    public string? Favicon => _cefBrowser.Favicon;
+    public string? Favicon => RunOnUi(() => _cefBrowser.Favicon);
     public string? ManualAddress => _cefBrowser.ManualAddress;
-    public string Address => _cefBrowser.Address;
+    public string Address => RunOnUi(() => _cefBrowser.Address);
     public string Title
     {
-        get => _cefBrowser.Title;
-        set => _cefBrowser.Title = value;
+        get => RunOnUi(() => _cefBrowser.Title);
+        set => RunOnUi(() => _cefBrowser.Title = value);
     }
-    public bool IsLoading => _cefBrowser.IsLoading;
-    public bool CanGoBack => _cefBrowser.CanGoBack;
-    public bool CanGoForward => _cefBrowser.CanGoForward;
+    public bool IsLoading => RunOnUi(() => _cefBrowser.IsLoading);
+    public bool CanGoBack => RunOnUi(() => _cefBrowser.CanGoBack);
+    public bool CanGoForward => RunOnUi(() => _cefBrowser.CanGoForward);
     public double DefaultZoomLevel => 0.0;
 
-    public bool HasDevTools => _cefBrowser.GetBrowserHost().HasDevTools;
+    public bool HasDevTools => RunOnUi(() => _cefBrowser.GetBrowserHost().HasDevTools);
 
     public event DependencyPropertyChangedEventHandler? AddressChanged
     {
         add => _cefBrowser.AddressChanged += value;
         remove => _cefBrowser.AddressChanged -= value;
+    }
+
+    private void RunOnUi(Action action)
+    {
+        if (_cefBrowser.Dispatcher.CheckAccess()) action();
+        else _cefBrowser.Dispatcher.Invoke(action);
+    }
+
+    private T RunOnUi<T>(Func<T> action)
+    {
+        if (_cefBrowser.Dispatcher.CheckAccess()) return action();
+        else return _cefBrowser.Dispatcher.Invoke(action);
     }
 
     public void SetAddress(string address, bool setManualAddress) => _cefBrowser.SetAddress(address, setManualAddress);

@@ -1,15 +1,17 @@
 using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Windows;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
 public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 {
     private string? _currentDomain;
-    private ITabWebBrowser? _currentTab;
+    private TabBrowser? _currentTab;
 
     public override void Configure()
     {
@@ -19,19 +21,19 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
             var customization = DomainCustomizationStateManager.GetCustomization(e.Domain);
             var updated = customization with { CssEnabled = e.CssEnabled };
             DomainCustomizationStateManager.SaveCustomization(updated);
-            
+
             // Apply CSS changes to current tab if it's for the current domain
             if (e.Domain == _currentDomain)
             {
                 ApplyCssToCurrentTab();
             }
-            
+
             // Notify frontend about the change
             NotifyFrontendOfDomainUpdate(e.Domain);
         });
-        
+
         PubSub.Subscribe<DomainCssEditRequestedEvent>((e) => EditDomainCss(e.Domain));
-        
+
         // Monitor tab changes
         PubSub.Subscribe<TabActivatedEvent>((e) => OnTabChanged());
         PubSub.Subscribe<TabDeactivatedEvent>((e) => OnTabChanged());
@@ -59,15 +61,15 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
             {
                 _currentTab.AddressChanged -= OnAddressChanged;
             }
-            
+
             _currentTab = newTab;
-            
+
             // Subscribe to new tab's address changes
             if (_currentTab != null)
             {
                 _currentTab.AddressChanged += OnAddressChanged;
             }
-            
+
             // Update domain and apply CSS
             UpdateCurrentDomain();
         }
@@ -85,7 +87,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
         {
             _currentDomain = newDomain;
             ApplyCssToCurrentTab();
-            
+
             // If tab palette is open, update the domain settings
             NotifyFrontendOfDomainUpdate(newDomain);
         }
@@ -129,13 +131,13 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
         }
     }
 
-    private static void InjectCssIntoTab(ITabWebBrowser tab, string css)
+    private static void InjectCssIntoTab(TabBrowser tab, string css)
     {
         try
         {
             // Escape CSS for JavaScript injection
             var escapedCss = css.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\r\n", "\\n").Replace("\n", "\\n").Replace("\r", "\\n");
-            
+
             var script = $@"
                 (function() {{
                     // Remove existing custom CSS if any
@@ -151,7 +153,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
                     document.head.appendChild(style);
                 }})();
             ";
-            
+
             tab.ExecuteScriptAsync(script);
         }
         catch (Exception ex)
@@ -160,7 +162,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
         }
     }
 
-    private static void RemoveCssFromTab(ITabWebBrowser tab)
+    private static void RemoveCssFromTab(TabBrowser tab)
     {
         try
         {
@@ -172,7 +174,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
                     }
                 })();
             ";
-            
+
             tab.ExecuteScriptAsync(script);
         }
         catch (Exception ex)
@@ -187,23 +189,23 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
         {
             var cssPath = DomainCustomizationStateManager.GetCustomCssPath(domain);
             var domainFolder = Path.GetDirectoryName(cssPath)!;
-            
+
             // Ensure domain folder exists
             Directory.CreateDirectory(domainFolder);
-            
+
             // Create empty CSS file if it doesn't exist
             if (!File.Exists(cssPath))
             {
                 File.WriteAllText(cssPath, $"/* Custom CSS for {domain} */\n\n");
             }
-            
+
             // Open the CSS file with the default editor
             var processStartInfo = new ProcessStartInfo(cssPath)
             {
                 UseShellExecute = true
             };
             Process.Start(processStartInfo);
-            
+
             // Refresh cache after potential edit
             DomainCustomizationStateManager.RefreshCacheForDomain(domain);
         }
