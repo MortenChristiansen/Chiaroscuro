@@ -1,8 +1,6 @@
 ﻿using CefSharp;
 using CefSharp.Wpf;
-using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using System.Windows.Media;
 
 namespace BrowserHost.CefInfrastructure;
@@ -13,56 +11,6 @@ public interface IBaseBrowser
 
 public abstract class BaseBrowser : ChromiumWebBrowser
 {
-    // This base class tries to remedy the issue of CefSharp not redrawing the browser when the size changes.
-    // https://github.com/cefsharp/CefSharp/issues/4953
-
-    private static readonly ConcurrentDictionary<BaseBrowser, byte> _browsersScheduledForRedraw = [];
-
-    static BaseBrowser()
-    {
-        Task.Run(async () =>
-        {
-            while (true)
-            {
-                var browsers = _browsersScheduledForRedraw.ToArray();
-                _browsersScheduledForRedraw.Clear();
-
-                foreach (var browser in browsers)
-                    browser.Key.Redraw();
-
-                await Task.Delay(25);
-
-                foreach (var browser in browsers)
-                    browser.Key.Redraw();
-
-                await Task.Delay(25);
-
-                foreach (var browser in browsers)
-                    browser.Key.Redraw();
-
-                await Task.Delay(25);
-
-                foreach (var browser in browsers)
-                    browser.Key.Redraw();
-
-                await Task.Delay(25);
-
-                foreach (var browser in browsers)
-                    browser.Key.Redraw();
-            }
-        });
-    }
-
-    protected BaseBrowser()
-    {
-        SizeChanged += (sender, e) => _browsersScheduledForRedraw.AddOrUpdate(this, 0, (_, _) => 0);
-    }
-
-    private void Redraw()
-    {
-        this.GetBrowserHost()?.Invalidate(PaintElementType.View);
-    }
-
     public override void BeginInit()
     {
         AllowDrop = false;

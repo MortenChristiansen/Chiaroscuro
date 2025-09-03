@@ -13,6 +13,9 @@
     <OutputType>WinExe</OutputType>
     <TargetFrameworks>net9.0-windows</TargetFrameworks>
     <UseWPF>true</UseWPF>
+	  <AssemblyTitle>Chiaroscuro</AssemblyTitle>
+	  <Product>Chiaroscuro</Product>
+	  <FileDescription>Chiaroscuro</FileDescription>
 	  <RootNamespace>BrowserHost</RootNamespace>
 	  <ApplicationIcon>logo.ico</ApplicationIcon>
 	  <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -64,8 +67,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CefSharp.Wpf.NetCore" Version="138.0.170" />
+    <PackageReference Include="CefSharp.Wpf.NetCore" Version="139.0.280" />
     <PackageReference Include="EmbedIO" Version="3.5.2" />
+	<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3405.78" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
   </ItemGroup>

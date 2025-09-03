@@ -1,8 +1,8 @@
 ﻿using BrowserHost.CefInfrastructure;
-using BrowserHost.Features.FileDownloads;
-using BrowserHost.Features.PinnedTabs;
-using BrowserHost.Features.Tabs;
-using BrowserHost.Features.Workspaces;
+using BrowserHost.Features.ActionContext.FileDownloads;
+using BrowserHost.Features.ActionContext.PinnedTabs;
+using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.ActionContext.Workspaces;
 
 namespace BrowserHost.Features.ActionContext;
 

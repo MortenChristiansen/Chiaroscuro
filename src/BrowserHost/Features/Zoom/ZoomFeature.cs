@@ -1,5 +1,4 @@
-﻿using CefSharp;
-using System.Windows.Input;
+﻿using System.Windows.Input;
 
 namespace BrowserHost.Features.Zoom;
 
@@ -28,11 +27,11 @@ public class ZoomFeature(MainWindow window) : Feature(window)
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Back && Keyboard.Modifiers == ModifierKeys.Control)
+        if (e.Key == Key.Delete && Keyboard.Modifiers == ModifierKeys.Control)
         {
             if (Window.CurrentTab is not null)
             {
-                Window.CurrentTab.SetZoomLevel(0);
+                Window.CurrentTab.ResetZoomLevel();
                 return true;
             }
 

@@ -1,6 +1,5 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Utilities;
-using CefSharp;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
@@ -15,13 +14,13 @@ public class CustomWindowChromeBrowserApi : BrowserApi
         MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.CanGoForward ?? false);
 
     public void Forward() =>
-        MainWindow.Instance.CurrentTab.Forward();
+        MainWindow.Instance.CurrentTab?.Forward();
 
     public bool CanGoBack() =>
         MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.CanGoBack ?? false);
 
     public void Back() =>
-        MainWindow.Instance.CurrentTab.Back();
+        MainWindow.Instance.CurrentTab?.Back();
 
     public void Reload() =>
         MainWindow.Instance.CurrentTab?.Reload();

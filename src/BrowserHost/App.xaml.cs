@@ -3,11 +3,16 @@ using CefSharp.Wpf;
 using System;
 using System.IO;
 using System.Windows;
+using Velopack;
+using Velopack.Sources;
 
 namespace BrowserHost;
 
 public partial class App : Application
 {
+    public static UpdateManager UpdateManager { get; } = new(new GithubSource("https://github.com/MortenChristiansen/Chiaroscuro", accessToken: null, prerelease: false, downloader: null));
+    public static Options Options { get; } = Options.Parse(Environment.GetCommandLineArgs());
+
     public App()
     {
         var cachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CefSharp\\Cache");

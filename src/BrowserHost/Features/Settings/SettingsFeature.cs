@@ -1,4 +1,4 @@
-﻿using BrowserHost.Features.Tabs;
+﻿using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.Settings;
@@ -22,11 +22,11 @@ public class SettingsFeature(MainWindow window) : Feature(window)
         });
         PubSub.Subscribe<SettingsPageLoadingEvent>(e =>
         {
-            Window.CurrentTab?.SettingsLoaded(_settings);
+            Window.CurrentTab?.SettingsLoaded(new SettingUiStateDto(_settings.UserAgent, _settings.SsoEnabledDomains ?? []));
         });
         PubSub.Subscribe<SettingsSavedEvent>(e =>
         {
-            var mappedSettings = new SettingsDataV1(e.Settings.UserAgent);
+            var mappedSettings = new SettingsDataV1(e.Settings.UserAgent, e.Settings.SsoEnabledDomains);
             _settings = SettingsStateManager.SaveSettings(mappedSettings);
         });
     }

@@ -35,3 +35,8 @@ export interface PinnedTab {
   title: string | null;
   favicon: string | null;
 }
+
+export interface TabCustomization {
+  tabId: TabId;
+  customTitle: string | null;
+}

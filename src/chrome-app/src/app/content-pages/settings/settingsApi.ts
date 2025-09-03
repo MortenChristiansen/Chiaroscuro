@@ -1,10 +1,14 @@
-export type SettingPrimitive = string | number | boolean | null;
+export type SettingPrimitive = string | number | boolean | null | string[];
 
 export type SettingsValues = Record<string, SettingPrimitive>;
 
-export type PlainSettings = Record<string, string | number | boolean>;
+// Plain settings now also allow string[] for array-based values.
+export type PlainSettings = Record<
+  string,
+  string | number | boolean | string[]
+>;
 
-export type SettingType = 'string' | 'boolean' | 'integer';
+export type SettingType = 'string' | 'string[]' | 'boolean' | 'integer';
 
 export interface SettingFieldBase {
   key: string;
@@ -18,6 +22,11 @@ export interface StringField extends SettingFieldBase {
   placeholder?: string;
 }
 
+export interface StringArrayField extends SettingFieldBase {
+  type: 'string[]';
+  placeholder?: string;
+}
+
 export interface BooleanField extends SettingFieldBase {
   type: 'boolean';
 }
@@ -26,7 +35,11 @@ export interface IntegerField extends SettingFieldBase {
   type: 'integer';
 }
 
-export type SettingField = StringField | BooleanField | IntegerField;
+export type SettingField =
+  | StringField
+  | BooleanField
+  | IntegerField
+  | StringArrayField;
 
 export interface SettingsApi {
   settingsPageLoading: () => void;

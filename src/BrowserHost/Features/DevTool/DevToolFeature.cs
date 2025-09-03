@@ -1,4 +1,5 @@
-using BrowserHost.Features.Tabs;
+using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using CefSharp;
 using System.Diagnostics;
@@ -10,8 +11,8 @@ public class DevToolFeature(MainWindow window) : Feature(window)
 {
     public override void Configure()
     {
-        PubSub.Subscribe<TabClosedEvent>(e => CloseDevTools(e.Tab));
-        PubSub.Subscribe<TabActivatedEvent>(e => CloseDevTools(e.PreviousTab));
+        PubSub.Subscribe<TabClosedEvent>(e => e.Tab.CloseDevTools());
+        PubSub.Subscribe<TabActivatedEvent>(e => e.PreviousTab?.CloseDevTools());
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -43,7 +44,7 @@ public class DevToolFeature(MainWindow window) : Feature(window)
         var currentTab = Window.CurrentTab;
         if (currentTab == null) return;
 
-        ToggleDevTools(currentTab.GetBrowserHost());
+        ToggleDevTools(currentTab);
     }
 
     private void ToggleActionContextDevTools()
@@ -67,10 +68,14 @@ public class DevToolFeature(MainWindow window) : Feature(window)
         }
     }
 
-    private static void CloseDevTools(TabBrowser? tab)
+    private static void ToggleDevTools(TabBrowser? browser)
     {
-        if (tab == null) return;
-
-        tab.GetBrowserHost()?.CloseDevTools();
+        if (browser != null)
+        {
+            if (browser.HasDevTools)
+                browser.CloseDevTools();
+            else
+                browser.ShowDevTools();
+        }
     }
 }

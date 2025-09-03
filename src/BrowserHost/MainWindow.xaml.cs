@@ -1,18 +1,20 @@
 using BrowserHost.Features;
+using BrowserHost.Features.ActionContext.FileDownloads;
+using BrowserHost.Features.ActionContext.Folders;
+using BrowserHost.Features.ActionContext.PinnedTabs;
+using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
-using BrowserHost.Features.FileDownloads;
-using BrowserHost.Features.Folders;
-using BrowserHost.Features.PinnedTabs;
 using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
-using BrowserHost.Features.Tabs;
-using BrowserHost.Features.Workspaces;
+using BrowserHost.Features.TabPalette.FindText;
+using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
+using BrowserHost.Tab;
 using BrowserHost.XamlUtilities;
-using CefSharp;
 using CefSharp.Wpf;
 using System;
 using System.Collections.Generic;
@@ -23,8 +25,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using Velopack;
-using Velopack.Sources;
 
 namespace BrowserHost;
 
@@ -56,6 +56,7 @@ public partial class MainWindow : Window
 
         _features =
         [
+            new SettingsFeature(this),
             new CustomWindowChromeFeature(this),
             new ActionDialogFeature(this),
             new TabsFeature(this),
@@ -67,7 +68,8 @@ public partial class MainWindow : Window
             new WorkspacesFeature(this),
             new FoldersFeature(this),
             new TabPaletteFeature(this),
-            new SettingsFeature(this)
+            new FindTextFeature(this),
+            new TabCustomizationFeature(this),
         ];
         _features.ForEach(f => f.Configure());
 
@@ -91,11 +93,10 @@ public partial class MainWindow : Window
     {
         try
         {
-            var mgr = new UpdateManager(new GithubSource("https://github.com/MortenChristiansen/Chiaroscuro", accessToken: null, prerelease: false, downloader: null));
-            if (mgr.CurrentVersion is null)
+            if (!App.UpdateManager.IsInstalled)
                 return;
 
-            var updateInfo = await mgr.CheckForUpdatesAsync();
+            var updateInfo = await App.UpdateManager.CheckForUpdatesAsync();
             if (updateInfo != null)
             {
                 var result = MessageBox.Show(
@@ -108,8 +109,8 @@ public partial class MainWindow : Window
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    await mgr.DownloadUpdatesAsync(updateInfo);
-                    mgr.ApplyUpdatesAndRestart(updateInfo);
+                    await App.UpdateManager.DownloadUpdatesAsync(updateInfo);
+                    App.UpdateManager.ApplyUpdatesAndRestart(updateInfo);
                 }
             }
         }
@@ -123,6 +124,12 @@ public partial class MainWindow : Window
     {
         base.OnPreviewKeyDown(e);
 
+        ProcessKeyboardEvent(e);
+    }
+
+    public void ProcessKeyboardEvent(KeyEventArgs e)
+    {
+        if (e.Handled) return; // Already handled
         foreach (var feature in _features)
         {
             if (feature.HandleOnPreviewKeyDown(e))
@@ -131,12 +138,11 @@ public partial class MainWindow : Window
                 return;
             }
         }
-
-        // Too small to be handled by features, handle here
-        if (e.Key == Key.F5)
+        if (!e.Handled && e.Key == Key.F5)
         {
             var ignoreCache = Keyboard.Modifiers == ModifierKeys.Control;
-            CurrentTab.Reload(ignoreCache);
+            CurrentTab?.Reload(ignoreCache);
+            e.Handled = true;
         }
     }
 
