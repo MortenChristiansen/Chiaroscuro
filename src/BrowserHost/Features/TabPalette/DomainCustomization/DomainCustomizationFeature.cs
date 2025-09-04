@@ -8,7 +8,7 @@ using System.Windows;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
-public class DomainCustomizationFeature(MainWindow window) : Feature(window), IDisposable
+public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 {
     private string? _currentDomain;
     private TabBrowser? _currentTab;
@@ -24,23 +24,18 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window), ID
             var updated = customization with { CssEnabled = e.CssEnabled };
             DomainCustomizationStateManager.SaveCustomization(updated);
 
-            // Apply CSS changes to current tab if it's for the current domain
             if (e.Domain == _currentDomain)
             {
                 ApplyCssToCurrentTab();
             }
 
-            // Notify frontend about the change
             NotifyFrontendOfDomainUpdate(e.Domain);
         });
 
         PubSub.Subscribe<DomainCssEditRequestedEvent>((e) => EditDomainCss(e.Domain));
 
-        // Monitor tab changes
         PubSub.Subscribe<TabActivatedEvent>((e) => OnTabChanged());
         PubSub.Subscribe<TabDeactivatedEvent>((e) => OnTabChanged());
-
-        InitializeCurrentTab();
     }
 
     public void InitializeDomainSettings()
@@ -58,7 +53,6 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window), ID
         var newTab = Window.CurrentTab;
         if (newTab != _currentTab)
         {
-            // Unsubscribe from old tab's address changes
             if (_currentTab != null)
             {
                 _currentTab.AddressChanged -= OnAddressChanged;
@@ -66,13 +60,11 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window), ID
 
             _currentTab = newTab;
 
-            // Subscribe to new tab's address changes
             if (_currentTab != null)
             {
                 _currentTab.AddressChanged += OnAddressChanged;
             }
 
-            // Update domain and apply CSS
             UpdateCurrentDomain();
         }
     }
@@ -86,32 +78,16 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window), ID
     {
         var newDomain = GetCurrentDomain();
         var domainChanged = newDomain != _currentDomain;
-        
+
         _currentDomain = newDomain;
-        
-        // Update CSS file watching
-        UpdateCssFileWatcher();
-        
-        // Always apply CSS - either for domain change or SPA navigation within same domain
+
         ApplyCssToCurrentTab();
 
-        // If domain changed and tab palette is open, update the domain settings
         if (domainChanged)
         {
+            UpdateCssFileWatcher();
             NotifyFrontendOfDomainUpdate(newDomain);
         }
-    }
-
-    private void InitializeCurrentTab()
-    {
-        _currentTab = Window.CurrentTab;
-        if (_currentTab != null)
-        {
-            _currentTab.AddressChanged += OnAddressChanged;
-        }
-        _currentDomain = GetCurrentDomain();
-        UpdateCssFileWatcher();
-        ApplyCssToCurrentTab();
     }
 
     private void ApplyCssToCurrentTab()
@@ -209,13 +185,9 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window), ID
             var cssPath = DomainCustomizationStateManager.GetCustomCssPath(domain);
             var domainFolder = Path.GetDirectoryName(cssPath)!;
 
-            // Ensure domain folder exists
             Directory.CreateDirectory(domainFolder);
-
-            // Track if this is a new CSS file
             var isNewCssFile = !File.Exists(cssPath);
 
-            // Create empty CSS file if it doesn't exist
             if (isNewCssFile)
             {
                 File.WriteAllText(cssPath, $"/* Custom CSS for {domain} */\n\n");
@@ -271,7 +243,6 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window), ID
 
     private void UpdateCssFileWatcher()
     {
-        // Dispose existing watcher
         _cssFileWatcher?.Dispose();
         _cssFileWatcher = null;
         _watchedCssPath = null;
@@ -313,7 +284,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window), ID
 
             // Refresh cache and reapply CSS
             DomainCustomizationStateManager.RefreshCacheForDomain(_currentDomain);
-            
+
             // Apply CSS to current tab on UI thread
             Window.Dispatcher.Invoke(() =>
             {
@@ -325,10 +296,5 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window), ID
         {
             Debug.WriteLine($"Failed to handle CSS file change: {ex.Message}");
         }
-    }
-
-    public void Dispose()
-    {
-        _cssFileWatcher?.Dispose();
     }
 }
