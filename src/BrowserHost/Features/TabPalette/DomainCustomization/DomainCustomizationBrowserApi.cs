@@ -37,7 +37,7 @@ public class DomainCustomizationBrowserApi : BrowserApi
             {
                 File.Delete(cssPath);
                 DomainCustomizationStateManager.RefreshCacheForDomain(domain);
-                
+
                 // Notify about the change
                 var customization = DomainCustomizationStateManager.GetCustomization(domain);
                 PubSub.Publish(new DomainCustomizationChangedEvent(domain, customization.CssEnabled));
@@ -51,17 +51,17 @@ public class DomainCustomizationBrowserApi : BrowserApi
 
     private static string? GetCurrentDomain()
     {
-        var currentTab = MainWindow.Instance.CurrentTab;
-        if (currentTab?.Address == null) return null;
-
+        var address = MainWindow.Instance.CurrentTab?.Address;
+        if (string.IsNullOrWhiteSpace(address)) return null;
         try
         {
-            var uri = new Uri(currentTab.Address);
-            return uri.Host;
+            if (!Uri.TryCreate(address, UriKind.Absolute, out var uri)) return null;
+            if (uri.Scheme is not "http" and not "https") return null;
+            return string.IsNullOrEmpty(uri.Host) ? null : uri.Host;
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Failed to extract domain from address {currentTab.Address}: {ex.Message}");
+            Debug.WriteLine($"Failed to extract domain from address {address}: {ex}");
             return null;
         }
     }
