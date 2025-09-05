@@ -203,11 +203,8 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
             // Refresh cache after potential edit
             DomainCustomizationStateManager.RefreshCacheForDomain(domain);
 
-            // If this was a new CSS file, notify the frontend immediately
-            if (isNewCssFile)
-            {
-                NotifyFrontendOfDomainUpdate(domain);
-            }
+            UpdateCssFileWatcher();
+            NotifyFrontendOfDomainUpdate(domain);
         }
         catch (Exception ex)
         {
