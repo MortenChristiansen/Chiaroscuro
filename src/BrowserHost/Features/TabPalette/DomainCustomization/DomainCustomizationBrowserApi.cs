@@ -2,12 +2,12 @@ using BrowserHost.CefInfrastructure;
 using BrowserHost.Utilities;
 using System;
 using System.Diagnostics;
-using System.IO;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
 public record DomainCustomizationChangedEvent(string Domain, bool CssEnabled);
 public record DomainCssEditRequestedEvent(string Domain);
+public record DomainCustomCssRemovedEvent(string Domain);
 
 public class DomainCustomizationBrowserApi : BrowserApi
 {
@@ -30,23 +30,7 @@ public class DomainCustomizationBrowserApi : BrowserApi
         var domain = GetCurrentDomain();
         if (domain == null) return;
 
-        try
-        {
-            var cssPath = DomainCustomizationStateManager.GetCustomCssPath(domain);
-            if (File.Exists(cssPath))
-            {
-                File.Delete(cssPath);
-                DomainCustomizationStateManager.RefreshCacheForDomain(domain);
-
-                // Notify about the change
-                var customization = DomainCustomizationStateManager.GetCustomization(domain);
-                PubSub.Publish(new DomainCustomizationChangedEvent(domain, customization.CssEnabled));
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to remove CSS for domain {domain}: {ex.Message}");
-        }
+        PubSub.Publish(new DomainCustomCssRemovedEvent(domain));
     }
 
     private static string? GetCurrentDomain()

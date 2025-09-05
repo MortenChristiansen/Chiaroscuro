@@ -21,7 +21,7 @@ public static class DomainCustomizationStateManager
     // Cache customizations per domain on-demand only
     private static readonly Dictionary<string, DomainCustomizationDataV1> _cachedPerDomain = [];
 
-    private static string RootFolder => Path.Combine(AppDataPathManager.GetAppDataFolderPath(), "DomainSettings");
+    private static string RootFolder => Path.Combine(AppDataPathManager.GetAppDataFolderPath(), "domain-settings");
     private static string GetDomainFolder(string domain) => Path.Combine(RootFolder, SanitizeDomainName(domain));
     private static string GetCustomizationFilePath(string domain) => Path.Combine(GetDomainFolder(domain), "settings.json");
     private static string GetCssFilePath(string domain) => Path.Combine(GetDomainFolder(domain), "custom.css");
@@ -63,7 +63,7 @@ public static class DomainCustomizationStateManager
                 if (versioned?.Version == _currentVersion)
                 {
                     var hasCustomCss = File.Exists(cssPath);
-                    var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationDataV1>>(json)?.Data;
+                    var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationSettingsV1>>(json)?.Data;
                     return new DomainCustomizationDataV1(domain, rawData?.CssEnabled ?? false, hasCustomCss);
                 }
             }
@@ -105,25 +105,6 @@ public static class DomainCustomizationStateManager
             {
                 Debug.WriteLine($"Failed to save domain customization for {customization.Domain}: {ex.Message}");
                 return null;
-            }
-        }
-    }
-
-    public static void DeleteCustomization(string domain)
-    {
-        lock (_lock)
-        {
-            try
-            {
-                var domainFolder = GetDomainFolder(domain);
-                if (Directory.Exists(domainFolder))
-                    Directory.Delete(domainFolder, recursive: true);
-
-                _cachedPerDomain.Remove(domain);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to delete domain customization for {domain}: {ex.Message}");
             }
         }
     }
@@ -185,7 +166,7 @@ public static class DomainCustomizationStateManager
                                 var versioned = JsonSerializer.Deserialize<PersistentData>(json);
                                 if (versioned?.Version == _currentVersion)
                                 {
-                                    var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationDataV1>>(json)?.Data;
+                                    var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationSettingsV1>>(json)?.Data;
                                     cssEnabled = rawData?.CssEnabled ?? false;
                                 }
                             }

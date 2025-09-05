@@ -31,7 +31,24 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 
             NotifyFrontendOfDomainUpdate(e.Domain);
         });
+        PubSub.Subscribe<DomainCustomCssRemovedEvent>((e) =>
+        {
+            try
+            {
+                var cssPath = DomainCustomizationStateManager.GetCustomCssPath(e.Domain);
+                if (File.Exists(cssPath))
+                    File.Delete(cssPath);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to remove CSS for domain {e.Domain}: {ex.Message}");
+            }
 
+            if (Window.CurrentTab != null && e.Domain == _currentDomain)
+                RemoveCssFromTab(Window.CurrentTab);
+
+            PubSub.Publish(new DomainCustomizationChangedEvent(e.Domain, CssEnabled: false));
+        });
         PubSub.Subscribe<DomainCssEditRequestedEvent>((e) => EditDomainCss(e.Domain));
 
         PubSub.Subscribe<TabActivatedEvent>((e) => OnTabChanged());
@@ -104,12 +121,11 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
                 if (!string.IsNullOrEmpty(css))
                 {
                     InjectCssIntoTab(currentTab, css);
+                    return;
                 }
             }
-            else
-            {
-                RemoveCssFromTab(currentTab);
-            }
+
+            RemoveCssFromTab(currentTab);
         }
         catch (Exception ex)
         {
@@ -256,11 +272,13 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
             {
                 _cssFileWatcher = new FileSystemWatcher(directory, fileName)
                 {
-                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName,
                     EnableRaisingEvents = true
                 };
 
                 _cssFileWatcher.Changed += OnCssFileChanged;
+                _cssFileWatcher.Deleted += OnCssFileDeleted;
+                _cssFileWatcher.Renamed += OnCssFileRenamed;
                 _watchedCssPath = cssPath;
             }
         }
@@ -279,6 +297,13 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
             // Small delay to ensure file write is complete
             System.Threading.Thread.Sleep(100);
 
+            // If the file was actually removed between change and now, handle as removal
+            if (!File.Exists(_watchedCssPath))
+            {
+                HandleCssFileRemoved();
+                return;
+            }
+
             // Refresh cache and reapply CSS
             DomainCustomizationStateManager.RefreshCacheForDomain(_currentDomain);
 
@@ -293,5 +318,42 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
         {
             Debug.WriteLine($"Failed to handle CSS file change: {ex.Message}");
         }
+    }
+
+    private void OnCssFileDeleted(object sender, FileSystemEventArgs e)
+    {
+        try
+        {
+            if (_currentDomain == null || e.FullPath != _watchedCssPath) return;
+            HandleCssFileRemoved();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to handle CSS file deletion: {ex.Message}");
+        }
+    }
+
+    private void OnCssFileRenamed(object sender, RenamedEventArgs e)
+    {
+        try
+        {
+            if (_currentDomain == null) return;
+            // Treat any rename of the watched file as a removal (old path matches)
+            if (e.OldFullPath == _watchedCssPath && e.FullPath != _watchedCssPath)
+            {
+                HandleCssFileRemoved();
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to handle CSS file rename: {ex.Message}");
+        }
+    }
+
+    private void HandleCssFileRemoved()
+    {
+        if (_currentDomain == null) return;
+
+        PubSub.Publish(new DomainCustomCssRemovedEvent(_currentDomain));
     }
 }
