@@ -26,6 +26,7 @@ public interface ITabWebBrowser : IDisposable
     void Back();
     void Forward();
     Task CallClientApi(string api, string? arguments = null);
+    Task ExecuteScriptAsync(string script);
     Task<double> GetZoomLevelAsync();
     void SetZoomLevel(double level);
     void Find(string searchText, bool forward, bool matchCase, bool findNext);

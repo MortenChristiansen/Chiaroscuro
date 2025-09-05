@@ -12,6 +12,7 @@ using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
+using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
 using BrowserHost.XamlUtilities;
@@ -70,6 +71,7 @@ public partial class MainWindow : Window
             new TabPaletteFeature(this),
             new FindTextFeature(this),
             new TabCustomizationFeature(this),
+            new DomainCustomizationFeature(this),
         ];
         _features.ForEach(f => f.Configure());
 
