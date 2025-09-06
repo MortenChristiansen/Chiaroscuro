@@ -257,6 +257,9 @@ public partial class MainWindow : Window
         {
             // We need to initialize the animation because the ActualWidth property does not have a value yet
             GridAnimationBehavior.Initialize(TabPaletteColumn);
+            // Initialize the splitter column to its expanded width (5) so it can animate without popping
+            TabPaletteSplitterColumn.Width = new GridLength(5);
+            GridAnimationBehavior.Initialize(TabPaletteSplitterColumn);
             _tabPaletteHasBeenShown = true;
         }
 
@@ -266,6 +269,9 @@ public partial class MainWindow : Window
         var duration = TimeSpan.FromMilliseconds(300);
         GridAnimationBehavior.SetDuration(TabPaletteColumn, duration);
         GridAnimationBehavior.SetIsExpanded(TabPaletteColumn, true);
+        // Animate the splitter column from 0 -> 5 smoothly
+        GridAnimationBehavior.SetDuration(TabPaletteSplitterColumn, duration);
+        GridAnimationBehavior.SetIsExpanded(TabPaletteSplitterColumn, true);
     }
 
     public void HideTabPalette()
@@ -276,6 +282,9 @@ public partial class MainWindow : Window
         var duration = TimeSpan.FromMilliseconds(200);
         GridAnimationBehavior.SetDuration(TabPaletteColumn, duration);
         GridAnimationBehavior.SetIsExpanded(TabPaletteColumn, false);
+        // Collapse the splitter column from 5 -> 0 smoothly
+        GridAnimationBehavior.SetDuration(TabPaletteSplitterColumn, duration);
+        GridAnimationBehavior.SetIsExpanded(TabPaletteSplitterColumn, false);
         // Hide controls after animation completes
         var timer = new DispatcherTimer { Interval = duration };
         timer.Tick += (s, e) =>

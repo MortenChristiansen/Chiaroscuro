@@ -28,7 +28,7 @@
                         <ColumnDefinition Width="300" MinWidth="200" />
                         <ColumnDefinition Width="5" />
                         <ColumnDefinition Width="*" MinWidth="200" />
-                        <ColumnDefinition x:Name="TabPaletteSplitterColumn" Width="5" />
+                        <ColumnDefinition x:Name="TabPaletteSplitterColumn" Width="0" MinWidth="0" />
                         <ColumnDefinition x:Name="TabPaletteColumn" Width="0" MinWidth="0" />
                     </Grid.ColumnDefinitions>
                     <ac:ActionContextBrowser x:Name="ActionContext" Grid.Column="0" />
