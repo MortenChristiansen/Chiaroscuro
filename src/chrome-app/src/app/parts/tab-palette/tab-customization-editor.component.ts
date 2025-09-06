@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal, ViewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  signal,
+  ViewChild,
+  ElementRef,
+  viewChild,
+} from '@angular/core';
 import { IconButtonComponent } from '../../shared/icon-button.component';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { TabCustomizationApi } from './tabCustomizationApi';
@@ -63,7 +70,7 @@ export class TabCustomizationEditorComponent implements OnInit {
   title = signal('');
   initialTitle = signal<string | null>(null);
 
-  @ViewChild('titleInput') titleInput!: ElementRef<HTMLInputElement>;
+  titleInput = viewChild.required<ElementRef<HTMLInputElement>>('titleInput');
   private api!: TabCustomizationApi;
 
   async ngOnInit() {
@@ -73,10 +80,8 @@ export class TabCustomizationEditorComponent implements OnInit {
       initCustomTitle: (currentTitle: string | null) => {
         this.initialTitle.set(currentTitle);
         this.title.set(currentTitle ?? '');
-        // Explicitly set the input value to ensure the DOM is updated
-        if (this.titleInput?.nativeElement) {
-          this.titleInput.nativeElement.value = currentTitle ?? '';
-        }
+        // I'm not sure why this is needed, but there are cases where the title signal does not update the input value.
+        this.titleInput().nativeElement.value = currentTitle ?? '';
       },
     });
   }
