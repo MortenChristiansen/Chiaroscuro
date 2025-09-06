@@ -36,6 +36,7 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
         });
         PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
         PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
+        PubSub.Subscribe<TabStatusMessageChangedEvent>(OnTabStatusMessageChanged);
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -96,6 +97,12 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
     {
         var isLoading = e.PreviousTab?.IsLoading ?? false;
         Window.ChromeUI.UpdateLoadingState(isLoading);
+    }
+
+    private void OnTabStatusMessageChanged(TabStatusMessageChangedEvent e)
+    {
+        if (Window.CurrentTab?.Id == e.TabId)
+            Window.UpdateLinkStatus(e.StatusMessage);
     }
 
     #region Minimize/Maximize

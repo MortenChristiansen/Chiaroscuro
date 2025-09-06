@@ -31,7 +31,7 @@ public class CefSharpTabBrowser : Browser
         TitleChanged += OnTitleChanged;
         LoadingStateChanged += OnLoadingStateChanged;
 
-        DisplayHandler = new FaviconDisplayHandler(OnFaviconAddressesChanged);
+        DisplayHandler = new CombinedDisplayHandler(OnFaviconAddressesChanged, OnStatusMessageChanged);
         _actionContextBrowser = actionContextBrowser;
 
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
@@ -57,6 +57,11 @@ public class CefSharpTabBrowser : Browser
     private void OnLoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)
     {
         PubSub.Publish(new TabLoadingStateChangedEvent(Id, e.IsLoading));
+    }
+
+    private void OnStatusMessageChanged(string statusMessage)
+    {
+        PubSub.Publish(new TabStatusMessageChangedEvent(Id, statusMessage));
     }
 
     public void SetAddress(string address, bool setManualAddress)

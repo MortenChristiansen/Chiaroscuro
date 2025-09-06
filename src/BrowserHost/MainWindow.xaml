@@ -50,6 +50,12 @@
                             </MultiBinding>
                         </Border.Clip>
                     </Border>
+                    <!-- Link Status Bar -->
+                    <Border x:Name="LinkStatusBar" Grid.Column="2" VerticalAlignment="Bottom" HorizontalAlignment="Left" 
+                            Background="#333" CornerRadius="0,4,0,0" Padding="8,4" Margin="8,0,0,8" 
+                            Visibility="Collapsed">
+                        <TextBlock x:Name="LinkStatusText" Text="" Foreground="White" FontSize="12"/>
+                    </Border>
                     <GridSplitter x:Name="TabPaletteGridSplitter"
                         Grid.Column="3"
                         Width="5"
