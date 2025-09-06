@@ -232,6 +232,9 @@ public partial class MainWindow : Window
     {
         if (container.Background is SolidColorBrush contentBrush)
         {
+            if (contentBrush.IsFrozen)
+                contentBrush = contentBrush.Clone();
+
             var animation = new ColorAnimation
             {
                 To = contentColor,
