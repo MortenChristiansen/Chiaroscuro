@@ -97,6 +97,9 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
     {
         var isLoading = e.PreviousTab?.IsLoading ?? false;
         Window.ChromeUI.UpdateLoadingState(isLoading);
+        
+        // Clear link status when switching tabs
+        Window.UpdateLinkStatus(string.Empty);
     }
 
     private void OnTabStatusMessageChanged(TabStatusMessageChangedEvent e)
