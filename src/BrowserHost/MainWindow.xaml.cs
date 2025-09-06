@@ -10,9 +10,9 @@ using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
+using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
-using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
 using BrowserHost.XamlUtilities;
@@ -33,6 +33,7 @@ public partial class MainWindow : Window
 {
     private readonly List<Feature> _features;
     private bool _tabPaletteHasBeenShown;
+    private const double _lightenFactor = 0.04;
 
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
@@ -209,24 +210,45 @@ public partial class MainWindow : Window
         return address;
     }
 
+    private static Color Lighten(Color color, double factor)
+    {
+        byte L(byte c) => (byte)Math.Clamp(c + (255 - c) * factor, 0, 255);
+        return Color.FromArgb(color.A, L(color.R), L(color.G), L(color.B));
+    }
+
     private static void OnWorkspaceColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var window = (MainWindow)d;
+
         var newColor = (Color)e.NewValue;
-        var border = window.WindowBorder;
-        if (border.Background is SolidColorBrush brush)
+        AnimateBackgroundColor(newColor, window.WindowBorder);
+
+        var lightenedColor = Lighten(newColor, _lightenFactor);
+        AnimateBackgroundColor(lightenedColor, window.WebContentBorder);
+        AnimateBackgroundColor(lightenedColor, window.TabPaletteBorder);
+    }
+
+    private static void AnimateBackgroundColor(Color contentColor, System.Windows.Controls.Border container)
+    {
+        if (container.Background is SolidColorBrush contentBrush)
         {
+            if (contentBrush.IsFrozen)
+            {
+                contentBrush = contentBrush.Clone();
+                container.Background = contentBrush;
+            }
+
             var animation = new ColorAnimation
             {
-                To = newColor,
+                To = contentColor,
                 Duration = TimeSpan.FromSeconds(1),
                 EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
             };
-            brush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
+            contentBrush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
         }
         else
         {
-            border.Background = new SolidColorBrush(newColor);
+            container.Background = new SolidColorBrush(contentColor);
         }
     }
 
@@ -241,8 +263,15 @@ public partial class MainWindow : Window
         {
             // We need to initialize the animation because the ActualWidth property does not have a value yet
             GridAnimationBehavior.Initialize(TabPaletteColumn);
+            // Initialize the splitter column to its expanded width (5) so it can animate without popping
+            TabPaletteSplitterColumn.Width = new GridLength(5);
+            GridAnimationBehavior.Initialize(TabPaletteSplitterColumn);
             _tabPaletteHasBeenShown = true;
         }
+
+        // Ensure tab palette background matches the current lightened workspace color before showing
+        var lightenedColor = Lighten(WorkspaceColor, _lightenFactor);
+        TabPaletteBorder.Background = new SolidColorBrush(lightenedColor);
 
         TabPaletteBrowserControl.Visibility = Visibility.Visible;
         TabPaletteGridSplitter.Visibility = Visibility.Visible;
@@ -250,6 +279,9 @@ public partial class MainWindow : Window
         var duration = TimeSpan.FromMilliseconds(300);
         GridAnimationBehavior.SetDuration(TabPaletteColumn, duration);
         GridAnimationBehavior.SetIsExpanded(TabPaletteColumn, true);
+        // Animate the splitter column from 0 -> 5 smoothly
+        GridAnimationBehavior.SetDuration(TabPaletteSplitterColumn, duration);
+        GridAnimationBehavior.SetIsExpanded(TabPaletteSplitterColumn, true);
     }
 
     public void HideTabPalette()
@@ -260,6 +292,9 @@ public partial class MainWindow : Window
         var duration = TimeSpan.FromMilliseconds(200);
         GridAnimationBehavior.SetDuration(TabPaletteColumn, duration);
         GridAnimationBehavior.SetIsExpanded(TabPaletteColumn, false);
+        // Collapse the splitter column from 5 -> 0 smoothly
+        GridAnimationBehavior.SetDuration(TabPaletteSplitterColumn, duration);
+        GridAnimationBehavior.SetIsExpanded(TabPaletteSplitterColumn, false);
         // Hide controls after animation completes
         var timer = new DispatcherTimer { Interval = duration };
         timer.Tick += (s, e) =>

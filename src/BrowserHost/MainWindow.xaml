@@ -28,7 +28,7 @@
                         <ColumnDefinition Width="300" MinWidth="200" />
                         <ColumnDefinition Width="5" />
                         <ColumnDefinition Width="*" MinWidth="200" />
-                        <ColumnDefinition x:Name="TabPaletteSplitterColumn" Width="5" />
+                        <ColumnDefinition x:Name="TabPaletteSplitterColumn" Width="0" MinWidth="0" />
                         <ColumnDefinition x:Name="TabPaletteColumn" Width="0" MinWidth="0" />
                     </Grid.ColumnDefinitions>
                     <ac:ActionContextBrowser x:Name="ActionContext" Grid.Column="0" />
@@ -41,7 +41,7 @@
                         ResizeBehavior="PreviousAndNext"
                         ResizeDirection="Columns"
                         ShowsPreview="False"/>
-                    <Border x:Name="WebContentBorder" Grid.Column="2" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#202634">
+                    <Border x:Name="WebContentBorder" Grid.Column="2" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                         <Border.Clip>
                             <MultiBinding Converter="{StaticResource BorderClipConverter}">
                                 <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
@@ -59,9 +59,17 @@
                         ResizeBehavior="PreviousAndNext"
                         ResizeDirection="Columns"
                         ShowsPreview="False"
-                                  
                         Visibility="Collapsed"/>
-                    <tp:TabPaletteBrowser x:Name="TabPaletteBrowserControl" Grid.Column="4" Visibility="Collapsed" />
+                    <Border x:Name="TabPaletteBorder" Grid.Column="4" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <Border.Clip>
+                            <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="CornerRadius" RelativeSource="{RelativeSource Self}"/>
+                            </MultiBinding>
+                        </Border.Clip>
+                        <tp:TabPaletteBrowser x:Name="TabPaletteBrowserControl" Visibility="Collapsed" />
+                    </Border>
                 </Grid>
                 <ad:ActionDialogBrowser x:Name="ActionDialog" Visibility="Hidden" />
             </Grid>

@@ -33,7 +33,10 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
 
     public void InitializeCustomSettings()
     {
-        var customization = TabCustomizationStateManager.GetCustomization(Window.CurrentTab!.Id);
+        if (Window.CurrentTab is null)
+            return;
+
+        var customization = TabCustomizationStateManager.GetCustomization(Window.CurrentTab.Id);
         Window.TabPaletteBrowserControl.InitCustomTitle(customization.CustomTitle);
     }
 }
