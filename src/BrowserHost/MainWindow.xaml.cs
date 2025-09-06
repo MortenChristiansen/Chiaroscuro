@@ -10,9 +10,9 @@ using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
+using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
-using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
 using BrowserHost.XamlUtilities;
@@ -209,24 +209,40 @@ public partial class MainWindow : Window
         return address;
     }
 
+    private static Color Lighten(Color color, double factor)
+    {
+        byte L(byte c) => (byte)Math.Clamp(c + (255 - c) * factor, 0, 255);
+        return Color.FromArgb(color.A, L(color.R), L(color.G), L(color.B));
+    }
+
     private static void OnWorkspaceColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var window = (MainWindow)d;
         var newColor = (Color)e.NewValue;
-        var border = window.WindowBorder;
-        if (border.Background is SolidColorBrush brush)
+
+        var mainWindowContainer = window.WindowBorder;
+        AnimateBackgroundColor(newColor, mainWindowContainer);
+
+        var lightenedColor = Lighten(newColor, 0.08);
+        var currentTabContainer = window.WebContentBorder;
+        AnimateBackgroundColor(lightenedColor, currentTabContainer);
+    }
+
+    private static void AnimateBackgroundColor(Color contentColor, System.Windows.Controls.Border container)
+    {
+        if (container.Background is SolidColorBrush contentBrush)
         {
             var animation = new ColorAnimation
             {
-                To = newColor,
+                To = contentColor,
                 Duration = TimeSpan.FromSeconds(1),
                 EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
             };
-            brush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
+            contentBrush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
         }
         else
         {
-            border.Background = new SolidColorBrush(newColor);
+            container.Background = new SolidColorBrush(contentColor);
         }
     }
 
