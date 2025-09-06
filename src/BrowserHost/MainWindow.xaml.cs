@@ -33,6 +33,7 @@ public partial class MainWindow : Window
 {
     private readonly List<Feature> _features;
     private bool _tabPaletteHasBeenShown;
+    private const double _lightenFactor = 0.04;
 
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
@@ -218,14 +219,13 @@ public partial class MainWindow : Window
     private static void OnWorkspaceColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var window = (MainWindow)d;
+
         var newColor = (Color)e.NewValue;
+        AnimateBackgroundColor(newColor, window.WindowBorder);
 
-        var mainWindowContainer = window.WindowBorder;
-        AnimateBackgroundColor(newColor, mainWindowContainer);
-
-        var lightenedColor = Lighten(newColor, 0.08);
-        var currentTabContainer = window.WebContentBorder;
-        AnimateBackgroundColor(lightenedColor, currentTabContainer);
+        var lightenedColor = Lighten(newColor, _lightenFactor);
+        AnimateBackgroundColor(lightenedColor, window.WebContentBorder);
+        AnimateBackgroundColor(lightenedColor, window.TabPaletteBorder);
     }
 
     private static void AnimateBackgroundColor(Color contentColor, System.Windows.Controls.Border container)
@@ -262,6 +262,10 @@ public partial class MainWindow : Window
             GridAnimationBehavior.Initialize(TabPaletteSplitterColumn);
             _tabPaletteHasBeenShown = true;
         }
+
+        // Ensure tab palette background matches the current lightened workspace color before showing
+        var lightenedColor = Lighten(WorkspaceColor, _lightenFactor);
+        TabPaletteBorder.Background = new SolidColorBrush(lightenedColor);
 
         TabPaletteBrowserControl.Visibility = Visibility.Visible;
         TabPaletteGridSplitter.Visibility = Visibility.Visible;

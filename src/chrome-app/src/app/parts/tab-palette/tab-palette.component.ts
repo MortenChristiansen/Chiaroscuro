@@ -6,7 +6,7 @@ import { DomainContentComponent } from './domain-content.component';
   selector: 'tab-palette',
   template: `
     <div
-      class="w-full h-full flex-1 min-h-0 bg-gray-800 rounded-lg shadow-lg p-4 flex flex-col gap-6 border border-gray-700"
+      class="w-full h-full flex-1 min-h-0 p-4 flex flex-col gap-6"
       style="position: relative; top: 0; left: 0;right: 0; bottom: 0;"
     >
       <tab-content />

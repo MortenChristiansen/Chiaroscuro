@@ -60,7 +60,16 @@
                         ResizeDirection="Columns"
                         ShowsPreview="False"
                         Visibility="Collapsed"/>
-                    <tp:TabPaletteBrowser x:Name="TabPaletteBrowserControl" Grid.Column="4" Visibility="Collapsed" />
+                    <Border x:Name="TabPaletteBorder" Grid.Column="4" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <Border.Clip>
+                            <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="CornerRadius" RelativeSource="{RelativeSource Self}"/>
+                            </MultiBinding>
+                        </Border.Clip>
+                        <tp:TabPaletteBrowser x:Name="TabPaletteBrowserControl" Visibility="Collapsed" />
+                    </Border>
                 </Grid>
                 <ad:ActionDialogBrowser x:Name="ActionDialog" Visibility="Hidden" />
             </Grid>
