@@ -24,6 +24,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop; // HwndSource for DPI hook
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -36,6 +37,7 @@ public partial class MainWindow : Window
     private bool _tabPaletteHasBeenShown;
     private const double _lightenFactor = 0.2;
     private const byte _backgroundRegionTransparency = 15;
+    private const int CornerRadiusDip = 8; // Match XAML WindowBorder CornerRadius
 
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
@@ -81,7 +83,13 @@ public partial class MainWindow : Window
         Loaded += (_, __) =>
         {
             TryEnableSystemBackdrop();
+            ApplyRoundedWindowRegion();
+
+            var src = (HwndSource?)PresentationSource.FromVisual(this);
+            src?.AddHook(WndProc);
         };
+        SizeChanged += (_, __) => ApplyRoundedWindowRegion();
+        StateChanged += (_, __) => ApplyRoundedWindowRegion();
 
         ContentServer.Run();
         Instance = this;
@@ -98,6 +106,8 @@ public partial class MainWindow : Window
         return _features.OfType<TFeature>().FirstOrDefault()
             ?? throw new InvalidOperationException($"Feature of type {typeof(TFeature).Name} not found.");
     }
+
+
 
     private static async void CheckForUpdates()
     {
@@ -330,6 +340,10 @@ public partial class MainWindow : Window
                 int backdropType = 2;
                 _ = DwmSetWindowAttribute(hwnd, 38, ref backdropType, sizeof(int));
 
+                // Also request rounded corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWM_WINDOW_CORNER_PREFERENCE_ROUND = 2)
+                int cornerPref = 2;
+                _ = DwmSetWindowAttribute(hwnd, 33, ref cornerPref, sizeof(int));
+
                 // Also enable legacy Mica flag (DWMWA_MICA_EFFECT = 1029) for older 22000 builds
                 int enable = 1;
                 _ = DwmSetWindowAttribute(hwnd, 1029, ref enable, sizeof(int));
@@ -393,9 +407,8 @@ public partial class MainWindow : Window
         var accent = new ACCENT_POLICY
         {
             AccentState = acrylic ? ACCENT_STATE.ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_STATE.ACCENT_ENABLE_BLURBEHIND,
-            AccentFlags = 2, // All borders
-            // GradientColor is ARGB, low byte alpha. 0x99 alpha with dark tint
-            GradientColor = 0x00000000 // This does not actually seem to do anything
+            AccentFlags = 2,
+            GradientColor = 0x00000000
         };
 
         int size = Marshal.SizeOf<ACCENT_POLICY>();
@@ -416,4 +429,57 @@ public partial class MainWindow : Window
             Marshal.FreeHGlobal(pAccent);
         }
     }
+
+    // ===== Rounded window region to clip blur at corners =====
+    private void ApplyRoundedWindowRegion()
+    {
+        try
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero) return;
+
+            if (WindowState == WindowState.Maximized)
+            {
+                // Remove region to let OS manage bounds when maximized
+                SetWindowRgn(hwnd, IntPtr.Zero, true);
+                return;
+            }
+
+            var src = (HwndSource?)PresentationSource.FromVisual(this);
+            double scaleX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+            double scaleY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+
+            int w = (int)Math.Max(1, Math.Round(ActualWidth * scaleX));
+            int h = (int)Math.Max(1, Math.Round(ActualHeight * scaleY));
+            int r = (int)Math.Round(CornerRadiusDip * (scaleX + scaleY) / 2.0);
+            r = Math.Max(1, r);
+
+            IntPtr rgn = CreateRoundRectRgn(0, 0, w + 1, h + 1, r * 2, r * 2);
+            if (rgn != IntPtr.Zero)
+            {
+                SetWindowRgn(hwnd, rgn, true);
+                // Ownership of rgn transfers to the window
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"ApplyRoundedWindowRegion failed: {ex.Message}");
+        }
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        const int WM_DPICHANGED = 0x02E0;
+        if (msg == WM_DPICHANGED)
+        {
+            Dispatcher.BeginInvoke(ApplyRoundedWindowRegion);
+        }
+        return IntPtr.Zero;
+    }
+
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
 }
