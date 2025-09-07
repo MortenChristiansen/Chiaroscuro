@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -33,7 +34,8 @@ public partial class MainWindow : Window
 {
     private readonly List<Feature> _features;
     private bool _tabPaletteHasBeenShown;
-    private const double _lightenFactor = 0.04;
+    private const double _lightenFactor = 0.2;
+    private const byte _backgroundRegionTransparency = 15;
 
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
@@ -75,6 +77,11 @@ public partial class MainWindow : Window
             new DomainCustomizationFeature(this),
         ];
         _features.ForEach(f => f.Configure());
+
+        Loaded += (_, __) =>
+        {
+            TryEnableSystemBackdrop();
+        };
 
         ContentServer.Run();
         Instance = this;
@@ -221,6 +228,7 @@ public partial class MainWindow : Window
         var window = (MainWindow)d;
 
         var newColor = (Color)e.NewValue;
+        newColor = newColor with { A = _backgroundRegionTransparency };
         AnimateBackgroundColor(newColor, window.WindowBorder);
 
         var lightenedColor = Lighten(newColor, _lightenFactor);
@@ -271,7 +279,7 @@ public partial class MainWindow : Window
 
         // Ensure tab palette background matches the current lightened workspace color before showing
         var lightenedColor = Lighten(WorkspaceColor, _lightenFactor);
-        TabPaletteBorder.Background = new SolidColorBrush(lightenedColor);
+        TabPaletteBorder.Background = new SolidColorBrush(lightenedColor with { A = _backgroundRegionTransparency });
 
         TabPaletteBrowserControl.Visibility = Visibility.Visible;
         TabPaletteGridSplitter.Visibility = Visibility.Visible;
@@ -304,5 +312,108 @@ public partial class MainWindow : Window
             TabPaletteGridSplitter.Visibility = Visibility.Collapsed;
         };
         timer.Start();
+    }
+
+    // ===== System blur (Mica/Acrylic) =====
+
+    private void TryEnableSystemBackdrop()
+    {
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+
+        try
+        {
+            // Prefer Windows 11 system backdrop (Mica)
+            if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
+            {
+                // DWMWA_SYSTEMBACKDROP_TYPE = 38, DWMSBT_MAINWINDOW = 2
+                int backdropType = 2;
+                _ = DwmSetWindowAttribute(hwnd, 38, ref backdropType, sizeof(int));
+
+                // Also enable legacy Mica flag (DWMWA_MICA_EFFECT = 1029) for older 22000 builds
+                int enable = 1;
+                _ = DwmSetWindowAttribute(hwnd, 1029, ref enable, sizeof(int));
+
+                // Optional: dark mode hint
+                int useDark = 1;
+                _ = DwmSetWindowAttribute(hwnd, 20, ref useDark, sizeof(int)); // DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+                return;
+            }
+        }
+        catch { /* fall back below */ }
+
+        // Fallback: AccentPolicy blur (Acrylic/BlurBehind)
+        try
+        {
+            EnableAccentBlur(hwnd, acrylic: true);
+        }
+        catch { }
+    }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+    private enum WINDOWCOMPOSITIONATTRIB
+    {
+        WCA_ACCENT_POLICY = 19
+    }
+
+    private enum ACCENT_STATE
+    {
+        ACCENT_DISABLED = 0,
+        ACCENT_ENABLE_GRADIENT = 1,
+        ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
+        ACCENT_ENABLE_BLURBEHIND = 3,
+        ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
+        ACCENT_INVALID_STATE = 5
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ACCENT_POLICY
+    {
+        public ACCENT_STATE AccentState;
+        public int AccentFlags;
+        public uint GradientColor;
+        public int AnimationId;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WINDOWCOMPOSITIONATTRIBDATA
+    {
+        public WINDOWCOMPOSITIONATTRIB Attribute;
+        public IntPtr Data;
+        public int SizeOfData;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WINDOWCOMPOSITIONATTRIBDATA data);
+
+    private static void EnableAccentBlur(IntPtr hwnd, bool acrylic)
+    {
+        var accent = new ACCENT_POLICY
+        {
+            AccentState = acrylic ? ACCENT_STATE.ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_STATE.ACCENT_ENABLE_BLURBEHIND,
+            AccentFlags = 2, // All borders
+            // GradientColor is ARGB, low byte alpha. 0x99 alpha with dark tint
+            GradientColor = 0x00000000 // This does not actually seem to do anything
+        };
+
+        int size = Marshal.SizeOf<ACCENT_POLICY>();
+        IntPtr pAccent = Marshal.AllocHGlobal(size);
+        try
+        {
+            Marshal.StructureToPtr(accent, pAccent, false);
+            var data = new WINDOWCOMPOSITIONATTRIBDATA
+            {
+                Attribute = WINDOWCOMPOSITIONATTRIB.WCA_ACCENT_POLICY,
+                Data = pAccent,
+                SizeOfData = size
+            };
+            _ = SetWindowCompositionAttribute(hwnd, ref data);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(pAccent);
+        }
     }
 }
