@@ -13,17 +13,11 @@
     <Window.Resources>
         <util:BorderClipConverter x:Key="BorderClipConverter" />
     </Window.Resources>
-    <Border x:Name="ResizeBorder"  CornerRadius="8" Background="#01000000" SnapsToDevicePixels="True" Padding="4">
-        <Border x:Name="WindowBorder" CornerRadius="8" BorderThickness="1" BorderBrush="#404654" Padding="8,0,8,8">
-            <Border.Background>
-                <SolidColorBrush Color="{Binding WorkspaceColor, RelativeSource={RelativeSource AncestorType=Window}}" />
-            </Border.Background>
+    <Border x:Name="ResizeBorder"  Padding="4">
+        <Border x:Name="WindowBorder" Padding="4">
             <Grid x:Name="RootGrid">
-                <Grid.OpacityMask>
-                    <VisualBrush Visual="{Binding ElementName=WebContentBorder}" />
-                </Grid.OpacityMask>
                 <chrome:CustomWindowChromeBrowser x:Name="ChromeUI" />
-                <Grid Margin="0,38,0,0" x:Name="MainContentGrid">
+                <Grid Margin="0,30,0,0" x:Name="MainContentGrid">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="300" MinWidth="200" />
                         <ColumnDefinition Width="5" />

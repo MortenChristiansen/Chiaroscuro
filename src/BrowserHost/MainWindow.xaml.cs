@@ -33,7 +33,9 @@ public partial class MainWindow : Window
 {
     private readonly List<Feature> _features;
     private bool _tabPaletteHasBeenShown;
-    private const double _lightenFactor = 0.04;
+    private const double _lightenFactor = 0.2;
+    private const byte _backgroundRegionTransparency = 20;
+    private const int CornerRadiusDip = 8;
 
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
@@ -221,7 +223,8 @@ public partial class MainWindow : Window
         var window = (MainWindow)d;
 
         var newColor = (Color)e.NewValue;
-        AnimateBackgroundColor(newColor, window.WindowBorder);
+        newColor = newColor with { A = _backgroundRegionTransparency };
+        AnimateBackgroundColor(newColor, window.ResizeBorder);
 
         var lightenedColor = Lighten(newColor, _lightenFactor);
         AnimateBackgroundColor(lightenedColor, window.WebContentBorder);
@@ -271,7 +274,7 @@ public partial class MainWindow : Window
 
         // Ensure tab palette background matches the current lightened workspace color before showing
         var lightenedColor = Lighten(WorkspaceColor, _lightenFactor);
-        TabPaletteBorder.Background = new SolidColorBrush(lightenedColor);
+        TabPaletteBorder.Background = new SolidColorBrush(lightenedColor with { A = _backgroundRegionTransparency });
 
         TabPaletteBrowserControl.Visibility = Visibility.Visible;
         TabPaletteGridSplitter.Visibility = Visibility.Visible;
