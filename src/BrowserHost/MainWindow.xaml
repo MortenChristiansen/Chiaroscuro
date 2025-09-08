@@ -13,22 +13,16 @@
     <Window.Resources>
         <util:BorderClipConverter x:Key="BorderClipConverter" />
     </Window.Resources>
-    <Border x:Name="ResizeBorder"  CornerRadius="8" Background="#01000000" SnapsToDevicePixels="True" Padding="4">
-        <Border x:Name="WindowBorder" CornerRadius="8" BorderThickness="1" BorderBrush="#404654" Padding="8,0,8,8">
-            <Border.Background>
-                <SolidColorBrush Color="{Binding WorkspaceColor, RelativeSource={RelativeSource AncestorType=Window}}" />
-            </Border.Background>
+    <Border x:Name="ResizeBorder"  Padding="4">
+        <Border x:Name="WindowBorder" Padding="4">
             <Grid x:Name="RootGrid">
-                <Grid.OpacityMask>
-                    <VisualBrush Visual="{Binding ElementName=WebContentBorder}" />
-                </Grid.OpacityMask>
                 <chrome:CustomWindowChromeBrowser x:Name="ChromeUI" />
-                <Grid Margin="0,38,0,0" x:Name="MainContentGrid">
+                <Grid Margin="0,30,0,0" x:Name="MainContentGrid">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="300" MinWidth="200" />
                         <ColumnDefinition Width="5" />
                         <ColumnDefinition Width="*" MinWidth="200" />
-                        <ColumnDefinition x:Name="TabPaletteSplitterColumn" Width="5" />
+                        <ColumnDefinition x:Name="TabPaletteSplitterColumn" Width="0" MinWidth="0" />
                         <ColumnDefinition x:Name="TabPaletteColumn" Width="0" MinWidth="0" />
                     </Grid.ColumnDefinitions>
                     <ac:ActionContextBrowser x:Name="ActionContext" Grid.Column="0" />
@@ -41,7 +35,7 @@
                         ResizeBehavior="PreviousAndNext"
                         ResizeDirection="Columns"
                         ShowsPreview="False"/>
-                    <Border x:Name="WebContentBorder" Grid.Column="2" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#202634">
+                    <Border x:Name="WebContentBorder" Grid.Column="2" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                         <Border.Clip>
                             <MultiBinding Converter="{StaticResource BorderClipConverter}">
                                 <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
@@ -59,9 +53,17 @@
                         ResizeBehavior="PreviousAndNext"
                         ResizeDirection="Columns"
                         ShowsPreview="False"
-                                  
                         Visibility="Collapsed"/>
-                    <tp:TabPaletteBrowser x:Name="TabPaletteBrowserControl" Grid.Column="4" Visibility="Collapsed" />
+                    <Border x:Name="TabPaletteBorder" Grid.Column="4" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <Border.Clip>
+                            <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="CornerRadius" RelativeSource="{RelativeSource Self}"/>
+                            </MultiBinding>
+                        </Border.Clip>
+                        <tp:TabPaletteBrowser x:Name="TabPaletteBrowserControl" Visibility="Collapsed" />
+                    </Border>
                 </Grid>
                 <ad:ActionDialogBrowser x:Name="ActionDialog" Visibility="Hidden" />
             </Grid>

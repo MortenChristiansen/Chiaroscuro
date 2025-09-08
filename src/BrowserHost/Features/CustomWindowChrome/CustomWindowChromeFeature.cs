@@ -1,10 +1,13 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
 using CefSharp;
+using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
@@ -120,12 +123,13 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
             _lastX = Window.Left;
             _lastY = Window.Top;
 
-            var wa = SystemParameters.WorkArea;
-            // Set the window's max size to the work area to prevent overlaying the taskbar
-            Window.MaxWidth = wa.Width + 11;
-            Window.MaxHeight = wa.Height + 11;
-            Window.Left = wa.Left + 1;
-            Window.Top = wa.Top + 1;
+            // Use the current monitor's work area (in DIPs) so we never overlap the taskbar
+            var wa = GetCurrentMonitorWorkAreaDip();
+
+            Window.MaxWidth = wa.Width;
+            Window.MaxHeight = wa.Height;
+            Window.Left = wa.Left;
+            Window.Top = wa.Top;
         }
         else if (Window.WindowState == WindowState.Normal)
         {
@@ -137,6 +141,70 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
             Window.Top = _lastY;
         }
     }
+
+    private Rect GetCurrentMonitorWorkAreaDip()
+    {
+        var hwnd = new WindowInteropHelper(Window).Handle;
+        if (hwnd == nint.Zero)
+        {
+            // Fallback to primary work area
+            var wa = SystemParameters.WorkArea;
+            return new Rect(wa.Left, wa.Top, wa.Width, wa.Height);
+        }
+
+        var hMon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        var mi = new MONITORINFO();
+        mi.cbSize = Marshal.SizeOf<MONITORINFO>();
+        if (!GetMonitorInfo(hMon, ref mi))
+        {
+            var wa = SystemParameters.WorkArea;
+            return new Rect(wa.Left, wa.Top, wa.Width, wa.Height);
+        }
+
+        // Convert from physical pixels to device independent units
+        var src = (HwndSource?)PresentationSource.FromVisual(Window);
+        double scaleX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+        double scaleY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+
+        double left = mi.rcWork.Left / scaleX;
+        double top = mi.rcWork.Top / scaleY;
+        double width = (mi.rcWork.Right - mi.rcWork.Left) / scaleX;
+        double height = (mi.rcWork.Bottom - mi.rcWork.Top) / scaleY;
+        return new Rect(left, top, width, height);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public int dwFlags;
+    }
+
+    private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+    [DllImport("user32.dll")]
+    private static extern nint MonitorFromWindow(nint hwnd, uint dwFlags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(nint hMonitor, ref MONITORINFO lpmi);
+
+    [DllImport("user32.dll", SetLastError = false)]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X; public int Y; }
 
     #endregion
 
@@ -181,22 +249,19 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
         // Set to normal state
         Window.WindowState = WindowState.Normal;
 
-        // Get mouse position in screen coordinates
-        var mouseScreen = Mouse.GetPosition(null);
-        var presentationSource = PresentationSource.FromVisual(Window);
-        if (presentationSource != null)
+        // Get cursor in screen pixels, convert to DIPs, then clamp to current monitor work area
+        if (GetCursorPos(out var pt))
         {
-            var transform = presentationSource.CompositionTarget.TransformToDevice;
-            var screenX = mouseScreen.X * transform.M11;
-            var screenY = mouseScreen.Y * transform.M22;
-            var newLeft = screenX - Window.ActualWidth * percentX;
-            var newTop = screenY - Window.ActualHeight * percentY;
+            var src = (HwndSource?)PresentationSource.FromVisual(Window);
+            var m = src?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
+            var cursorDip = m.Transform(new Point(pt.X, pt.Y));
 
-            // Clamp newLeft to the primary screen's working area
-            double minLeft = 0;
-            double maxLeft = SystemParameters.WorkArea.Width - Window.ActualWidth;
-            if (newLeft < minLeft) newLeft = minLeft;
-            if (newLeft > maxLeft) newLeft = maxLeft;
+            var wa = GetCurrentMonitorWorkAreaDip();
+            var newLeft = cursorDip.X - Window.ActualWidth * percentX;
+            var newTop = cursorDip.Y - Window.ActualHeight * percentY;
+
+            newLeft = Math.Clamp(newLeft, wa.Left, wa.Right - Window.ActualWidth);
+            newTop = Math.Clamp(newTop, wa.Top, wa.Bottom - Window.ActualHeight);
 
             Window.Left = newLeft;
             Window.Top = newTop;
@@ -301,7 +366,7 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
 
     private void ResizeWindow(HitTest hit)
     {
-        var hwnd = new System.Windows.Interop.WindowInteropHelper(Window).Handle;
+        var hwnd = new WindowInteropHelper(Window).Handle;
         SendMessage(hwnd, WM_NCLBUTTONDOWN, (nint)hit, nint.Zero);
     }
 
