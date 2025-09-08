@@ -8,36 +8,46 @@ import { FaviconComponent } from '../../shared/favicon.component';
   standalone: true,
   template: `
     <div
-      class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10"
+      class="tab group flex flex-col items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10 relative"
       [ngClass]="{
         'bg-white/20 hover:bg-white/30': isActive(),
       }"
       (click)="onSelectTab()"
     >
-      <favicon [src]="tab().favicon" class="drag-handle w-4 h-4 mr-2" />
-      <span class="truncate flex-1">{{
-        customization()?.customTitle ?? tab().title ?? 'Loading...'
-      }}</span>
-      <button
-        class="close-button opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
-        (click)="onCloseTab($event)"
-        aria-label="Close tab"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 20 20"
-          stroke-width="2"
-          stroke="currentColor"
-          class="w-4 h-4"
+      <div class="flex items-center w-full">
+        <favicon [src]="tab().favicon" class="drag-handle w-4 h-4 mr-2" />
+        <span class="truncate flex-1">{{
+          customization()?.customTitle ?? tab().title ?? 'Loading...'
+        }}</span>
+        <button
+          class="close-button opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
+          (click)="onCloseTab($event)"
+          aria-label="Close tab"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M6 6l8 8M6 14L14 6"
-          />
-        </svg>
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 20 20"
+            stroke-width="2"
+            stroke="currentColor"
+            class="w-4 h-4"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 6l8 8M6 14L14 6"
+            />
+          </svg>
+        </button>
+      </div>
+      @if (isPersistentTab()) {
+      <div
+        class="return-original-text absolute -bottom-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-gray-300 cursor-pointer hover:text-white whitespace-nowrap z-10"
+        (click)="onReturnToOriginal($event)"
+      >
+        Return to original
+      </div>
+      }
     </div>
   `,
   imports: [CommonModule, FaviconComponent],
@@ -45,9 +55,11 @@ import { FaviconComponent } from '../../shared/favicon.component';
 export class TabsListTabComponent {
   tab = input.required<Tab>();
   isActive = input.required<boolean>();
+  isPersistentTab = input<boolean>(false);
   customization = input<TabCustomization>();
   selectTab = output<void>();
   closeTab = output<void>();
+  returnToOriginal = output<void>();
 
   onSelectTab() {
     this.selectTab.emit();
@@ -56,5 +68,10 @@ export class TabsListTabComponent {
   onCloseTab(event: Event) {
     event.stopPropagation();
     this.closeTab.emit();
+  }
+
+  onReturnToOriginal(event: Event) {
+    event.stopPropagation();
+    this.returnToOriginal.emit();
   }
 }

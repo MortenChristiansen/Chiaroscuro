@@ -13,7 +13,7 @@ import { CommonModule } from '@angular/common';
       <div class="pinned-tabs-list flex flex-row gap-2 px-4 w-full">
         @for (tab of pinnedTabs(); track tab.id) {
         <div
-          class="pinned-tab flex items-center justify-center h-8 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 bg-white/5 hover:bg-white/10 relative flex-1 min-w-0"
+          class="pinned-tab flex flex-col items-center justify-center h-8 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 bg-white/5 hover:bg-white/10 relative flex-1 min-w-0 group"
           [ngClass]="{
             'bg-white/20 hover:bg-white/30': activeTabId() == tab.id,
           }"
@@ -23,6 +23,12 @@ import { CommonModule } from '@angular/common';
           "
         >
           <favicon [src]="tab.favicon" class="w-5 h-5" />
+          <div
+            class="return-original-text absolute -bottom-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-gray-300 cursor-pointer hover:text-white whitespace-nowrap z-10"
+            (click)="$event.stopPropagation(); api.returnToOriginalAddress(tab.id)"
+          >
+            Return to original
+          </div>
           <button
             class="close-button absolute top-0 right-0 opacity-0 hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-0.5 rounded bg-gray-900/80"
             (click)="$event.stopPropagation(); api.unpinTab(tab.id)"

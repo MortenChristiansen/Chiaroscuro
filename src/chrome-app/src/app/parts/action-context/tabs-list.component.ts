@@ -1,6 +1,11 @@
 import { Component, computed, effect, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FolderIndexStateDto, TabListApi } from './tabListApi';
+import { WorkspaceListApi } from './workspaceListApi';
+
+interface WorkspacesApi {
+  returnToOriginalAddress: (tabId: string) => void;
+}
 import {
   Folder,
   FolderId,
@@ -52,9 +57,11 @@ interface FolderDto {
       <tabs-list-tab
         [tab]="tab"
         [isActive]="tab.id == activeTabId()"
+        [isPersistentTab]="true"
         [customization]="getTabCustomization(tab)"
         (selectTab)="activeTabId.set(tab.id)"
         (closeTab)="closeTab(tab.id, true)"
+        (returnToOriginal)="returnToOriginal(tab.id)"
       />
       } @else { @let folder = tabOrFolder;
       <tabs-list-folder
@@ -74,9 +81,11 @@ interface FolderDto {
           <tabs-list-tab
             [tab]="tab"
             [isActive]="tab.id == activeTabId()"
+            [isPersistentTab]="true"
             [customization]="getTabCustomization(tab)"
             (selectTab)="activeTabId.set(tab.id)"
             (closeTab)="closeTab(tab.id, true)"
+            (returnToOriginal)="returnToOriginal(tab.id)"
           />
           }
         </div>
@@ -124,6 +133,7 @@ export class TabsListComponent implements OnInit {
   private folderOpenState: Record<string, boolean> = {};
 
   api!: TabListApi;
+  workspacesApi!: WorkspacesApi;
 
   sortableOptions: Options = {
     handle: '.drag-handle',
@@ -215,6 +225,7 @@ export class TabsListComponent implements OnInit {
 
   async ngOnInit() {
     this.api = await loadBackendApi<TabListApi>('tabsApi');
+    this.workspacesApi = await loadBackendApi<WorkspacesApi>('workspacesApi');
 
     exposeApiToBackend({
       addTab: (tab: Tab, activate: boolean) => {
@@ -458,6 +469,10 @@ export class TabsListComponent implements OnInit {
 
   containsActiveTab(folder: FolderDto): boolean {
     return folder.tabs.some((t) => t.id === this.activeTabId());
+  }
+
+  returnToOriginal(tabId: TabId): void {
+    this.workspacesApi.returnToOriginalAddress(tabId);
   }
 
   // If we just track by id, Angular can get confused when reordering items, causing layout issues
