@@ -8,14 +8,14 @@ import { CommonModule } from '@angular/common';
   selector: 'window-chrome',
   imports: [IconButtonComponent, CommonModule],
   template: `
-    <div class="flex items-center gap-4 align-middle px-2 py-1 select-none">
+    <div class="flex items-center gap-4 align-middle select-none">
       <div class="address-bar flex flex-1 items-center gap-1 justify-center">
         <icon-button [disabled]="!address() || !canGoBack()" (onClick)="back()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
-            class="w-5 h-5 rotate-180"
+            class="w-4 h-4 rotate-180"
           >
             <path
               fill-rule="evenodd"
@@ -32,7 +32,7 @@ import { CommonModule } from '@angular/common';
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
-            class="w-5 h-5"
+            class="w-4 h-4"
           >
             <path
               fill-rule="evenodd"
@@ -48,7 +48,7 @@ import { CommonModule } from '@angular/common';
             fill="none"
             stroke="currentColor"
             stroke-width="2"
-            class="w-5 h-5"
+            class="w-4 h-4"
           >
             <path
               d="M4 10a6 6 0 1 1 2.2 4.6"
@@ -69,7 +69,7 @@ import { CommonModule } from '@angular/common';
             viewBox="0 0 20 20"
             stroke-width="2"
             stroke="currentColor"
-            class="w-5 h-5"
+            class="w-4 h-4"
           >
             <rect x="7" y="7" width="9" height="9" rx="2" />
             <rect
@@ -84,7 +84,7 @@ import { CommonModule } from '@angular/common';
           </svg>
         </icon-button>
         <span
-          class="address mx-4 font-sans text-base text-gray-200 max-w-[400px] truncate"
+          class="address mx-4 font-sans text-sm text-gray-200 max-w-[400px] truncate"
         >
           @let url = address(); @if (url === null) {
           <span class="italic text-gray-400">Press ctrl-t to start</span>
@@ -106,7 +106,7 @@ import { CommonModule } from '@angular/common';
             viewBox="0 0 24 24"
             stroke-width="2"
             stroke="currentColor"
-            class="w-5 h-5"
+            class="w-4 h-4"
           >
             <path
               stroke-linecap="round"
@@ -122,7 +122,7 @@ import { CommonModule } from '@angular/common';
             viewBox="0 0 24 24"
             stroke-width="2"
             stroke="currentColor"
-            class="w-5 h-5"
+            class="w-4 h-4"
           >
             <rect x="6" y="6" width="12" height="12" rx="2" />
           </svg>
@@ -134,7 +134,7 @@ import { CommonModule } from '@angular/common';
             viewBox="0 0 24 24"
             stroke-width="2"
             stroke="currentColor"
-            class="w-5 h-5"
+            class="w-4 h-4"
           >
             <path
               stroke-linecap="round"
