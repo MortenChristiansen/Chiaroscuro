@@ -8,6 +8,9 @@ namespace BrowserHost;
 
 public partial class MainWindow
 {
+    private const int MinWindowWidth = 400;
+    private const int MinWindowHeight = 300;
+
     public override void EndInit()
     {
         Loaded += (_, __) =>
@@ -106,7 +109,7 @@ public partial class MainWindow
         {
             AccentState = acrylic ? ACCENT_STATE.ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_STATE.ACCENT_ENABLE_BLURBEHIND,
             AccentFlags = 2,
-            GradientColor = 0x00000000 // Does this do anything?
+            GradientColor = 0x00000000 // Transparent gradient (required but may not affect acrylic mode)
         };
 
         int size = Marshal.SizeOf<ACCENT_POLICY>();
@@ -187,8 +190,8 @@ public partial class MainWindow
                     mmi.ptMaxSize.X = Math.Abs(rcWork.Right - rcWork.Left);
                     mmi.ptMaxSize.Y = Math.Abs(rcWork.Bottom - rcWork.Top);
                     // Optional: keep track size sensible
-                    mmi.ptMinTrackSize.X = 400;
-                    mmi.ptMinTrackSize.Y = 300;
+                    mmi.ptMinTrackSize.X = MinWindowWidth;
+                    mmi.ptMinTrackSize.Y = MinWindowHeight;
                     Marshal.StructureToPtr(mmi, lParam, true);
                     handled = true;
                     return IntPtr.Zero;
@@ -208,7 +211,6 @@ public partial class MainWindow
     [DllImport("user32.dll")]
     private static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
 
-    // Win32 sizing/monitor interop
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT
     {

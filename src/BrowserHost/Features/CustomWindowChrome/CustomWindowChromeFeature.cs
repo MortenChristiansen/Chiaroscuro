@@ -1,11 +1,13 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
 using CefSharp;
+using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
@@ -198,6 +200,12 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetMonitorInfo(nint hMonitor, ref MONITORINFO lpmi);
 
+    [DllImport("user32.dll", SetLastError = false)]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X; public int Y; }
+
     #endregion
 
     #region Window Detach Drag Handling
@@ -241,22 +249,19 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
         // Set to normal state
         Window.WindowState = WindowState.Normal;
 
-        // Get mouse position in screen coordinates
-        var mouseScreen = Mouse.GetPosition(null);
-        var presentationSource = PresentationSource.FromVisual(Window);
-        if (presentationSource != null)
+        // Get cursor in screen pixels, convert to DIPs, then clamp to current monitor work area
+        if (GetCursorPos(out var pt))
         {
-            var transform = presentationSource.CompositionTarget.TransformToDevice;
-            var screenX = mouseScreen.X * transform.M11;
-            var screenY = mouseScreen.Y * transform.M22;
-            var newLeft = screenX - Window.ActualWidth * percentX;
-            var newTop = screenY - Window.ActualHeight * percentY;
+            var src = (HwndSource?)PresentationSource.FromVisual(Window);
+            var m = src?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
+            var cursorDip = m.Transform(new Point(pt.X, pt.Y));
 
-            // Clamp newLeft to the primary screen's working area
-            double minLeft = 0;
-            double maxLeft = SystemParameters.WorkArea.Width - Window.ActualWidth;
-            if (newLeft < minLeft) newLeft = minLeft;
-            if (newLeft > maxLeft) newLeft = maxLeft;
+            var wa = GetCurrentMonitorWorkAreaDip();
+            var newLeft = cursorDip.X - Window.ActualWidth * percentX;
+            var newTop = cursorDip.Y - Window.ActualHeight * percentY;
+
+            newLeft = Math.Clamp(newLeft, wa.Left, wa.Right - Window.ActualWidth);
+            newTop = Math.Clamp(newTop, wa.Top, wa.Bottom - Window.ActualHeight);
 
             Window.Left = newLeft;
             Window.Top = newTop;
