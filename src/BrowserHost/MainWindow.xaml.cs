@@ -36,8 +36,8 @@ public partial class MainWindow : Window
     private readonly List<Feature> _features;
     private bool _tabPaletteHasBeenShown;
     private const double _lightenFactor = 0.2;
-    private const byte _backgroundRegionTransparency = 15;
-    private const int CornerRadiusDip = 8; // Match XAML WindowBorder CornerRadius
+    private const byte _backgroundRegionTransparency = 20;
+    private const int CornerRadiusDip = 8;
 
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
@@ -239,7 +239,7 @@ public partial class MainWindow : Window
 
         var newColor = (Color)e.NewValue;
         newColor = newColor with { A = _backgroundRegionTransparency };
-        AnimateBackgroundColor(newColor, window.WindowBorder);
+        AnimateBackgroundColor(newColor, window.ResizeBorder);
 
         var lightenedColor = Lighten(newColor, _lightenFactor);
         AnimateBackgroundColor(lightenedColor, window.WebContentBorder);
@@ -328,7 +328,7 @@ public partial class MainWindow : Window
 
     private void TryEnableSystemBackdrop()
     {
-        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        var hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == IntPtr.Zero) return;
 
         try
@@ -408,7 +408,7 @@ public partial class MainWindow : Window
         {
             AccentState = acrylic ? ACCENT_STATE.ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_STATE.ACCENT_ENABLE_BLURBEHIND,
             AccentFlags = 2,
-            GradientColor = 0x00000000
+            GradientColor = 0x00000000 // Does this do anything?
         };
 
         int size = Marshal.SizeOf<ACCENT_POLICY>();
