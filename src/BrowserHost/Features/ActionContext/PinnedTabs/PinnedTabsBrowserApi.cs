@@ -13,4 +13,7 @@ public class PinnedTabsBrowserApi : BrowserApi
 
     public void ActivateTab(string tabId) =>
         PubSub.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
+
+    public void ReturnToOriginalAddress(string tabId) =>
+        MainWindow.Instance.GetFeature<PinnedTabsFeature>().ReturnToOriginalAddress(tabId);
 }

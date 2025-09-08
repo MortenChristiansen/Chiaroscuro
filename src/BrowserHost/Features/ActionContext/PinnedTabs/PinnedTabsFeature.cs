@@ -30,7 +30,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         {
             var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
             var activateTabId = Window.CurrentTab?.Id;
-            AddPinnedTabToState(new PinnedTabDtoV1(e.TabId, tab.Title, tab.Favicon, tab.Address), activateTabId);
+            AddPinnedTabToState(new PinnedTabDtoV1(e.TabId, tab.Title, tab.Favicon, tab.Address, tab.Address), activateTabId);
             Window.ActionContext.CloseTab(e.TabId, activateNext: false);
             NotifyFrontendOfUpdatedPinnedTabs();
         });
@@ -100,9 +100,14 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         if (!IsTabPinned(tabId))
             return;
 
+        var existingTab = _pinnedTabData.PinnedTabs.FirstOrDefault(t => t.Id == tabId);
+        if (existingTab == null)
+            return;
+
+        var originalAddress = existingTab.OriginalAddress ?? existingTab.Address;
         _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
         {
-            PinnedTabs = [.. _pinnedTabData.PinnedTabs.Where(t => t.Id != tabId), new PinnedTabDtoV1(tabId, updatedTab.Title, updatedTab.Favicon, updatedTab.Address)]
+            PinnedTabs = [.. _pinnedTabData.PinnedTabs.Where(t => t.Id != tabId), new PinnedTabDtoV1(tabId, updatedTab.Title, updatedTab.Favicon, updatedTab.Address, originalAddress)]
         });
     }
 
@@ -114,4 +119,15 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
 
     public string? GetActivePinnedTabId() =>
         _pinnedTabData.ActiveTabId;
+
+    public void ReturnToOriginalAddress(string tabId)
+    {
+        var pinnedTab = _pinnedTabData.PinnedTabs.FirstOrDefault(t => t.Id == tabId);
+        if (pinnedTab == null)
+            return;
+
+        var originalAddress = pinnedTab.OriginalAddress ?? pinnedTab.Address;
+        var tabBrowser = Window.GetFeature<TabsFeature>().GetTabBrowserById(tabId);
+        tabBrowser.SetAddress(originalAddress, setManualAddress: true);
+    }
 }

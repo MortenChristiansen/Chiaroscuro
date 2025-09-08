@@ -14,7 +14,7 @@ public record WorkspaceDtoV1(string WorkspaceId, string Name, string Color, stri
 {
     public FolderDtoV1[] Folders { get; init; } = [];
 }
-public record WorkspaceTabStateDtoV1(string TabId, string Address, string? Title, string? Favicon, bool IsActive, DateTimeOffset Created);
+public record WorkspaceTabStateDtoV1(string TabId, string Address, string? Title, string? Favicon, bool IsActive, DateTimeOffset Created, string? OriginalAddress = null);
 public record FolderDtoV1(string Id, string Name, int StartIndex, int EndIndex);
 
 public static class WorkspaceStateManager

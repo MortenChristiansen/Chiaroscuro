@@ -81,7 +81,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
     private void LoadPinnedTabs()
     {
         var tabs = Window.GetFeature<PinnedTabsFeature>().GetPinnedTabs();
-        _tabBrowsers.AddRange(tabs.Select(t => AddExistingTab(t.Id, t.Address, t.Title, t.Favicon)));
+        _tabBrowsers.AddRange(tabs.Select(t => AddExistingTab(t.Id, t.OriginalAddress ?? t.Address, t.Title, t.Favicon)));
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
