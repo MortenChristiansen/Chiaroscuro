@@ -48,7 +48,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
             if (!_loadedWorkspaceIds.Contains(e.WorkspaceId))
             {
-                _tabBrowsers.AddRange(workspace.Tabs.Select(t => AddExistingTab(t.TabId, t.Address, t.Title, t.Favicon)));
+                _tabBrowsers.AddRange(workspace.Tabs.Select(t => AddExistingTab(t.TabId, GetAddressForRestore(t, workspace), t.Title, t.Favicon)));
                 _loadedWorkspaceIds.Add(e.WorkspaceId);
             }
 
@@ -143,4 +143,17 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
     public TabBrowser GetTabBrowserById(string tabId) =>
         _tabBrowsers.FirstOrDefault(t => t.Id == tabId) ?? throw new ArgumentException("Tab does not exist");
+
+    private string GetAddressForRestore(WorkspaceTabStateDtoV1 tab, WorkspaceDtoV1 workspace)
+    {
+        var tabIndex = Array.IndexOf(workspace.Tabs, tab);
+        var isPeristentTab = tabIndex < workspace.EphemeralTabStartIndex;
+        
+        // For persistent tabs (bookmarks), use original address if available, otherwise fallback to current address
+        // For ephemeral tabs, always use current address
+        if (isPeristentTab)
+            return tab.OriginalAddress ?? tab.Address;
+        else
+            return tab.Address;
+    }
 }

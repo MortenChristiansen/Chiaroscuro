@@ -23,4 +23,7 @@ public class WorkspacesBrowserApi() : BrowserApi
 
     public void DeleteWorkspace(string workspaceId) =>
         PubSub.Publish(new WorkspaceDeletedEvent(workspaceId));
+
+    public void ReturnToOriginalAddress(string tabId) =>
+        MainWindow.Instance.GetFeature<WorkspacesFeature>().ReturnToOriginalAddress(tabId);
 }

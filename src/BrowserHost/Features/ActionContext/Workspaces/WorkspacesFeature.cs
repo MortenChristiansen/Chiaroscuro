@@ -22,14 +22,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<TabsChangedEvent>(e =>
             _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
-                e.Tabs.Select(t => new WorkspaceTabStateDtoV1(
-                    t.Id,
-                    tabsFeature.GetTabBrowserById(t.Id)?.Address ?? "",
-                    t.Title,
-                    t.Favicon,
-                    t.IsActive,
-                    t.Created)
-                ),
+                e.Tabs.Select(t => CreateWorkspaceTabState(t, e.EphemeralTabStartIndex, tabsFeature)),
                 e.EphemeralTabStartIndex,
                 e.Folders.Select(f => new FolderDtoV1(
                     f.Id,
@@ -194,6 +187,37 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         _workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId)
             ?? throw new ArgumentException($"Workspace with ID {workspaceId} not found.");
 
+    private WorkspaceTabStateDtoV1 CreateWorkspaceTabState(TabUiStateDto tabUiState, int ephemeralTabStartIndex, TabsFeature tabsFeature)
+    {
+        var currentAddress = tabsFeature.GetTabBrowserById(tabUiState.Id)?.Address ?? "";
+        var tabIndex = Array.FindIndex(_workspaces.FirstOrDefault(ws => ws.WorkspaceId == _currentWorkspaceId)?.Tabs ?? [], t => t.TabId == tabUiState.Id);
+        var isNewTab = tabIndex == -1;
+        var isPersistentTab = !isNewTab && tabIndex < ephemeralTabStartIndex;
+        
+        string? originalAddress = null;
+        if (isPersistentTab && !isNewTab)
+        {
+            // Preserve existing original address for persistent tabs
+            var existingTab = CurrentWorkspace.Tabs[tabIndex];
+            originalAddress = existingTab.OriginalAddress ?? existingTab.Address;
+        }
+        else if (isPersistentTab && isNewTab)
+        {
+            // New persistent tab (bookmark) - set current address as original
+            originalAddress = currentAddress;
+        }
+        // For ephemeral tabs, OriginalAddress remains null
+
+        return new WorkspaceTabStateDtoV1(
+            tabUiState.Id,
+            currentAddress,
+            tabUiState.Title,
+            tabUiState.Favicon,
+            tabUiState.IsActive,
+            tabUiState.Created,
+            originalAddress);
+    }
+
     public WorkspaceTabStateDtoV1 GetTabById(string tabId) =>
         _workspaces.SelectMany(ws => ws.Tabs)
             .FirstOrDefault(t => t.TabId == tabId) ?? throw new ArgumentException($"Tab with ID {tabId} not found in current workspace.");
@@ -201,4 +225,21 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     public WorkspaceTabStateDtoV1[] GetTabsForWorkspace(string workspaceId) =>
         _workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId)?.Tabs
             ?? throw new ArgumentException($"No tabs found for workspace with ID {workspaceId}.");
+
+    public void ReturnToOriginalAddress(string tabId)
+    {
+        var tab = GetTabById(tabId);
+        var workspace = _workspaces.FirstOrDefault(ws => ws.Tabs.Any(t => t.TabId == tabId));
+        if (workspace == null)
+            return;
+
+        var tabIndex = Array.FindIndex(workspace.Tabs, t => t.TabId == tabId);
+        var isPersistentTab = tabIndex < workspace.EphemeralTabStartIndex;
+        
+        if (!isPersistentTab || string.IsNullOrEmpty(tab.OriginalAddress))
+            return;
+
+        var tabBrowser = Window.GetFeature<TabsFeature>().GetTabBrowserById(tabId);
+        tabBrowser.SetAddress(tab.OriginalAddress, setManualAddress: true);
+    }
 }
