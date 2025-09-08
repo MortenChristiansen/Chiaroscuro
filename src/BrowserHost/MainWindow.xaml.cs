@@ -469,8 +469,35 @@ public partial class MainWindow : Window
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        const int WM_GETMINMAXINFO = 0x0024;
         const int WM_DPICHANGED = 0x02E0;
-        if (msg == WM_DPICHANGED)
+
+        if (msg == WM_GETMINMAXINFO)
+        {
+            // Ensure a borderless window maximizes to the monitor work area (does not overlap taskbar)
+            var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+            var hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            if (hMonitor != IntPtr.Zero)
+            {
+                var monitorInfo = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+                if (GetMonitorInfo(hMonitor, ref monitorInfo))
+                {
+                    var rcWork = monitorInfo.rcWork;
+                    var rcMonitor = monitorInfo.rcMonitor;
+                    mmi.ptMaxPosition.X = Math.Abs(rcWork.Left - rcMonitor.Left);
+                    mmi.ptMaxPosition.Y = Math.Abs(rcWork.Top - rcMonitor.Top);
+                    mmi.ptMaxSize.X = Math.Abs(rcWork.Right - rcWork.Left);
+                    mmi.ptMaxSize.Y = Math.Abs(rcWork.Bottom - rcWork.Top);
+                    // Optional: keep track size sensible
+                    mmi.ptMinTrackSize.X = 400;
+                    mmi.ptMinTrackSize.Y = 300;
+                    Marshal.StructureToPtr(mmi, lParam, true);
+                    handled = true;
+                    return IntPtr.Zero;
+                }
+            }
+        }
+        else if (msg == WM_DPICHANGED)
         {
             Dispatcher.BeginInvoke(ApplyRoundedWindowRegion);
         }
@@ -482,4 +509,49 @@ public partial class MainWindow : Window
 
     [DllImport("user32.dll")]
     private static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
+
+    // Win32 sizing/monitor interop
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MINMAXINFO
+    {
+        public POINT ptReserved;
+        public POINT ptMaxSize;
+        public POINT ptMaxPosition;
+        public POINT ptMinTrackSize;
+        public POINT ptMaxTrackSize;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public int dwFlags;
+    }
+
+    private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
 }
