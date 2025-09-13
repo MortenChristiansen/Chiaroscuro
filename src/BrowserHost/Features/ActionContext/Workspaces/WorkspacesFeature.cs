@@ -101,12 +101,13 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, int tabIndex, TabsFeature tabsFeature)
     {
         var customization = TabCustomizationFeature.GetCustomizationsForTab(tab.Id);
-        var isBookmarked = tabIndex < CurrentWorkspace.EphemeralTabStartIndex;
+        var isBookmarked = IsTabBookmarked(tab.Id);
+        var browserTab = tabsFeature.GetTabBrowserById(tab.Id);
         return new WorkspaceTabStateDtoV1(
             tab.Id,
-            tabsFeature.GetTabBrowserById(tab.Id)?.GetAddresToPersist(isBookmarked, customization) ?? "",
-            tabsFeature.GetTabBrowserById(tab.Id)?.GetTitleToPersist(isBookmarked, customization) ?? "",
-            tabsFeature.GetTabBrowserById(tab.Id)?.GetFaviconToPersist(isBookmarked, customization) ?? "",
+            browserTab?.GetAddresToPersist(isBookmarked, customization) ?? "",
+            browserTab?.GetTitleToPersist(isBookmarked, customization) ?? "",
+            browserTab?.GetFaviconToPersist(isBookmarked, customization) ?? "",
             tab.IsActive,
             tab.Created
         );
