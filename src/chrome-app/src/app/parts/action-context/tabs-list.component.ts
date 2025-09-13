@@ -85,7 +85,7 @@ interface FolderDto {
     </div>
 
     <div
-      class="w-full h-0.5 my-2 bg-gradient-to-r from-gray-700 via-gray-500 to-gray-700 opacity-60 rounded-full"
+      class="w-full h-0.25 mt-4 pt-4 border-t border-white/10"
       style="pointer-events: none;"
     ></div>
 
