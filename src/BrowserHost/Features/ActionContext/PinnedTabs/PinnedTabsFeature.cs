@@ -104,10 +104,13 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         var customizations = TabCustomizationFeature.GetCustomizationsForTab(tabId);
         if (customizations.DisableFixedAddress == true)
         {
-            // By default, the persisted state for pinned tabs is not updated. However, if fixed addresses are disable then we do want to update it.
+            // By default, the persisted state for pinned tabs is not updated. However, if fixed addresses are disabled then we do want to update it.
             _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
             {
-                PinnedTabs = [.. _pinnedTabData.PinnedTabs.Where(t => t.Id != tabId), new PinnedTabDtoV1(tabId, updatedTab.Title, updatedTab.Favicon, updatedTab.Address)]
+                PinnedTabs = [.. _pinnedTabData
+                    .PinnedTabs
+                    .Select(t => t.Id == tabId ? new PinnedTabDtoV1(tabId, updatedTab.Title, updatedTab.Favicon, updatedTab.Address) : t)
+                ]
             });
         }
     }
