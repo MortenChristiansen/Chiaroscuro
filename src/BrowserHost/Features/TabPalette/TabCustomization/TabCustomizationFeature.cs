@@ -19,6 +19,10 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
         {
             TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { DisableFixedAddress = e.IsDisabled });
         });
+        PubSub.Subscribe<TabNotificationPermissionChangedEvent>((e) =>
+        {
+            TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { NotificationPermission = e.Permission });
+        });
         PubSub.Subscribe<TabClosedEvent>((e) => TabCustomizationStateManager.DeleteCustomization(e.Tab.Id));
         PubSub.Subscribe<EphemeralTabsExpiredEvent>((e) =>
         {

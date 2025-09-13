@@ -8,6 +8,7 @@ using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
+using BrowserHost.Features.Notifications;
 using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
@@ -75,6 +76,7 @@ public partial class MainWindow : Window
             new FindTextFeature(this),
             new TabCustomizationFeature(this),
             new DomainCustomizationFeature(this),
+            new WindowsNotificationService(this),
         ];
         _features.ForEach(f => f.Configure());
 

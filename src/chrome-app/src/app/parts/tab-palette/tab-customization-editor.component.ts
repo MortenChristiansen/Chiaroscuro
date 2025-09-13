@@ -74,6 +74,40 @@ import { TabCustomizationApi } from './tabCustomizationApi';
           <span class="text-sm text-gray-300">Disable fixed address</span>
         </label>
       </div>
+      <div class="mt-4 pt-4 border-t border-white/10">
+        <div class="text-xs text-gray-400 mb-2">Notification Permission</div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm" [class]="getNotificationPermissionClass()">
+            {{ getNotificationPermissionText() }}
+          </span>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="px-3 py-1 text-xs rounded bg-green-600 hover:bg-green-700 text-white"
+              [disabled]="notificationPermission() === 1"
+              (click)="setNotificationPermission(1)"
+            >
+              Allow
+            </button>
+            <button
+              type="button"
+              class="px-3 py-1 text-xs rounded bg-red-600 hover:bg-red-700 text-white"
+              [disabled]="notificationPermission() === 2"
+              (click)="setNotificationPermission(2)"
+            >
+              Deny
+            </button>
+            <button
+              type="button"
+              class="px-3 py-1 text-xs rounded bg-gray-600 hover:bg-gray-700 text-white"
+              [disabled]="notificationPermission() === 0"
+              (click)="setNotificationPermission(0)"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   `,
 })
@@ -81,9 +115,26 @@ export class TabCustomizationEditorComponent implements OnInit {
   title = signal('');
   initialTitle = signal<string | null>(null);
   disableFixedAddress = signal<boolean>(false);
+  notificationPermission = signal<number>(0); // 0 = NotAsked, 1 = Granted, 2 = Denied
 
   titleInput = viewChild.required<ElementRef<HTMLInputElement>>('titleInput');
   private api!: TabCustomizationApi;
+
+  getNotificationPermissionText(): string {
+    switch (this.notificationPermission()) {
+      case 1: return 'Granted';
+      case 2: return 'Denied';
+      default: return 'Not Asked';
+    }
+  }
+
+  getNotificationPermissionClass(): string {
+    switch (this.notificationPermission()) {
+      case 1: return 'text-green-400';
+      case 2: return 'text-red-400';
+      default: return 'text-gray-400';
+    }
+  }
 
   async ngOnInit() {
     this.api = await loadBackendApi<TabCustomizationApi>('tabCustomizationApi');
@@ -92,6 +143,7 @@ export class TabCustomizationEditorComponent implements OnInit {
       initCustomSettings: (settings: {
         customTitle: string | null;
         disableFixedAddress: boolean | null;
+        notificationPermission: number;
       }) => {
         this.initialTitle.set(settings.customTitle);
         this.title.set(settings.customTitle ?? '');
@@ -99,6 +151,7 @@ export class TabCustomizationEditorComponent implements OnInit {
         this.titleInput().nativeElement.value = settings.customTitle ?? '';
 
         this.disableFixedAddress.set(settings.disableFixedAddress ?? false);
+        this.notificationPermission.set(settings.notificationPermission ?? 0);
       },
     });
   }
@@ -120,5 +173,10 @@ export class TabCustomizationEditorComponent implements OnInit {
   async onToggleDisableFixed(checked: boolean) {
     this.disableFixedAddress.set(!!checked);
     await this.api.setDisableFixedAddress(!!checked);
+  }
+
+  async setNotificationPermission(permissionStatus: number) {
+    this.notificationPermission.set(permissionStatus);
+    await this.api.setNotificationPermission(permissionStatus);
   }
 }

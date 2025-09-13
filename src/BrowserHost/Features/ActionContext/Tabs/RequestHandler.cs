@@ -21,4 +21,9 @@ public class RequestHandler(string tabId) : CefSharp.Handler.RequestHandler
 
         return false;
     }
+
+    protected override IPermissionHandler GetPermissionHandler(IWebBrowser chromiumWebBrowser, IBrowser browser)
+    {
+        return new PermissionHandler(tabId);
+    }
 }

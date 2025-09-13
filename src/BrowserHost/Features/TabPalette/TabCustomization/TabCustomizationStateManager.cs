@@ -8,7 +8,14 @@ using System.Threading;
 
 namespace BrowserHost.Features.TabPalette.TabCustomization;
 
-public record TabCustomizationDataV1(string TabId, string? CustomTitle, bool? DisableFixedAddress);
+public enum NotificationPermissionStatus
+{
+    NotAsked,
+    Granted, 
+    Denied
+}
+
+public record TabCustomizationDataV1(string TabId, string? CustomTitle, bool? DisableFixedAddress, NotificationPermissionStatus? NotificationPermission);
 
 public static class TabCustomizationStateManager
 {
@@ -91,7 +98,7 @@ public static class TabCustomizationStateManager
         }
     }
 
-    private static TabCustomizationDataV1 CreateDefaultCustomization(string tabId) => new(tabId, null, false);
+    private static TabCustomizationDataV1 CreateDefaultCustomization(string tabId) => new(tabId, null, false, NotificationPermissionStatus.NotAsked);
 
     public static TabCustomizationDataV1? SaveCustomization(string tabId, Func<TabCustomizationDataV1, TabCustomizationDataV1> updateData)
     {
