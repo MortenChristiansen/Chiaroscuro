@@ -10,10 +10,14 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
     public override void Configure()
     {
         PubSub.Subscribe<TabPaletteRequestedEvent>((_) => InitializeCustomSettings());
-        PubSub.Subscribe<TabCustomizationChangedEvent>((e) =>
+        PubSub.Subscribe<TabCustomTitleChangedEvent>((e) =>
         {
-            var customization = TabCustomizationStateManager.SaveCustomization(new(e.TabId, e.CustomTitle));
+            var customization = TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { CustomTitle = e.CustomTitle });
             Window.ActionContext.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
+        });
+        PubSub.Subscribe<TabDisableStaticAddressChangedEvent>((e) =>
+        {
+            TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { DisableFixedAddress = e.DisableStaticAddress });
         });
         PubSub.Subscribe<TabClosedEvent>((e) => TabCustomizationStateManager.DeleteCustomization(e.Tab.Id));
         PubSub.Subscribe<EphemeralTabsExpiredEvent>((e) =>
@@ -37,6 +41,6 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
             return;
 
         var customization = TabCustomizationStateManager.GetCustomization(Window.CurrentTab.Id);
-        Window.TabPaletteBrowserControl.InitCustomTitle(customization.CustomTitle);
+        Window.TabPaletteBrowserControl.InitCustomSettings(customization);
     }
 }

@@ -4,8 +4,8 @@ namespace BrowserHost.Features.TabPalette.TabCustomization;
 
 public static class TabPaletteBrowserExtensions
 {
-    public static void InitCustomTitle(this TabPaletteBrowser browser, string? title)
+    public static void InitCustomSettings(this TabPaletteBrowser browser, TabCustomizationDataV1 settings)
     {
-        browser.CallClientApi("initCustomTitle", title.ToJsonString());
+        browser.CallClientApi("initCustomSettings", settings.ToJsonObject());
     }
 }

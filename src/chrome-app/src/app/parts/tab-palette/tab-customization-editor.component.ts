@@ -63,12 +63,24 @@ import { TabCustomizationApi } from './tabCustomizationApi';
         Currently: "{{ initialTitle() || '(empty)' }}" } @else { No custom title
         set }
       </div>
+      <div class="mt-4 pt-4 border-t border-white/10">
+        <label class="inline-flex items-center gap-2 select-none">
+          <input
+            type="checkbox"
+            class="w-4 h-4 rounded border-white/10 bg-gray-800"
+            [checked]="disableStaticAddress()"
+            (change)="onToggleDisableStatic($any($event.target).checked)"
+          />
+          <span class="text-sm text-gray-300">Disable static address</span>
+        </label>
+      </div>
     </div>
   `,
 })
 export class TabCustomizationEditorComponent implements OnInit {
   title = signal('');
   initialTitle = signal<string | null>(null);
+  disableStaticAddress = signal<boolean>(false);
 
   titleInput = viewChild.required<ElementRef<HTMLInputElement>>('titleInput');
   private api!: TabCustomizationApi;
@@ -77,11 +89,16 @@ export class TabCustomizationEditorComponent implements OnInit {
     this.api = await loadBackendApi<TabCustomizationApi>('tabCustomizationApi');
 
     exposeApiToBackend({
-      initCustomTitle: (currentTitle: string | null) => {
-        this.initialTitle.set(currentTitle);
-        this.title.set(currentTitle ?? '');
+      initCustomSettings: (settings: {
+        customTitle: string | null;
+        disableFixedAddress: boolean | null;
+      }) => {
+        this.initialTitle.set(settings.customTitle);
+        this.title.set(settings.customTitle ?? '');
         // I'm not sure why this is needed, but there are cases where the title signal does not update the input value.
-        this.titleInput().nativeElement.value = currentTitle ?? '';
+        this.titleInput().nativeElement.value = settings.customTitle ?? '';
+
+        this.disableStaticAddress.set(settings.disableFixedAddress ?? false);
       },
     });
   }
@@ -98,5 +115,10 @@ export class TabCustomizationEditorComponent implements OnInit {
     await this.api.setCustomTitle(null);
     this.initialTitle.set(null);
     input.focus();
+  }
+
+  async onToggleDisableStatic(checked: boolean) {
+    this.disableStaticAddress.set(!!checked);
+    await this.api.setDisableStaticAddress(!!checked);
   }
 }
