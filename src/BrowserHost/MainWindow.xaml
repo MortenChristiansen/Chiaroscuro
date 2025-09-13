@@ -20,7 +20,7 @@
                 <Grid Margin="0,30,0,0" x:Name="MainContentGrid">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="300" MinWidth="200" />
-                        <ColumnDefinition Width="5" />
+                        <ColumnDefinition Width="8" />
                         <ColumnDefinition Width="*" MinWidth="200" />
                         <ColumnDefinition x:Name="TabPaletteSplitterColumn" Width="0" MinWidth="0" />
                         <ColumnDefinition x:Name="TabPaletteColumn" Width="0" MinWidth="0" />
@@ -28,7 +28,7 @@
                     <ac:ActionContextBrowser x:Name="ActionContext" Grid.Column="0" />
                     <GridSplitter
                         Grid.Column="1"
-                        Width="5"
+                        Width="8"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
                         Background="Transparent"
@@ -46,7 +46,7 @@
                     </Border>
                     <GridSplitter x:Name="TabPaletteGridSplitter"
                         Grid.Column="3"
-                        Width="5"
+                        Width="8"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
                         Background="Transparent"
