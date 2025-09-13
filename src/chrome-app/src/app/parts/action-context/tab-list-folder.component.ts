@@ -32,7 +32,7 @@ import {
         containsActiveTab() && !isOpen() ? ' font-bold' : ''
       }}"
     >
-      <div class="group flex items-center px-4 py-1">
+      <div class="group flex items-center px-2 py-1">
         <button
           (click)="toggleOpen.emit()"
           class="mr-2 text-gray-400 hover:text-gray-300 transition-colors drag-handle"

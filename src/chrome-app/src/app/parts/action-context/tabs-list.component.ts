@@ -42,7 +42,7 @@ interface FolderDto {
 
     <div
       id="persistent-tabs"
-      class="flex flex-col gap-2"
+      class="flex flex-col gap-1"
       [nxtSortablejs]="sortablePersistedTabs"
       [config]="sortableOptions"
     >
@@ -85,7 +85,7 @@ interface FolderDto {
     </div>
 
     <div
-      class="w-full h-0.25 mt-4 pt-4 border-t border-white/10"
+      class="w-full h-0.25 mt-2 pt-2 border-t border-white/10"
       style="pointer-events: none;"
     ></div>
 
