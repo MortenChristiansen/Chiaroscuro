@@ -105,7 +105,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         var browserTab = tabsFeature.GetTabBrowserById(tab.Id);
         return new WorkspaceTabStateDtoV1(
             tab.Id,
-            browserTab?.GetAddresToPersist(isBookmarked, customization) ?? "",
+            browserTab?.GetAddressToPersist(isBookmarked, customization) ?? "",
             browserTab?.GetTitleToPersist(isBookmarked, customization) ?? "",
             browserTab?.GetFaviconToPersist(isBookmarked, customization) ?? "",
             tab.IsActive,

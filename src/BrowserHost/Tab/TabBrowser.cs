@@ -64,14 +64,14 @@ public class TabBrowser : UserControl
         _persistableState = new PersistableState(_browser.Address, _browser.Favicon, _browser.Title);
     }
 
-    public string GetAddresToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
-        isBookmarkedOrPinned && !tabCustomizations.DisableFixedAddress == true ? _persistableState?.Address ?? _browser.Address : _browser.Address;
+    public string GetAddressToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
+        isBookmarkedOrPinned && tabCustomizations.DisableFixedAddress != true ? _persistableState?.Address ?? _browser.Address : _browser.Address;
 
     public string GetTitleToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
-        isBookmarkedOrPinned && !tabCustomizations.DisableFixedAddress == true ? _persistableState?.Title ?? _browser.Title : _browser.Title;
+        isBookmarkedOrPinned && tabCustomizations.DisableFixedAddress != true ? _persistableState?.Title ?? _browser.Title : _browser.Title;
 
     public string? GetFaviconToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
-        isBookmarkedOrPinned && !tabCustomizations.DisableFixedAddress == true ? _persistableState?.Favicon ?? _browser.Favicon : _browser.Favicon;
+        isBookmarkedOrPinned && tabCustomizations.DisableFixedAddress != true ? _persistableState?.Favicon ?? _browser.Favicon : _browser.Favicon;
 
     private bool ShouldUseWebView2(string address)
     {
