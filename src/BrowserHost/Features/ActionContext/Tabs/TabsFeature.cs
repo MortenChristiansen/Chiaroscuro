@@ -120,6 +120,8 @@ public class TabsFeature(MainWindow window) : Feature(window)
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
 
+        browser.SavePersistableState();
+
         PubSub.Publish(new TabBrowserCreatedEvent(browser));
         return browser;
     }
@@ -139,6 +141,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
         if (tab == null || Window.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id)) return;
 
         Window.ActionContext.ToggleTabBookmark(tab.Id);
+        tab.SavePersistableState();
     }
 
     public TabBrowser GetTabBrowserById(string tabId) =>

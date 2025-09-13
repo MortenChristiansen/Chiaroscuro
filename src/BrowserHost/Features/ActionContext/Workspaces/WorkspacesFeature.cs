@@ -22,11 +22,11 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<TabsChangedEvent>(e =>
             _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
-                e.Tabs.Select(t => new WorkspaceTabStateDtoV1(
+                e.Tabs.Select((t, idx) => new WorkspaceTabStateDtoV1(
                     t.Id,
-                    tabsFeature.GetTabBrowserById(t.Id)?.Address ?? "",
-                    t.Title,
-                    t.Favicon,
+                    tabsFeature.GetTabBrowserById(t.Id)?.GetAddresToPersist(isBookmarkedOrPinned: idx < e.EphemeralTabStartIndex) ?? "",
+                    tabsFeature.GetTabBrowserById(t.Id)?.GetTitleToPersist(isBookmarkedOrPinned: idx < e.EphemeralTabStartIndex) ?? "",
+                    tabsFeature.GetTabBrowserById(t.Id)?.GetFaviconToPersist(isBookmarkedOrPinned: idx < e.EphemeralTabStartIndex) ?? "",
                     t.IsActive,
                     t.Created)
                 ),
@@ -109,6 +109,12 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
+        if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            RestoreOriginalTabAddress();
+            return true;
+        }
+
         if (Keyboard.Modifiers == ModifierKeys.Control || Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
         {
             var index = e.Key switch
@@ -190,6 +196,20 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         );
     }
 
+    private void RestoreOriginalTabAddress()
+    {
+        var tab = Window.CurrentTab;
+        if (tab == null) return;
+
+        var isPinned = Window.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id);
+        var isBookmarked = Window.GetFeature<WorkspacesFeature>().IsTabBookmarked(tab.Id);
+
+        if (!isPinned && !isBookmarked)
+            return;
+
+        tab.RestoreOriginalAddress();
+    }
+
     public WorkspaceDtoV1 GetWorkspaceById(string workspaceId) =>
         _workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId)
             ?? throw new ArgumentException($"Workspace with ID {workspaceId} not found.");
@@ -201,4 +221,14 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     public WorkspaceTabStateDtoV1[] GetTabsForWorkspace(string workspaceId) =>
         _workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId)?.Tabs
             ?? throw new ArgumentException($"No tabs found for workspace with ID {workspaceId}.");
+
+    public bool IsTabBookmarked(string tabId)
+    {
+        var workspace = _workspaces.FirstOrDefault(ws => ws.Tabs.Any(t => t.TabId == tabId));
+        if (workspace == null)
+            return false;
+
+        var tabIndex = workspace.Tabs.ToList().FindIndex(t => t.TabId == tabId);
+        return workspace.EphemeralTabStartIndex > tabIndex;
+    }
 }

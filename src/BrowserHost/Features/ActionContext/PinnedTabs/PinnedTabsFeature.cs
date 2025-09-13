@@ -41,8 +41,6 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
             NotifyFrontendOfUpdatedPinnedTabs();
             Window.ActionContext.AddTab(new(e.TabId, tab.Title, tab.Favicon, DateTimeOffset.UtcNow)); // We don't currently store creation info for pinned tabs
         });
-        PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => UpdatePinnedTabState(e.TabId));
-        PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => UpdatePinnedTabState(e.TabId));
         PubSub.Subscribe<TabClosedEvent>(e =>
         {
             RemovePinnedTabFromState(e.Tab.Id);
@@ -92,18 +90,6 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         }
 
         return base.HandleOnPreviewKeyDown(e);
-    }
-
-    private void UpdatePinnedTabState(string tabId)
-    {
-        var updatedTab = Window.GetFeature<TabsFeature>().GetTabBrowserById(tabId);
-        if (!IsTabPinned(tabId))
-            return;
-
-        _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
-        {
-            PinnedTabs = [.. _pinnedTabData.PinnedTabs.Where(t => t.Id != tabId), new PinnedTabDtoV1(tabId, updatedTab.Title, updatedTab.Favicon, updatedTab.Address)]
-        });
     }
 
     public PinnedTabDtoV1[] GetPinnedTabs() =>
