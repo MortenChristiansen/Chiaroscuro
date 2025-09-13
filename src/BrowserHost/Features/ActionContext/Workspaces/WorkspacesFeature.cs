@@ -1,6 +1,7 @@
 ﻿using BrowserHost.Features.ActionContext.PinnedTabs;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
@@ -22,14 +23,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<TabsChangedEvent>(e =>
             _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
-                e.Tabs.Select((t, idx) => new WorkspaceTabStateDtoV1(
-                    t.Id,
-                    tabsFeature.GetTabBrowserById(t.Id)?.GetAddresToPersist(isBookmarkedOrPinned: idx < e.EphemeralTabStartIndex) ?? "",
-                    tabsFeature.GetTabBrowserById(t.Id)?.GetTitleToPersist(isBookmarkedOrPinned: idx < e.EphemeralTabStartIndex) ?? "",
-                    tabsFeature.GetTabBrowserById(t.Id)?.GetFaviconToPersist(isBookmarkedOrPinned: idx < e.EphemeralTabStartIndex) ?? "",
-                    t.IsActive,
-                    t.Created)
-                ),
+                e.Tabs.Select((t, idx) => CreateTabState(t, idx, tabsFeature)),
                 e.EphemeralTabStartIndex,
                 e.Folders.Select(f => new FolderDtoV1(
                     f.Id,
@@ -102,6 +96,20 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
         if (App.Options.LaunchUrl != null)
             PubSub.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true));
+    }
+
+    private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, int tabIndex, TabsFeature tabsFeature)
+    {
+        var customization = TabCustomizationFeature.GetCustomizationsForTab(tab.Id);
+        var isBookmarked = tabIndex < CurrentWorkspace.EphemeralTabStartIndex;
+        return new WorkspaceTabStateDtoV1(
+            tab.Id,
+            tabsFeature.GetTabBrowserById(tab.Id)?.GetAddresToPersist(isBookmarked, customization) ?? "",
+            tabsFeature.GetTabBrowserById(tab.Id)?.GetTitleToPersist(isBookmarked, customization) ?? "",
+            tabsFeature.GetTabBrowserById(tab.Id)?.GetFaviconToPersist(isBookmarked, customization) ?? "",
+            tab.IsActive,
+            tab.Created
+        );
     }
 
     private Color GetCurrentWorkspaceColor() =>

@@ -1,4 +1,5 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
@@ -46,6 +47,8 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
             RemovePinnedTabFromState(e.Tab.Id);
             NotifyFrontendOfUpdatedPinnedTabs();
         });
+        PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => UpdatePinnedTabState(e.TabId));
+        PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => UpdatePinnedTabState(e.TabId));
     }
 
     private void NotifyFrontendOfUpdatedPinnedTabs()
@@ -90,6 +93,23 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         }
 
         return base.HandleOnPreviewKeyDown(e);
+    }
+
+    private void UpdatePinnedTabState(string tabId)
+    {
+        var updatedTab = Window.GetFeature<TabsFeature>().GetTabBrowserById(tabId);
+        if (!IsTabPinned(tabId))
+            return;
+
+        var customizations = TabCustomizationFeature.GetCustomizationsForTab(tabId);
+        if (customizations.DisableFixedAddress == true)
+        {
+            // By default, the persisted state for pinned tabs is not updated. However, if fixed addresses are disable then we do want to update it.
+            _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
+            {
+                PinnedTabs = [.. _pinnedTabData.PinnedTabs.Where(t => t.Id != tabId), new PinnedTabDtoV1(tabId, updatedTab.Title, updatedTab.Favicon, updatedTab.Address)]
+            });
+        }
     }
 
     public PinnedTabDtoV1[] GetPinnedTabs() =>

@@ -43,4 +43,7 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
         var customization = TabCustomizationStateManager.GetCustomization(Window.CurrentTab.Id);
         Window.TabPaletteBrowserControl.InitCustomSettings(customization);
     }
+
+    public static TabCustomizationDataV1 GetCustomizationsForTab(string tabId) =>
+        TabCustomizationStateManager.GetCustomization(tabId);
 }
