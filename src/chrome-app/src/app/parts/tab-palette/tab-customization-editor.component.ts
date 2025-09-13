@@ -68,10 +68,10 @@ import { TabCustomizationApi } from './tabCustomizationApi';
           <input
             type="checkbox"
             class="w-4 h-4 rounded border-white/10 bg-gray-800"
-            [checked]="disableStaticAddress()"
-            (change)="onToggleDisableStatic($any($event.target).checked)"
+            [checked]="disableFixedAddress()"
+            (change)="onToggleDisableFixed($any($event.target).checked)"
           />
-          <span class="text-sm text-gray-300">Disable static address</span>
+          <span class="text-sm text-gray-300">Disable fixed address</span>
         </label>
       </div>
     </div>
@@ -80,7 +80,7 @@ import { TabCustomizationApi } from './tabCustomizationApi';
 export class TabCustomizationEditorComponent implements OnInit {
   title = signal('');
   initialTitle = signal<string | null>(null);
-  disableStaticAddress = signal<boolean>(false);
+  disableFixedAddress = signal<boolean>(false);
 
   titleInput = viewChild.required<ElementRef<HTMLInputElement>>('titleInput');
   private api!: TabCustomizationApi;
@@ -98,7 +98,7 @@ export class TabCustomizationEditorComponent implements OnInit {
         // I'm not sure why this is needed, but there are cases where the title signal does not update the input value.
         this.titleInput().nativeElement.value = settings.customTitle ?? '';
 
-        this.disableStaticAddress.set(settings.disableFixedAddress ?? false);
+        this.disableFixedAddress.set(settings.disableFixedAddress ?? false);
       },
     });
   }
@@ -117,8 +117,8 @@ export class TabCustomizationEditorComponent implements OnInit {
     input.focus();
   }
 
-  async onToggleDisableStatic(checked: boolean) {
-    this.disableStaticAddress.set(!!checked);
-    await this.api.setDisableStaticAddress(!!checked);
+  async onToggleDisableFixed(checked: boolean) {
+    this.disableFixedAddress.set(!!checked);
+    await this.api.setDisableFixedAddress(!!checked);
   }
 }

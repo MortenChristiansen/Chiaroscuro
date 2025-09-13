@@ -15,9 +15,9 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
             var customization = TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { CustomTitle = e.CustomTitle });
             Window.ActionContext.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
         });
-        PubSub.Subscribe<TabDisableStaticAddressChangedEvent>((e) =>
+        PubSub.Subscribe<TabDisableFixedAddressChangedEvent>((e) =>
         {
-            TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { DisableFixedAddress = e.DisableStaticAddress });
+            TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { DisableFixedAddress = e.IsDisabled });
         });
         PubSub.Subscribe<TabClosedEvent>((e) => TabCustomizationStateManager.DeleteCustomization(e.Tab.Id));
         PubSub.Subscribe<EphemeralTabsExpiredEvent>((e) =>
