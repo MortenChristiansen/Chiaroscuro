@@ -13,6 +13,7 @@ public record TabClosedEvent(TabBrowser Tab);
 public record TabsChangedEvent(TabUiStateDto[] Tabs, int EphemeralTabStartIndex, FolderUiStateDto[] Folders);
 public record TabUrlLoadedSuccessfullyEvent(string TabId);
 public record TabFaviconUrlChangedEvent(string TabId, string? NewFaviconUrl);
+public record TabStatusMessageChangedEvent(string TabId, string StatusMessage);
 public record TabBrowserCreatedEvent(TabBrowser TabBrowser);
 
 public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive, DateTimeOffset Created);

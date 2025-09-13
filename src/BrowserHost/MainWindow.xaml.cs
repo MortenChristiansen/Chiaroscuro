@@ -308,4 +308,20 @@ public partial class MainWindow : Window
         };
         timer.Start();
     }
+
+    public void UpdateLinkStatus(string linkStatus)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (string.IsNullOrEmpty(linkStatus))
+            {
+                LinkStatusBar.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                LinkStatusText.Text = linkStatus;
+                LinkStatusBar.Visibility = Visibility.Visible;
+            }
+        });
+    }
 }
