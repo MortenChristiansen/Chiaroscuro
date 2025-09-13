@@ -30,6 +30,7 @@ public class CefSharpTabBrowser : Browser
 
         TitleChanged += OnTitleChanged;
         LoadingStateChanged += OnLoadingStateChanged;
+        IsBrowserInitializedChanged += OnBrowserInitialized;
 
         DisplayHandler = new FaviconDisplayHandler(OnFaviconAddressesChanged);
         _actionContextBrowser = actionContextBrowser;
@@ -39,7 +40,19 @@ public class CefSharpTabBrowser : Browser
         RequestHandler = new RequestHandler(Id);
         FindHandler = new FindHandler();
 
+        // Register notification API
+        RegisterSecondaryApi(new NotificationBrowserApi(Id), "notificationApi");
+
         BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
+    }
+
+    private void OnBrowserInitialized(object? sender, DependencyPropertyChangedEventArgs e)
+    {
+        if ((bool)e.NewValue)
+        {
+            // Inject notification API override
+            NotificationApiInjector.InjectNotificationApi(this, Id);
+        }
     }
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)

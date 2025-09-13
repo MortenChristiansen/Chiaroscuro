@@ -1,6 +1,7 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Utilities;
+using CefSharp;
 using System.Linq;
 
 namespace BrowserHost.Features.TabPalette.TabCustomization;
@@ -22,6 +23,12 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<TabNotificationPermissionChangedEvent>((e) =>
         {
             TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { NotificationPermission = e.Permission });
+            
+            // Update JavaScript permission status if this is the current tab
+            if (Window.CurrentTab?.Id == e.TabId && Window.CurrentTab is CefSharp.IWebBrowser browser)
+            {
+                NotificationApiInjector.UpdatePermissionStatus(browser, e.Permission);
+            }
         });
         PubSub.Subscribe<TabClosedEvent>((e) => TabCustomizationStateManager.DeleteCustomization(e.Tab.Id));
         PubSub.Subscribe<EphemeralTabsExpiredEvent>((e) =>

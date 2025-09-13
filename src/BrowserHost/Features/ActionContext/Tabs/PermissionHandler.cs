@@ -60,6 +60,13 @@ public class PermissionHandler(string tabId) : CefSharp.Handler.PermissionHandle
                     // Save the permission choice
                     PubSub.Publish(new TabNotificationPermissionChangedEvent(tabId, permission));
 
+                    // Update JavaScript permission status
+                    var browser = MainWindow.Instance.CurrentTab as CefSharp.IWebBrowser;
+                    if (browser != null)
+                    {
+                        NotificationApiInjector.UpdatePermissionStatus(browser, permission);
+                    }
+
                     // Respond to the permission request
                     var cefResult = result == MessageBoxResult.Yes 
                         ? CefPermissionRequestResult.Accept 
