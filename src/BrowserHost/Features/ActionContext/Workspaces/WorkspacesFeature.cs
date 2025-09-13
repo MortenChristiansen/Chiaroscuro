@@ -1,6 +1,7 @@
 ﻿using BrowserHost.Features.ActionContext.PinnedTabs;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
@@ -22,14 +23,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<TabsChangedEvent>(e =>
             _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
-                e.Tabs.Select(t => new WorkspaceTabStateDtoV1(
-                    t.Id,
-                    tabsFeature.GetTabBrowserById(t.Id)?.Address ?? "",
-                    t.Title,
-                    t.Favicon,
-                    t.IsActive,
-                    t.Created)
-                ),
+                e.Tabs.Select((t, idx) => CreateTabState(t, idx, tabsFeature)),
                 e.EphemeralTabStartIndex,
                 e.Folders.Select(f => new FolderDtoV1(
                     f.Id,
@@ -104,11 +98,32 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             PubSub.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true));
     }
 
+    private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, int tabIndex, TabsFeature tabsFeature)
+    {
+        var customization = TabCustomizationFeature.GetCustomizationsForTab(tab.Id);
+        var isBookmarked = IsTabBookmarked(tab.Id);
+        var browserTab = tabsFeature.GetTabBrowserById(tab.Id);
+        return new WorkspaceTabStateDtoV1(
+            tab.Id,
+            browserTab?.GetAddressToPersist(isBookmarked, customization) ?? "",
+            browserTab?.GetTitleToPersist(isBookmarked, customization) ?? "",
+            browserTab?.GetFaviconToPersist(isBookmarked, customization) ?? "",
+            tab.IsActive,
+            tab.Created
+        );
+    }
+
     private Color GetCurrentWorkspaceColor() =>
         (Color)ColorConverter.ConvertFromString(CurrentWorkspace.Color);
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
+        if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            RestoreOriginalTabAddress();
+            return true;
+        }
+
         if (Keyboard.Modifiers == ModifierKeys.Control || Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
         {
             var index = e.Key switch
@@ -190,6 +205,20 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         );
     }
 
+    private void RestoreOriginalTabAddress()
+    {
+        var tab = Window.CurrentTab;
+        if (tab == null) return;
+
+        var isPinned = Window.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id);
+        var isBookmarked = Window.GetFeature<WorkspacesFeature>().IsTabBookmarked(tab.Id);
+
+        if (!isPinned && !isBookmarked)
+            return;
+
+        tab.RestoreOriginalAddress();
+    }
+
     public WorkspaceDtoV1 GetWorkspaceById(string workspaceId) =>
         _workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId)
             ?? throw new ArgumentException($"Workspace with ID {workspaceId} not found.");
@@ -201,4 +230,14 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     public WorkspaceTabStateDtoV1[] GetTabsForWorkspace(string workspaceId) =>
         _workspaces.FirstOrDefault(ws => ws.WorkspaceId == workspaceId)?.Tabs
             ?? throw new ArgumentException($"No tabs found for workspace with ID {workspaceId}.");
+
+    public bool IsTabBookmarked(string tabId)
+    {
+        var workspace = _workspaces.FirstOrDefault(ws => ws.Tabs.Any(t => t.TabId == tabId));
+        if (workspace == null)
+            return false;
+
+        var tabIndex = workspace.Tabs.ToList().FindIndex(t => t.TabId == tabId);
+        return workspace.EphemeralTabStartIndex > tabIndex;
+    }
 }

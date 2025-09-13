@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace BrowserHost.Features.TabPalette.TabCustomization;
 
-public record TabCustomizationDataV1(string TabId, string? CustomTitle);
+public record TabCustomizationDataV1(string TabId, string? CustomTitle, bool? DisableFixedAddress);
 
 public static class TabCustomizationStateManager
 {
@@ -41,7 +41,7 @@ public static class TabCustomizationStateManager
             if (_cachedPerTab.TryGetValue(tabId, out var cached))
                 return cached;
 
-            return new TabCustomizationDataV1(tabId, null);
+            return CreateDefaultCustomization(tabId);
         }
     }
 
@@ -70,7 +70,7 @@ public static class TabCustomizationStateManager
                             if (versioned?.Version == _currentVersion)
                             {
                                 var tabId = Path.GetFileName(dir);
-                                var data = JsonSerializer.Deserialize<PersistentData<TabCustomizationDataV1>>(json)?.Data ?? new(tabId, null);
+                                var data = JsonSerializer.Deserialize<PersistentData<TabCustomizationDataV1>>(json)?.Data ?? CreateDefaultCustomization(tabId);
                                 _cachedPerTab[data.TabId] = data;
                             }
                         }
@@ -91,23 +91,33 @@ public static class TabCustomizationStateManager
         }
     }
 
-    public static TabCustomizationDataV1? SaveCustomization(TabCustomizationDataV1 data)
+    private static TabCustomizationDataV1 CreateDefaultCustomization(string tabId) => new(tabId, null, false);
+
+    public static TabCustomizationDataV1? SaveCustomization(string tabId, Func<TabCustomizationDataV1, TabCustomizationDataV1> updateData)
     {
-        if (data == new TabCustomizationDataV1(data.TabId, null))
-        {
-            // No customization to save
-            DeleteCustomization(data.TabId);
-            return null;
-        }
-
-        var tabId = data.TabId;
-
         lock (_lock)
         {
-            if (_cachedPerTab.TryGetValue(tabId, out var existing) && existing.Equals(data))
+            TabCustomizationDataV1 data;
+            if (_cachedPerTab.TryGetValue(tabId, out var existing))
             {
-                Debug.WriteLine("Skipping tab customization save - no changes detected.");
-                return existing;
+                data = updateData(existing);
+
+                if (existing == data)
+                {
+                    Debug.WriteLine("Skipping tab customization save - no changes detected.");
+                    return existing;
+                }
+            }
+            else
+            {
+                data = updateData(CreateDefaultCustomization(tabId));
+            }
+
+            if (data == CreateDefaultCustomization(tabId))
+            {
+                // No customization to save
+                DeleteCustomization(data.TabId);
+                return null;
             }
 
             var folder = GetTabFolder(tabId);
@@ -129,6 +139,7 @@ public static class TabCustomizationStateManager
             catch (Exception e) when (!Debugger.IsAttached)
             {
                 Debug.WriteLine($"Failed to save tab customization for '{tabId}': {e.Message}");
+                return CreateDefaultCustomization(tabId);
             }
 
             return _cachedPerTab[tabId];

@@ -1,4 +1,5 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
@@ -41,13 +42,13 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
             NotifyFrontendOfUpdatedPinnedTabs();
             Window.ActionContext.AddTab(new(e.TabId, tab.Title, tab.Favicon, DateTimeOffset.UtcNow)); // We don't currently store creation info for pinned tabs
         });
-        PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => UpdatePinnedTabState(e.TabId));
-        PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => UpdatePinnedTabState(e.TabId));
         PubSub.Subscribe<TabClosedEvent>(e =>
         {
             RemovePinnedTabFromState(e.Tab.Id);
             NotifyFrontendOfUpdatedPinnedTabs();
         });
+        PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => UpdatePinnedTabState(e.TabId));
+        PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => UpdatePinnedTabState(e.TabId));
     }
 
     private void NotifyFrontendOfUpdatedPinnedTabs()
@@ -100,10 +101,18 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         if (!IsTabPinned(tabId))
             return;
 
-        _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
+        var customizations = TabCustomizationFeature.GetCustomizationsForTab(tabId);
+        if (customizations.DisableFixedAddress == true)
         {
-            PinnedTabs = [.. _pinnedTabData.PinnedTabs.Where(t => t.Id != tabId), new PinnedTabDtoV1(tabId, updatedTab.Title, updatedTab.Favicon, updatedTab.Address)]
-        });
+            // By default, the persisted state for pinned tabs is not updated. However, if fixed addresses are disabled then we do want to update it.
+            _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
+            {
+                PinnedTabs = [.. _pinnedTabData
+                    .PinnedTabs
+                    .Select(t => t.Id == tabId ? new PinnedTabDtoV1(tabId, updatedTab.Title, updatedTab.Favicon, updatedTab.Address) : t)
+                ]
+            });
+        }
     }
 
     public PinnedTabDtoV1[] GetPinnedTabs() =>
