@@ -139,6 +139,7 @@ public static class TabCustomizationStateManager
             catch (Exception e) when (!Debugger.IsAttached)
             {
                 Debug.WriteLine($"Failed to save tab customization for '{tabId}': {e.Message}");
+                return CreateDefaultCustomization(tabId);
             }
 
             return _cachedPerTab[tabId];
