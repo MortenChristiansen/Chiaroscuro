@@ -47,13 +47,9 @@ public class PermissionHandler(string tabId) : CefSharp.Handler.PermissionHandle
                 // Show permission dialog to user
                 Application.Current.Dispatcher.BeginInvoke(() =>
                 {
-                    var result = MessageBox.Show(
-                        $"The website {origin} wants to show notifications. Do you want to allow this?",
-                        "Notification Permission Request",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question);
+                    var result = NotificationPermissionDialog.ShowDialog(MainWindow.Instance, origin);
 
-                    var permission = result == MessageBoxResult.Yes 
+                    var permission = result 
                         ? NotificationPermissionStatus.Granted 
                         : NotificationPermissionStatus.Denied;
 
@@ -68,7 +64,7 @@ public class PermissionHandler(string tabId) : CefSharp.Handler.PermissionHandle
                     }
 
                     // Respond to the permission request
-                    var cefResult = result == MessageBoxResult.Yes 
+                    var cefResult = result 
                         ? CefPermissionRequestResult.Accept 
                         : CefPermissionRequestResult.Deny;
                     
