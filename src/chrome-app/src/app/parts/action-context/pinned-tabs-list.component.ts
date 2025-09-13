@@ -15,7 +15,7 @@ import { CommonModule } from '@angular/common';
         <div
           class="pinned-tab flex items-center justify-center h-8 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 bg-white/5 hover:bg-white/10 relative flex-1 min-w-0"
           [ngClass]="{
-            'bg-white/20 hover:bg-white/30': activeTabId() == tab.id,
+            'bg-white/15 hover:bg-white/30': activeTabId() == tab.id,
           }"
           (click)="api.activateTab(tab.id)"
           [attr.title]="
