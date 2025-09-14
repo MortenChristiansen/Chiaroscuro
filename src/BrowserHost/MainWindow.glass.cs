@@ -45,11 +45,11 @@ public partial class MainWindow
             if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
             {
                 // Request rounded corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWM_WINDOW_CORNER_PREFERENCE_ROUND = 2)
-                int cornerPref = 2;
+                var cornerPref = 2;
                 _ = DwmSetWindowAttribute(hwnd, 33, ref cornerPref, sizeof(int));
 
                 // Also enable legacy Mica flag (DWMWA_MICA_EFFECT = 1029) for older 22000 builds
-                int enable = 1;
+                var enable = 1;
                 _ = DwmSetWindowAttribute(hwnd, 1029, ref enable, sizeof(int));
 
                 return;
@@ -109,21 +109,34 @@ public partial class MainWindow
         return Color.FromRgb(newR, newG, newB);
     }
 
+    private static Color Lighten(Color color, double factor)
+    {
+        // factor: 0.0 = original color, 1.0 = white
+        byte r = color.R;
+        byte g = color.G;
+        byte b = color.B;
+        byte newR = (byte)(r + (255 - r) * factor);
+        byte newG = (byte)(g + (255 - g) * factor);
+        byte newB = (byte)(b + (255 - b) * factor);
+        return Color.FromRgb(newR, newG, newB);
+    }
+
     private static void EnableAccentBlur(IntPtr hwnd, Color color, byte opacity)
     {
         color = Desaturize(color, 0.3); // Slightly desaturate to reduce color bleeding
+        var colorUint = ((uint)opacity << 24) | ((uint)color.B << 16) | ((uint)color.G << 8) | color.R;
 
         var accent = new ACCENT_POLICY
         {
             AccentState = ACCENT_STATE.ACCENT_ENABLE_ACRYLICBLURBEHIND,
-            AccentFlags = 2, // keep border handling minimal; tweak if needed
+            AccentFlags = 0, // Is ignored
             // GradientColor format: 0xAABBGGRR (alpha in high byte)
-            GradientColor = ((uint)opacity << 24) | ((uint)color.B << 16) | ((uint)color.G << 8) | color.R,
+            GradientColor = colorUint,
             AnimationId = 0
         };
 
-        int size = Marshal.SizeOf<ACCENT_POLICY>();
-        IntPtr pAccent = Marshal.AllocHGlobal(size);
+        var size = Marshal.SizeOf<ACCENT_POLICY>();
+        var pAccent = Marshal.AllocHGlobal(size);
         try
         {
             Marshal.StructureToPtr(accent, pAccent, false);
@@ -134,6 +147,10 @@ public partial class MainWindow
                 SizeOfData = size
             };
             _ = SetWindowCompositionAttribute(hwnd, ref data);
+
+            color = Lighten(color, 0.05); // Lighten slightly for border
+            var border = (color.R) | (color.G << 8) | (color.B << 16);
+            _ = DwmSetWindowAttribute(hwnd, 34, ref border, sizeof(int)); // DWMWA_BORDER_COLOR
         }
         finally
         {
