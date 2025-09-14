@@ -1,9 +1,11 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.ActionContext;
+using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Tab.CefSharp;
 using BrowserHost.Tab.WebView2;
+using BrowserHost.Utilities;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -46,6 +48,7 @@ public class TabBrowser : UserControl
     {
         _actionContextBrowser = actionContextBrowser;
         _ssoDomains = SettingsFeature.ExecutionSettings.SsoEnabledDomains ?? [];
+        favicon ??= FileFaviconProvider.TryGetFaviconForAddress(address);
         _browser = CreateBrowser(id, address, setManualAddress, favicon);
         Content = _browser.AsUIElement();
         AttachBrowserEvents();
@@ -108,6 +111,16 @@ public class TabBrowser : UserControl
         if (_browser is CefSharpTabBrowserAdapter && e.NewValue is string newAddress && ShouldUseWebView2(newAddress))
         {
             UpgradeToWebView2(newAddress);
+        }
+
+        // If navigating to a file address, set a file-type favicon immediately if available
+        if (e.NewValue is string newAddr)
+        {
+            var fileFav = FileFaviconProvider.TryGetFaviconForAddress(newAddr);
+            if (!string.IsNullOrEmpty(fileFav))
+            {
+                _actionContextBrowser.UpdateTabFavicon(Id, fileFav);
+            }
         }
     }
 

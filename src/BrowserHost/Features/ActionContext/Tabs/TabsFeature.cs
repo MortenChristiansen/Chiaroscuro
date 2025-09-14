@@ -106,7 +106,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
         var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null);
         _tabBrowsers.Add(browser);
 
-        var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.UtcNow);
+        var tab = new TabDto(browser.Id, browser.Title, browser.Favicon, DateTimeOffset.UtcNow);
         Window.ActionContext.AddTab(tab, activate: true);
         Window.Dispatcher.Invoke(() => SetCurrentTab(browser));
 
