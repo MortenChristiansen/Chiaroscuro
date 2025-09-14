@@ -31,6 +31,7 @@
 	  <StartupObject>BrowserHost.ProgramPublishSingleFile</StartupObject>
 	  <AssemblyName>Chiaroscuro</AssemblyName>
 	  <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup>

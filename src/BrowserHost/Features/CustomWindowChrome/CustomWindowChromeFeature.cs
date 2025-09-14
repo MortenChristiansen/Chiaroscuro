@@ -1,4 +1,4 @@
-﻿using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
 using CefSharp;
 using System;
@@ -14,7 +14,7 @@ using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
-public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
+public partial class CustomWindowChromeFeature(MainWindow window) : Feature(window)
 {
     public override void Configure()
     {
@@ -384,15 +384,16 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
 
     private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
 
-    [DllImport("user32.dll")]
-    private static extern nint MonitorFromWindow(nint hwnd, uint dwFlags);
+    [LibraryImport("user32.dll")]
+    private static partial nint MonitorFromWindow(nint hwnd, uint dwFlags);
 
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetMonitorInfo(nint hMonitor, ref MONITORINFO lpmi);
+    private static partial bool GetMonitorInfo(nint hMonitor, ref MONITORINFO lpmi);
 
-    [DllImport("user32.dll", SetLastError = false)]
-    private static extern bool GetCursorPos(out POINT lpPoint);
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetCursorPos(out POINT lpPoint);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT { public int X; public int Y; }
