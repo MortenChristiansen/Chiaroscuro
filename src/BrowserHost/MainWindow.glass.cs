@@ -12,7 +12,7 @@ public partial class MainWindow
 {
     private const int MinWindowWidth = 400;
     private const int MinWindowHeight = 300;
-    private const byte AcrylicTintOpacity = 0x2F; // 0x00..0xFF (higher = more solid tint)
+    private const byte AcrylicTintOpacity = 0x8F; // 0x00..0xFF (higher = more solid tint)
 
     public override void EndInit()
     {
@@ -25,7 +25,11 @@ public partial class MainWindow
             src?.AddHook(WndProc);
         };
         SizeChanged += (_, __) => ApplyRoundedWindowRegion();
-        StateChanged += (_, __) => ApplyRoundedWindowRegion();
+        StateChanged += (_, __) =>
+        {
+            ApplyRoundedWindowRegion();
+            TryEnableSystemBackdrop();
+        };
 
         base.EndInit();
     }
@@ -40,11 +44,7 @@ public partial class MainWindow
             // Prefer Windows 11 system backdrop (Mica)
             if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
             {
-                // DWMWA_SYSTEMBACKDROP_TYPE = 38, DWMSBT_MAINWINDOW = 2
-                int backdropType = 2;
-                _ = DwmSetWindowAttribute(hwnd, 38, ref backdropType, sizeof(int));
-
-                // Also request rounded corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWM_WINDOW_CORNER_PREFERENCE_ROUND = 2)
+                // Request rounded corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWM_WINDOW_CORNER_PREFERENCE_ROUND = 2)
                 int cornerPref = 2;
                 _ = DwmSetWindowAttribute(hwnd, 33, ref cornerPref, sizeof(int));
 
@@ -52,9 +52,6 @@ public partial class MainWindow
                 int enable = 1;
                 _ = DwmSetWindowAttribute(hwnd, 1029, ref enable, sizeof(int));
 
-                // Optional: dark mode hint
-                int useDark = 1;
-                _ = DwmSetWindowAttribute(hwnd, 20, ref useDark, sizeof(int)); // DWMWA_USE_IMMERSIVE_DARK_MODE = 20
                 return;
             }
         }
@@ -99,14 +96,29 @@ public partial class MainWindow
     [LibraryImport("user32.dll")]
     private static partial int SetWindowCompositionAttribute(IntPtr hwnd, ref WINDOWCOMPOSITIONATTRIBDATA data);
 
-    private static void EnableAccentBlur(IntPtr hwnd, Color tint, byte opacity)
+    private static Color Desaturize(Color color, double factor)
     {
+        // factor: 0.0 = original color, 1.0 = grayscale
+        byte r = color.R;
+        byte g = color.G;
+        byte b = color.B;
+        byte gray = (byte)(0.299 * r + 0.587 * g + 0.114 * b);
+        byte newR = (byte)(r + (gray - r) * factor);
+        byte newG = (byte)(g + (gray - g) * factor);
+        byte newB = (byte)(b + (gray - b) * factor);
+        return Color.FromRgb(newR, newG, newB);
+    }
+
+    private static void EnableAccentBlur(IntPtr hwnd, Color color, byte opacity)
+    {
+        color = Desaturize(color, 0.3); // Slightly desaturate to reduce color bleeding
+
         var accent = new ACCENT_POLICY
         {
             AccentState = ACCENT_STATE.ACCENT_ENABLE_ACRYLICBLURBEHIND,
             AccentFlags = 2, // keep border handling minimal; tweak if needed
             // GradientColor format: 0xAABBGGRR (alpha in high byte)
-            GradientColor = ((uint)opacity << 24) | ((uint)tint.B << 16) | ((uint)tint.G << 8) | tint.R,
+            GradientColor = ((uint)opacity << 24) | ((uint)color.B << 16) | ((uint)color.G << 8) | color.R,
             AnimationId = 0
         };
 
