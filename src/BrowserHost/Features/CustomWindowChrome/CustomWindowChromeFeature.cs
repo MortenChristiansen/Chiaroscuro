@@ -3,11 +3,13 @@ using BrowserHost.Utilities;
 using CefSharp;
 using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
@@ -28,6 +30,8 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
 
         // Prevent maximizing over the taskbar
         Window.StateChanged += (s, e) => AdjustWindowBorder();
+        // Add a lightweight post state-change animation when maximize/restore happens outside our own handlers
+        Window.StateChanged += Window_StateChangedAnimate;
 
         PubSub.Subscribe<WindowMinimizedEvent>(_ => Minimize());
         PubSub.Subscribe<WindowStateToggledEvent>(_ => ToggleMaximizedState());
@@ -39,6 +43,9 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
         });
         PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
         PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
+
+        // Track initial state for correct position restore logic
+        _previousState = Window.WindowState;
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -105,23 +112,202 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
 
     private void ToggleMaximizedState()
     {
-        Window.WindowState = Window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        // Let the animation method handle toggling the state
+        _ = AnimateToggleMaximizeAsync();
     }
 
     private void Minimize()
     {
-        Window.WindowState = WindowState.Minimized;
+        _ = AnimateMinimizeAsync();
     }
+
+    private async Task AnimateToggleMaximizeAsync()
+    {
+        if (_isAnimating) return;
+        var target = Window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+        _suppressNextStateChangeAnimation = true;
+        Window.WindowState = target;
+
+        // Subtle bounce/settle animation post state change
+        var root = GetRoot();
+        if (root is null) return;
+        EnsureTransforms(root);
+
+        var initialScale = target == WindowState.Maximized ? 0.985 : 1.015;
+        _scaleTransform.ScaleX = initialScale;
+        _scaleTransform.ScaleY = initialScale;
+        root.Opacity = 0.985;
+
+        _isAnimating = true;
+        try
+        {
+            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+            var duration = TimeSpan.FromMilliseconds(140);
+
+            root.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
+
+            await Task.Delay(duration + TimeSpan.FromMilliseconds(20));
+        }
+        finally
+        {
+            // Clear animations and reset to identity
+            root.BeginAnimation(UIElement.OpacityProperty, null);
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            root.Opacity = 1.0;
+            _scaleTransform.ScaleX = 1.0;
+            _scaleTransform.ScaleY = 1.0;
+            _isAnimating = false;
+        }
+    }
+
+    private async Task AnimateMinimizeAsync()
+    {
+        if (_isAnimating) return;
+        var root = GetRoot();
+        if (root is null)
+        {
+            Window.WindowState = WindowState.Minimized;
+            return;
+        }
+
+        EnsureTransforms(root);
+        _isAnimating = true;
+        try
+        {
+            var ease = new CubicEase { EasingMode = EasingMode.EaseIn };
+            var duration = TimeSpan.FromMilliseconds(120);
+
+            root.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0.0, duration) { EasingFunction = ease });
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.96, duration) { EasingFunction = ease });
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.96, duration) { EasingFunction = ease });
+
+            await Task.Delay(duration + TimeSpan.FromMilliseconds(20));
+        }
+        finally
+        {
+            Window.WindowState = WindowState.Minimized;
+            // Clear animations and reset for when restored
+            if (root is not null)
+            {
+                root.BeginAnimation(UIElement.OpacityProperty, null);
+                _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+                _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+                root.Opacity = 1.0;
+                _scaleTransform.ScaleX = 1.0;
+                _scaleTransform.ScaleY = 1.0;
+            }
+            _isAnimating = false;
+        }
+    }
+
+    private void Window_StateChangedAnimate(object? sender, EventArgs e)
+    {
+        if (_suppressNextStateChangeAnimation)
+        {
+            _suppressNextStateChangeAnimation = false;
+            return;
+        }
+
+        // Only add a subtle settle animation for maximize/restore changes initiated externally
+        if (Window.WindowState is WindowState.Maximized or WindowState.Normal)
+        {
+            var root = GetRoot();
+            if (root is null) return;
+            EnsureTransforms(root);
+
+            var initial = Window.WindowState == WindowState.Maximized ? 0.985 : 1.015;
+            _ = AnimateBounceAsync(root, initial);
+        }
+    }
+
+    private async Task AnimateBounceAsync(FrameworkElement root, double initialScale)
+    {
+        if (_isAnimating) return;
+        EnsureTransforms(root);
+        _scaleTransform.ScaleX = initialScale;
+        _scaleTransform.ScaleY = initialScale;
+        root.Opacity = 0.985;
+
+        _isAnimating = true;
+        try
+        {
+            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+            var duration = TimeSpan.FromMilliseconds(140);
+
+            root.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
+
+            await Task.Delay(duration + TimeSpan.FromMilliseconds(20));
+        }
+        finally
+        {
+            root.BeginAnimation(UIElement.OpacityProperty, null);
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            root.Opacity = 1.0;
+            _scaleTransform.ScaleX = 1.0;
+            _scaleTransform.ScaleY = 1.0;
+            _isAnimating = false;
+        }
+    }
+
+    private FrameworkElement? GetRoot()
+    {
+        return Window.Content as FrameworkElement;
+    }
+
+    private void EnsureTransforms(FrameworkElement root)
+    {
+        if (root.RenderTransform is not TransformGroup group)
+        {
+            group = new TransformGroup();
+            _scaleTransform = new ScaleTransform(1.0, 1.0);
+            group.Children.Add(_scaleTransform);
+            root.RenderTransform = group;
+        }
+        else
+        {
+            // Try find existing scale transform
+            ScaleTransform? st = null;
+            foreach (var t in group.Children)
+            {
+                if (t is ScaleTransform s)
+                {
+                    st = s;
+                    break;
+                }
+            }
+            _scaleTransform = st ?? new ScaleTransform(1.0, 1.0);
+            if (!group.Children.Contains(_scaleTransform))
+                group.Children.Insert(0, _scaleTransform);
+        }
+
+        root.RenderTransformOrigin = new Point(0.5, 0.5);
+    }
+
+    private ScaleTransform _scaleTransform = new(1.0, 1.0);
+    private bool _isAnimating;
+    private bool _suppressNextStateChangeAnimation;
 
     private double _lastX = 0;
     private double _lastY = 0;
+    private WindowState _previousState;
 
     private void AdjustWindowBorder()
     {
         if (Window.WindowState == WindowState.Maximized)
         {
-            _lastX = Window.Left;
-            _lastY = Window.Top;
+            // Only capture restore position when entering maximized state
+            if (_previousState != WindowState.Maximized)
+            {
+                _lastX = Window.Left;
+                _lastY = Window.Top;
+            }
 
             // Use the current monitor's work area (in DIPs) so we never overlap the taskbar
             var wa = GetCurrentMonitorWorkAreaDip();
@@ -136,10 +322,15 @@ public class CustomWindowChromeFeature(MainWindow window) : Feature(window)
             Window.MaxWidth = double.PositiveInfinity;
             Window.MaxHeight = double.PositiveInfinity;
 
-            // Restore the last position when switching back to normal state
-            Window.Left = _lastX;
-            Window.Top = _lastY;
+            // Only restore position if we just came from maximized
+            if (_previousState == WindowState.Maximized)
+            {
+                Window.Left = _lastX;
+                Window.Top = _lastY;
+            }
         }
+
+        _previousState = Window.WindowState;
     }
 
     private Rect GetCurrentMonitorWorkAreaDip()
