@@ -109,29 +109,16 @@ public partial class MainWindow
         return Color.FromRgb(newR, newG, newB);
     }
 
-    private static Color Lighten(Color color, double factor)
-    {
-        // factor: 0.0 = original color, 1.0 = white
-        byte r = color.R;
-        byte g = color.G;
-        byte b = color.B;
-        byte newR = (byte)(r + (255 - r) * factor);
-        byte newG = (byte)(g + (255 - g) * factor);
-        byte newB = (byte)(b + (255 - b) * factor);
-        return Color.FromRgb(newR, newG, newB);
-    }
-
     private static void EnableAccentBlur(IntPtr hwnd, Color color, byte opacity)
     {
         color = Desaturize(color, 0.3); // Slightly desaturate to reduce color bleeding
-        var colorUint = ((uint)opacity << 24) | ((uint)color.B << 16) | ((uint)color.G << 8) | color.R;
 
         var accent = new ACCENT_POLICY
         {
             AccentState = ACCENT_STATE.ACCENT_ENABLE_ACRYLICBLURBEHIND,
             AccentFlags = 0, // Is ignored
             // GradientColor format: 0xAABBGGRR (alpha in high byte)
-            GradientColor = colorUint,
+            GradientColor = ((uint)opacity << 24) | ((uint)color.B << 16) | ((uint)color.G << 8) | color.R,
             AnimationId = 0
         };
 
@@ -147,10 +134,6 @@ public partial class MainWindow
                 SizeOfData = size
             };
             _ = SetWindowCompositionAttribute(hwnd, ref data);
-
-            color = Lighten(color, 0.05); // Lighten slightly for border
-            var border = (color.R) | (color.G << 8) | (color.B << 16);
-            _ = DwmSetWindowAttribute(hwnd, 34, ref border, sizeof(int)); // DWMWA_BORDER_COLOR
         }
         finally
         {
