@@ -28,7 +28,6 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         Window.ResizeBorder.PreviewMouseMove += ResizeBorder_PreviewMouseMove;
         Window.ResizeBorder.PreviewMouseLeftButtonDown += ResizeBorder_PreviewMouseLeftButtonDown;
 
-        // Prevent maximizing over the taskbar
         Window.StateChanged += (s, e) => AdjustWindowBorder();
         // Add a lightweight post state-change animation when maximize/restore happens outside our own handlers
         Window.StateChanged += Window_StateChangedAnimate;
@@ -44,8 +43,8 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
         PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
 
-        // Track initial state for correct position restore logic
-        _previousState = Window.WindowState;
+        // Initialize restore bounds
+        _restoreBounds = new Rect(Window.Left, Window.Top, Math.Max(1, Window.Width), Math.Max(1, Window.Height));
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -58,10 +57,22 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
 
         if (e.ButtonState == MouseButtonState.Pressed && IsMouseOverTransparentPixel(e))
         {
-            if (Window.WindowState == WindowState.Maximized)
+            // When simulated maximized, do NOT allow normal drag.
+            // Only allow drag-to-detach logic to escape the maximized state.
+            if (_isSimulatedMaximized)
+            {
                 HandleDragToDetachFromMaximizedState(e);
+                e.Handled = true;
+                return;
+            }
 
+            // Temporarily disable resize mode to avoid Aero snapping triggering actual maximize
+            Window.ResizeMode = ResizeMode.NoResize;
+
+            // Normal drag when not maximized
             Window.DragMove();
+
+            Window.ResizeMode = ResizeMode.CanResize;
         }
     }
 
@@ -88,6 +99,13 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
     {
         if (e.ButtonState == MouseButtonState.Released && _isDraggingToDetach)
             ResetDetachDrag();
+
+        // Maximize the window if we dragged to the top of the screen
+        GetCursorPos(out var pt);
+        if (!_isSimulatedMaximized && pt.Y <= 5)
+        {
+            ToggleMaximizedState();
+        }
     }
 
     private void MainWindow_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -110,9 +128,49 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
 
     #region Minimize/Maximize
 
+    private bool _isSimulatedMaximized;
+    private Rect _restoreBounds;
+
+    private void ApplySimulatedMaximize()
+    {
+        if (_isSimulatedMaximized) return;
+
+        // Save current bounds to restore later
+        _restoreBounds = new Rect(Window.Left, Window.Top, Math.Max(1, Window.Width), Math.Max(1, Window.Height));
+
+        var wa = GetCurrentMonitorWorkAreaDip();
+        Window.Left = wa.Left;
+        Window.Top = wa.Top;
+        Window.Width = wa.Width;
+        Window.Height = wa.Height;
+
+        // Prevent standard resize limits from shrinking our simulated maximize
+        Window.MaxWidth = wa.Width;
+        Window.MaxHeight = wa.Height;
+
+        _isSimulatedMaximized = true;
+    }
+
+    private void ApplySimulatedRestore()
+    {
+        if (!_isSimulatedMaximized) return;
+
+        _isSimulatedMaximized = false;
+        Window.MaxWidth = double.PositiveInfinity;
+        Window.MaxHeight = double.PositiveInfinity;
+
+        // Restore to saved bounds
+        if (_restoreBounds.Width > 0 && _restoreBounds.Height > 0)
+        {
+            Window.Left = _restoreBounds.Left;
+            Window.Top = _restoreBounds.Top;
+            Window.Width = _restoreBounds.Width;
+            Window.Height = _restoreBounds.Height;
+        }
+    }
+
     private void ToggleMaximizedState()
     {
-        // Let the animation method handle toggling the state
         _ = AnimateToggleMaximizeAsync();
     }
 
@@ -124,20 +182,24 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
     private async Task AnimateToggleMaximizeAsync()
     {
         if (_isAnimating) return;
-        var target = Window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        var targetSimulated = !_isSimulatedMaximized;
 
-        _suppressNextStateChangeAnimation = true;
-        Window.WindowState = target;
-
-        // Subtle bounce/settle animation post state change
+        // Subtle bounce/settle animation post change
         var root = GetRoot();
-        if (root is null) return;
+        if (root is null)
+        {
+            if (targetSimulated) ApplySimulatedMaximize(); else ApplySimulatedRestore();
+            return;
+        }
         EnsureTransforms(root);
 
-        var initialScale = target == WindowState.Maximized ? 0.985 : 1.015;
+        var initialScale = targetSimulated ? 0.985 : 1.015;
         _scaleTransform.ScaleX = initialScale;
         _scaleTransform.ScaleY = initialScale;
         root.Opacity = 0.985;
+
+        // Apply the geometry change immediately
+        if (targetSimulated) ApplySimulatedMaximize(); else ApplySimulatedRestore();
 
         _isAnimating = true;
         try
@@ -212,14 +274,14 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
             return;
         }
 
-        // Only add a subtle settle animation for maximize/restore changes initiated externally
-        if (Window.WindowState is WindowState.Maximized or WindowState.Normal)
+        // Only add a subtle settle animation for changes initiated externally
+        if (Window.WindowState is WindowState.Normal)
         {
             var root = GetRoot();
             if (root is null) return;
             EnsureTransforms(root);
 
-            var initial = Window.WindowState == WindowState.Maximized ? 0.985 : 1.015;
+            var initial = _isSimulatedMaximized ? 0.985 : 1.015;
             _ = AnimateBounceAsync(root, initial);
         }
     }
@@ -294,43 +356,25 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
     private bool _isAnimating;
     private bool _suppressNextStateChangeAnimation;
 
-    private double _lastX = 0;
-    private double _lastY = 0;
-    private WindowState _previousState;
-
     private void AdjustWindowBorder()
     {
-        if (Window.WindowState == WindowState.Maximized)
+        if (_isSimulatedMaximized)
         {
-            // Only capture restore position when entering maximized state
-            if (_previousState != WindowState.Maximized)
-            {
-                _lastX = Window.Left;
-                _lastY = Window.Top;
-            }
-
-            // Use the current monitor's work area (in DIPs) so we never overlap the taskbar
+            // Ensure we stay within current monitor work area
             var wa = GetCurrentMonitorWorkAreaDip();
 
             Window.MaxWidth = wa.Width;
             Window.MaxHeight = wa.Height;
             Window.Left = wa.Left;
             Window.Top = wa.Top;
+            Window.Width = wa.Width;
+            Window.Height = wa.Height;
         }
         else if (Window.WindowState == WindowState.Normal)
         {
             Window.MaxWidth = double.PositiveInfinity;
             Window.MaxHeight = double.PositiveInfinity;
-
-            // Only restore position if we just came from maximized
-            if (_previousState == WindowState.Maximized)
-            {
-                Window.Left = _lastX;
-                Window.Top = _lastY;
-            }
         }
-
-        _previousState = Window.WindowState;
     }
 
     private Rect GetCurrentMonitorWorkAreaDip()
@@ -382,21 +426,19 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         public int dwFlags;
     }
 
+    internal void SimulateMaximize()
+    {
+        if (_isSimulatedMaximized) return;
+        ApplySimulatedMaximize();
+    }
+
+    internal void SimulateRestore()
+    {
+        if (!_isSimulatedMaximized) return;
+        ApplySimulatedRestore();
+    }
+
     private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
-
-    [LibraryImport("user32.dll")]
-    private static partial nint MonitorFromWindow(nint hwnd, uint dwFlags);
-
-    [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool GetMonitorInfo(nint hMonitor, ref MONITORINFO lpmi);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool GetCursorPos(out POINT lpPoint);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT { public int X; public int Y; }
 
     #endregion
 
@@ -438,8 +480,15 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         var mouseY = e.GetPosition(Window).Y;
         var percentY = mouseY / Window.ActualHeight;
 
-        // Set to normal state
+        // Ensure normal state (we already are, but keep consistent)
         Window.WindowState = WindowState.Normal;
+        _isSimulatedMaximized = false;
+        Window.MaxWidth = double.PositiveInfinity;
+        Window.MaxHeight = double.PositiveInfinity;
+
+        // Determine target size from pre-maximize restore bounds
+        var targetWidth = Math.Max(1, _restoreBounds.Width);
+        var targetHeight = Math.Max(1, _restoreBounds.Height);
 
         // Get cursor in screen pixels, convert to DIPs, then clamp to current monitor work area
         if (GetCursorPos(out var pt))
@@ -449,16 +498,23 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
             var cursorDip = m.Transform(new Point(pt.X, pt.Y));
 
             var wa = GetCurrentMonitorWorkAreaDip();
-            var newLeft = cursorDip.X - Window.ActualWidth * percentX;
-            var newTop = cursorDip.Y - Window.ActualHeight * percentY;
 
-            newLeft = Math.Clamp(newLeft, wa.Left, wa.Right - Window.ActualWidth);
-            newTop = Math.Clamp(newTop, wa.Top, wa.Bottom - Window.ActualHeight);
+            var newLeft = cursorDip.X - targetWidth * percentX;
+            var newTop = cursorDip.Y - targetHeight * percentY;
+
+            newLeft = Math.Clamp(newLeft, wa.Left, wa.Right - targetWidth);
+            newTop = Math.Clamp(newTop, wa.Top, wa.Bottom - targetHeight);
 
             Window.Left = newLeft;
             Window.Top = newTop;
         }
 
+        // Apply the restored size
+        Window.Width = targetWidth;
+        Window.Height = targetHeight;
+
+        // Save as new restore bounds
+        _restoreBounds = new Rect(Window.Left, Window.Top, Math.Max(1, Window.Width), Math.Max(1, Window.Height));
         Window.UpdateLayout();
     }
 
@@ -485,17 +541,21 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
 
     private void ResizeBorder_PreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (Window.WindowState == WindowState.Normal)
+        if (Window.WindowState == WindowState.Normal && !_isSimulatedMaximized)
         {
             var pos = e.GetPosition(Window.ResizeBorder);
             var hit = GetResizeDirection(pos, Window.ResizeBorder.ActualWidth, Window.ResizeBorder.ActualHeight);
             Window.Cursor = GetCursorForResizeDirection(hit);
         }
+        else
+        {
+            Window.Cursor = Cursors.Arrow;
+        }
     }
 
     private void ResizeBorder_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (Window.WindowState == WindowState.Normal && e.LeftButton == MouseButtonState.Pressed)
+        if (Window.WindowState == WindowState.Normal && !_isSimulatedMaximized && e.LeftButton == MouseButtonState.Pressed)
         {
             var pos = e.GetPosition(Window.ResizeBorder);
             var hit = GetResizeDirection(pos, Window.ResizeBorder.ActualWidth, Window.ResizeBorder.ActualHeight);
@@ -563,4 +623,18 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
     }
 
     #endregion
+
+    [LibraryImport("user32.dll")]
+    private static partial nint MonitorFromWindow(nint hwnd, uint dwFlags);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetMonitorInfo(nint hMonitor, ref MONITORINFO lpmi);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetCursorPos(out POINT lpPoint);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X; public int Y; }
 }

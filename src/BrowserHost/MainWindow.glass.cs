@@ -40,9 +40,8 @@ public partial class MainWindow
             // Prefer Windows 11 system backdrop (Mica)
             if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
             {
-                // DWMWA_SYSTEMBACKDROP_TYPE = 38, DWMSBT_MAINWINDOW = 2
-                int backdropType = 2;
-                _ = DwmSetWindowAttribute(hwnd, 38, ref backdropType, sizeof(int));
+                var backdropType = 2; // DWMSBT_MAINWINDOW
+                _ = DwmSetWindowAttribute(hwnd, 38, ref backdropType, sizeof(int)); // DWMWA_SYSTEMBACKDROP_TYPE = 38
 
                 // Request rounded corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWM_WINDOW_CORNER_PREFERENCE_ROUND = 2)
                 var cornerPref = 2;
@@ -59,11 +58,9 @@ public partial class MainWindow
                 return;
             }
         }
-        catch { /* fall back below */ }
-    }
+        catch when (!Debugger.IsAttached) { }
 
-    [LibraryImport("dwmapi.dll")]
-    private static partial int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+    }
 
     private enum WINDOWCOMPOSITIONATTRIB
     {
@@ -96,9 +93,6 @@ public partial class MainWindow
         public IntPtr Data;
         public int SizeOfData;
     }
-
-    [LibraryImport("user32.dll")]
-    private static partial int SetWindowCompositionAttribute(IntPtr hwnd, ref WINDOWCOMPOSITIONATTRIBDATA data);
 
     private static void EnableAccentBlur(IntPtr hwnd, Color color, byte opacity)
     {
@@ -189,13 +183,6 @@ public partial class MainWindow
             var hwnd = new WindowInteropHelper(this).Handle;
             if (hwnd == IntPtr.Zero) return;
 
-            if (WindowState == WindowState.Maximized)
-            {
-                // Remove region to let OS manage bounds when maximized
-                SetWindowRgn(hwnd, IntPtr.Zero, true);
-                return;
-            }
-
             var src = (HwndSource?)PresentationSource.FromVisual(this);
             double scaleX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
             double scaleY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
@@ -220,46 +207,15 @@ public partial class MainWindow
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        const int WM_GETMINMAXINFO = 0x0024;
         const int WM_DPICHANGED = 0x02E0;
 
-        if (msg == WM_GETMINMAXINFO)
-        {
-            // Ensure a borderless window maximizes to the monitor work area (does not overlap taskbar)
-            var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
-            var hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-            if (hMonitor != IntPtr.Zero)
-            {
-                var monitorInfo = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
-                if (GetMonitorInfo(hMonitor, ref monitorInfo))
-                {
-                    var rcWork = monitorInfo.rcWork;
-                    var rcMonitor = monitorInfo.rcMonitor;
-                    mmi.ptMaxPosition.X = Math.Abs(rcWork.Left - rcMonitor.Left);
-                    mmi.ptMaxPosition.Y = Math.Abs(rcWork.Top - rcMonitor.Top);
-                    mmi.ptMaxSize.X = Math.Abs(rcWork.Right - rcWork.Left);
-                    mmi.ptMaxSize.Y = Math.Abs(rcWork.Bottom - rcWork.Top);
-                    // Optional: keep track size sensible
-                    mmi.ptMinTrackSize.X = MinWindowWidth;
-                    mmi.ptMinTrackSize.Y = MinWindowHeight;
-                    Marshal.StructureToPtr(mmi, lParam, true);
-                    handled = true;
-                    return IntPtr.Zero;
-                }
-            }
-        }
-        else if (msg == WM_DPICHANGED)
+        if (msg == WM_DPICHANGED)
         {
             Dispatcher.BeginInvoke(ApplyRoundedWindowRegion);
         }
+
         return IntPtr.Zero;
     }
-
-    [LibraryImport("gdi32.dll")]
-    private static partial IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
-
-    [LibraryImport("user32.dll")]
-    private static partial int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, [MarshalAs(UnmanagedType.Bool)] bool bRedraw);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT
@@ -298,10 +254,22 @@ public partial class MainWindow
 
     private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
 
+    [LibraryImport("gdi32.dll")]
+    private static partial IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
+
+    [LibraryImport("user32.dll")]
+    private static partial int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, [MarshalAs(UnmanagedType.Bool)] bool bRedraw);
+
+    [LibraryImport("dwmapi.dll")]
+    private static partial int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
     [LibraryImport("user32.dll")]
     private static partial IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    [LibraryImport("user32.dll")]
+    private static partial int SetWindowCompositionAttribute(IntPtr hwnd, ref WINDOWCOMPOSITIONATTRIBDATA data);
 }
