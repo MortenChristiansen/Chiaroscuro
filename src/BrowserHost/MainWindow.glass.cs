@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace BrowserHost;
 
@@ -10,6 +12,7 @@ public partial class MainWindow
 {
     private const int MinWindowWidth = 400;
     private const int MinWindowHeight = 300;
+    private const byte AcrylicTintOpacity = 0x2F; // 0x00..0xFF (higher = more solid tint)
 
     public override void EndInit()
     {
@@ -56,17 +59,10 @@ public partial class MainWindow
             }
         }
         catch { /* fall back below */ }
-
-        // Fallback: AccentPolicy blur (Acrylic/BlurBehind)
-        try
-        {
-            EnableAccentBlur(hwnd, acrylic: true);
-        }
-        catch { }
     }
 
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+    [LibraryImport("dwmapi.dll")]
+    private static partial int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
     private enum WINDOWCOMPOSITIONATTRIB
     {
@@ -100,16 +96,18 @@ public partial class MainWindow
         public int SizeOfData;
     }
 
-    [DllImport("user32.dll")]
-    private static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WINDOWCOMPOSITIONATTRIBDATA data);
+    [LibraryImport("user32.dll")]
+    private static partial int SetWindowCompositionAttribute(IntPtr hwnd, ref WINDOWCOMPOSITIONATTRIBDATA data);
 
-    private static void EnableAccentBlur(IntPtr hwnd, bool acrylic)
+    private static void EnableAccentBlur(IntPtr hwnd, Color tint, byte opacity)
     {
         var accent = new ACCENT_POLICY
         {
-            AccentState = acrylic ? ACCENT_STATE.ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_STATE.ACCENT_ENABLE_BLURBEHIND,
-            AccentFlags = 2,
-            GradientColor = 0x00000000 // Transparent gradient (required but may not affect acrylic mode)
+            AccentState = ACCENT_STATE.ACCENT_ENABLE_ACRYLICBLURBEHIND,
+            AccentFlags = 2, // keep border handling minimal; tweak if needed
+            // GradientColor format: 0xAABBGGRR (alpha in high byte)
+            GradientColor = ((uint)opacity << 24) | ((uint)tint.B << 16) | ((uint)tint.G << 8) | tint.R,
+            AnimationId = 0
         };
 
         int size = Marshal.SizeOf<ACCENT_POLICY>();
@@ -129,6 +127,57 @@ public partial class MainWindow
         {
             Marshal.FreeHGlobal(pAccent);
         }
+    }
+
+    private void SetBackgroundColor(Color color)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+
+        EnableAccentBlur(hwnd, color, AcrylicTintOpacity);
+    }
+
+    private DispatcherTimer? _tintTimer;
+
+    private void AnimateBackgroundColor(Color from, Color to)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+
+        if (from == to)
+        {
+            SetBackgroundColor(to);
+            return;
+        }
+
+        // Ensure DWM starts from the expected color before animating (prevents first-tick jump)
+        EnableAccentBlur(hwnd, from, AcrylicTintOpacity);
+
+        // Stop any in-flight animation to avoid overlapping updates
+        _tintTimer?.Stop();
+
+        var sw = Stopwatch.StartNew();
+        var duration = TimeSpan.FromMilliseconds(500);
+        _tintTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        _tintTimer.Tick += (_, __) =>
+        {
+            var t = Math.Clamp(sw.Elapsed.TotalMilliseconds / duration.TotalMilliseconds, 0.0, 1.0);
+            // Ease-in-out cubic for smoother mid-phase
+            var e = t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2;
+
+            var r = (byte)(from.R + (to.R - from.R) * e);
+            var g = (byte)(from.G + (to.G - from.G) * e);
+            var b = (byte)(from.B + (to.B - from.B) * e);
+            var c = Color.FromRgb(r, g, b);
+
+            EnableAccentBlur(hwnd, c, AcrylicTintOpacity);
+
+            if (t >= 1.0)
+            {
+                _tintTimer!.Stop();
+            }
+        };
+        _tintTimer.Start();
     }
 
     // ===== Rounded window region to clip blur at corners =====
@@ -205,11 +254,11 @@ public partial class MainWindow
         return IntPtr.Zero;
     }
 
-    [DllImport("gdi32.dll")]
-    private static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
+    [LibraryImport("gdi32.dll")]
+    private static partial IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
 
-    [DllImport("user32.dll")]
-    private static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
+    [LibraryImport("user32.dll")]
+    private static partial int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, [MarshalAs(UnmanagedType.Bool)] bool bRedraw);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT
@@ -248,8 +297,8 @@ public partial class MainWindow
 
     private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+    [LibraryImport("user32.dll")]
+    private static partial IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     [return: MarshalAs(UnmanagedType.Bool)]

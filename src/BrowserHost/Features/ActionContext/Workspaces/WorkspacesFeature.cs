@@ -63,13 +63,13 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 Color = e.Color,
                 Icon = e.Icon
             };
-            if (e.WorkspaceId == _currentWorkspaceId)
-            {
-                _currentWorkspaceId = e.WorkspaceId;
-                Window.WorkspaceColor = GetCurrentWorkspaceColor();
-            }
 
+            _currentWorkspaceId = e.WorkspaceId;
             _workspaces = WorkspaceStateManager.UpdateWorkspace(workspace);
+
+            if (e.WorkspaceId == _currentWorkspaceId)
+                Window.WorkspaceColor = GetCurrentWorkspaceColor();
+
             NotifyFrontendOfUpdatedWorkspaces();
         });
         PubSub.Subscribe<WorkspaceDeletedEvent>(e =>

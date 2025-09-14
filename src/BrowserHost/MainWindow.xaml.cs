@@ -24,7 +24,6 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
 namespace BrowserHost;
@@ -33,8 +32,6 @@ public partial class MainWindow : Window
 {
     private readonly List<Feature> _features;
     private bool _tabPaletteHasBeenShown;
-    private const double _lightenFactor = 0.2;
-    private const byte _backgroundRegionTransparency = 20;
     private const int CornerRadiusDip = 8;
 
     public ChromiumWebBrowser Chrome => ChromeUI;
@@ -212,46 +209,26 @@ public partial class MainWindow : Window
         return address;
     }
 
-    private static Color Lighten(Color color, double factor)
-    {
-        byte L(byte c) => (byte)Math.Clamp(c + (255 - c) * factor, 0, 255);
-        return Color.FromArgb(color.A, L(color.R), L(color.G), L(color.B));
-    }
-
     private static void OnWorkspaceColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var window = (MainWindow)d;
 
         var newColor = (Color)e.NewValue;
-        newColor = newColor with { A = _backgroundRegionTransparency };
-        AnimateBackgroundColor(newColor, window.ResizeBorder);
-
-        var lightenedColor = Lighten(newColor, _lightenFactor);
-        AnimateBackgroundColor(lightenedColor, window.WebContentBorder);
-        AnimateBackgroundColor(lightenedColor, window.TabPaletteBorder);
+        AnimateWindowBackgroundColor(newColor);
     }
 
-    private static void AnimateBackgroundColor(Color contentColor, System.Windows.Controls.Border container)
+    private static Color? _previousColor;
+    private static void AnimateWindowBackgroundColor(Color contentColor)
     {
-        if (container.Background is SolidColorBrush contentBrush)
+        if (_previousColor.HasValue)
         {
-            if (contentBrush.IsFrozen)
-            {
-                contentBrush = contentBrush.Clone();
-                container.Background = contentBrush;
-            }
-
-            var animation = new ColorAnimation
-            {
-                To = contentColor,
-                Duration = TimeSpan.FromSeconds(1),
-                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
-            };
-            contentBrush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
+            Instance.AnimateBackgroundColor(_previousColor.Value, contentColor);
+            _previousColor = contentColor;
         }
         else
         {
-            container.Background = new SolidColorBrush(contentColor);
+            Instance.SetBackgroundColor(contentColor);
+            _previousColor = contentColor;
         }
     }
 
@@ -271,10 +248,6 @@ public partial class MainWindow : Window
             GridAnimationBehavior.Initialize(TabPaletteSplitterColumn);
             _tabPaletteHasBeenShown = true;
         }
-
-        // Ensure tab palette background matches the current lightened workspace color before showing
-        var lightenedColor = Lighten(WorkspaceColor, _lightenFactor);
-        TabPaletteBorder.Background = new SolidColorBrush(lightenedColor with { A = _backgroundRegionTransparency });
 
         TabPaletteBrowserControl.Visibility = Visibility.Visible;
         TabPaletteGridSplitter.Visibility = Visibility.Visible;

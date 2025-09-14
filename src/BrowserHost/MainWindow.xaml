@@ -13,7 +13,7 @@
     <Window.Resources>
         <util:BorderClipConverter x:Key="BorderClipConverter" />
     </Window.Resources>
-    <Border x:Name="ResizeBorder"  Padding="4">
+    <Border x:Name="ResizeBorder"  Padding="4" Background="#01000000">
         <Border x:Name="WindowBorder" Padding="4">
             <Grid x:Name="RootGrid">
                 <chrome:CustomWindowChromeBrowser x:Name="ChromeUI" />
@@ -35,7 +35,7 @@
                         ResizeBehavior="PreviousAndNext"
                         ResizeDirection="Columns"
                         ShowsPreview="False"/>
-                    <Border x:Name="WebContentBorder" Grid.Column="2" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <Border x:Name="WebContentBorder" Grid.Column="2" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#02FFFFFF">
                         <Border.Clip>
                             <MultiBinding Converter="{StaticResource BorderClipConverter}">
                                 <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
