@@ -10,7 +10,6 @@ import { DomainContentComponent } from './domain-content.component';
       style="position: relative; top: 0; left: 0;right: 0; bottom: 0;"
     >
       <tab-content />
-      <div class="border-t border-gray-600"></div>
       <domain-content />
     </div>
   `,
