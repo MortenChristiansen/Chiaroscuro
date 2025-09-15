@@ -39,6 +39,7 @@ public class CefSharpTabBrowser : Browser
         DownloadHandler = new DownloadHandler(downloadsPath);
         RequestHandler = new RequestHandler(Id);
         FindHandler = new FindHandler();
+        PermissionHandler = new PermissionHandler(Id);
 
         // Register notification API
         RegisterSecondaryApi(new NotificationBrowserApi(Id), "notificationApi");

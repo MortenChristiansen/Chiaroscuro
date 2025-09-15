@@ -1,4 +1,3 @@
-using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -7,8 +6,6 @@ namespace BrowserHost.Features.ActionContext.Tabs;
 
 public class NotificationPermissionDialog : Window
 {
-    private bool _result = false;
-
     public NotificationPermissionDialog(string origin)
     {
         Title = "Notification Permission";
@@ -21,7 +18,7 @@ public class NotificationPermissionDialog : Window
         Background = new SolidColorBrush(Color.FromRgb(45, 45, 48));
         BorderBrush = new SolidColorBrush(Color.FromRgb(70, 70, 74));
         BorderThickness = new Thickness(1);
-        
+
         CreateContent(origin);
     }
 
@@ -48,7 +45,7 @@ public class NotificationPermissionDialog : Window
         iconBorder.CornerRadius = new CornerRadius(16);
         iconBorder.Background = new SolidColorBrush(Color.FromRgb(0, 120, 215));
         iconBorder.Margin = new Thickness(0, 0, 15, 0);
-        
+
         var iconText = new TextBlock();
         iconText.Text = "🔔";
         iconText.FontSize = 16;
@@ -117,39 +114,39 @@ public class NotificationPermissionDialog : Window
         button.Height = 32;
         button.Margin = new Thickness(10, 0, 0, 0);
         button.FontSize = 14;
-        
+
         if (isAllow)
         {
             button.Background = new SolidColorBrush(Color.FromRgb(0, 120, 215));
             button.Foreground = Brushes.White;
-            button.Click += (s, e) => { _result = true; DialogResult = true; };
+            button.Click += (s, e) => { DialogResult = true; };
         }
         else
         {
             button.Background = new SolidColorBrush(Color.FromRgb(68, 68, 68));
             button.Foreground = Brushes.White;
-            button.Click += (s, e) => { _result = false; DialogResult = false; };
+            button.Click += (s, e) => { DialogResult = false; };
         }
 
         button.BorderThickness = new Thickness(0);
         button.Template = CreateButtonTemplate(isAllow);
-        
+
         return button;
     }
 
     private ControlTemplate CreateButtonTemplate(bool isAllow)
     {
         var template = new ControlTemplate(typeof(Button));
-        
+
         var border = new FrameworkElementFactory(typeof(Border));
         border.Name = "border";
         border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
         border.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
-        
+
         var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
         contentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
         contentPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-        
+
         border.AppendChild(contentPresenter);
         template.VisualTree = border;
 
@@ -157,14 +154,14 @@ public class NotificationPermissionDialog : Window
         var hoverTrigger = new Trigger();
         hoverTrigger.Property = Button.IsMouseOverProperty;
         hoverTrigger.Value = true;
-        
+
         var hoverSetter = new Setter();
         hoverSetter.TargetName = "border";
         hoverSetter.Property = Border.BackgroundProperty;
-        hoverSetter.Value = isAllow 
+        hoverSetter.Value = isAllow
             ? new SolidColorBrush(Color.FromRgb(16, 110, 190))
             : new SolidColorBrush(Color.FromRgb(80, 80, 80));
-        
+
         hoverTrigger.Setters.Add(hoverSetter);
         template.Triggers.Add(hoverTrigger);
 

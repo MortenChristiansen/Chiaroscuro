@@ -1,7 +1,6 @@
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Utilities;
 using CefSharp;
-using CefSharp.Handler;
 using System.Windows;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
@@ -10,36 +9,36 @@ public record NotificationPermissionRequestedEvent(string TabId, string Origin);
 
 public class PermissionHandler(string tabId) : CefSharp.Handler.PermissionHandler
 {
-    protected override bool OnRequestMediaAccessPermission(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, string requestingUrl, int requestedPermissions, IMediaAccessCallback callback)
+    protected override bool OnRequestMediaAccessPermission(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, string requestingOrigin, MediaAccessPermissionType requestedPermissions, IMediaAccessCallback callback)
     {
         return false; // Use default behavior for media permissions
     }
 
-    protected override bool OnShowPermissionPrompt(IWebBrowser chromiumWebBrowser, IBrowser browser, ulong promptId, string requestingUrl, int requestedPermissions, IPermissionPromptCallback callback)
+    protected override bool OnShowPermissionPrompt(IWebBrowser chromiumWebBrowser, IBrowser browser, ulong promptId, string requestingOrigin, PermissionRequestType requestedPermissions, IPermissionPromptCallback callback)
     {
         // Handle notification permissions
-        if ((requestedPermissions & (int)CefPermissionRequestTypes.Notifications) != 0)
+        if (requestedPermissions.HasFlag(PermissionRequestType.Notifications))
         {
-            return HandleNotificationPermissionRequest(requestingUrl, callback);
+            return HandleNotificationPermissionRequest(requestingOrigin, callback);
         }
 
         return false; // Use default behavior for other permissions
     }
 
-    private bool HandleNotificationPermissionRequest(string requestingUrl, IPermissionPromptCallback callback)
+    private bool HandleNotificationPermissionRequest(string requestingOrigin, IPermissionPromptCallback callback)
     {
-        var origin = new System.Uri(requestingUrl).GetLeftPart(System.UriPartial.Authority);
+        var origin = new System.Uri(requestingOrigin).GetLeftPart(System.UriPartial.Authority);
         var customization = TabCustomizationFeature.GetCustomizationsForTab(tabId);
 
         // Check if permission was already granted or denied
         switch (customization.NotificationPermission)
         {
             case NotificationPermissionStatus.Granted:
-                callback.Continue(CefPermissionRequestResult.Accept);
+                callback.Continue(PermissionRequestResult.Accept);
                 return true;
 
             case NotificationPermissionStatus.Denied:
-                callback.Continue(CefPermissionRequestResult.Deny);
+                callback.Continue(PermissionRequestResult.Deny);
                 return true;
 
             case NotificationPermissionStatus.NotAsked:
@@ -49,8 +48,8 @@ public class PermissionHandler(string tabId) : CefSharp.Handler.PermissionHandle
                 {
                     var result = NotificationPermissionDialog.ShowDialog(MainWindow.Instance, origin);
 
-                    var permission = result 
-                        ? NotificationPermissionStatus.Granted 
+                    var permission = result
+                        ? NotificationPermissionStatus.Granted
                         : NotificationPermissionStatus.Denied;
 
                     // Save the permission choice
@@ -64,10 +63,10 @@ public class PermissionHandler(string tabId) : CefSharp.Handler.PermissionHandle
                     }
 
                     // Respond to the permission request
-                    var cefResult = result 
-                        ? CefPermissionRequestResult.Accept 
-                        : CefPermissionRequestResult.Deny;
-                    
+                    var cefResult = result
+                        ? PermissionRequestResult.Accept
+                        : PermissionRequestResult.Deny;
+
                     callback.Continue(cefResult);
                 });
                 return true;

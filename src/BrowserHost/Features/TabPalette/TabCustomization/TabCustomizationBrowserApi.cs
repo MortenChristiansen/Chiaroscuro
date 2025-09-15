@@ -19,6 +19,8 @@ public class TabCustomizationBrowserApi : BrowserApi
     {
         if (MainWindow.Instance.CurrentTab is { } tab)
             PubSub.Publish(new TabDisableFixedAddressChangedEvent(tab.Id, disabled));
+    }
+
     public void SetNotificationPermission(int permissionStatus)
     {
         if (MainWindow.Instance.CurrentTab is { } tab)
