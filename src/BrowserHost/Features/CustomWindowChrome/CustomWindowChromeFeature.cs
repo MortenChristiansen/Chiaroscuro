@@ -268,12 +268,6 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
 
     private void Window_StateChangedAnimate(object? sender, EventArgs e)
     {
-        if (_suppressNextStateChangeAnimation)
-        {
-            _suppressNextStateChangeAnimation = false;
-            return;
-        }
-
         // Only add a subtle settle animation for changes initiated externally
         if (Window.WindowState is WindowState.Normal)
         {
@@ -354,7 +348,6 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
 
     private ScaleTransform _scaleTransform = new(1.0, 1.0);
     private bool _isAnimating;
-    private bool _suppressNextStateChangeAnimation;
 
     private void AdjustWindowBorder()
     {

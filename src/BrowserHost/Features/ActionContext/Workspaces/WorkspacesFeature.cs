@@ -64,7 +64,6 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 Icon = e.Icon
             };
 
-            _currentWorkspaceId = e.WorkspaceId;
             _workspaces = WorkspaceStateManager.UpdateWorkspace(workspace);
 
             if (e.WorkspaceId == _currentWorkspaceId)
