@@ -69,10 +69,15 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
             // Temporarily disable resize mode to avoid Aero snapping triggering actual maximize
             Window.ResizeMode = ResizeMode.NoResize;
 
-            // Normal drag when not maximized
-            Window.DragMove();
-
-            Window.ResizeMode = ResizeMode.CanResize;
+            try
+            {
+                // Normal drag when not maximized
+                Window.DragMove();
+            }
+            finally
+            {
+                Window.ResizeMode = ResizeMode.CanResize;
+            }
         }
     }
 
@@ -517,7 +522,7 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         _isDraggingToDetach = true;
         Window.Cursor = Cursors.SizeAll;
         // Prevents selecting elements as we complete the detach operation
-        Window.ChromeUI.EvaluateScriptAsync("document.body.setAttribute('inert', '');").GetAwaiter().GetResult();
+        _ = Window.ChromeUI.EvaluateScriptAsync("document.body.setAttribute('inert', '');");
     }
 
     private void ResetDetachDrag()
@@ -525,7 +530,7 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         _dragStartPoint = null;
         _isDraggingToDetach = false;
         Window.Cursor = Cursors.Arrow;
-        Window.ChromeUI.EvaluateScriptAsync("document.body.removeAttribute('inert');").GetAwaiter().GetResult();
+        _ = Window.ChromeUI.EvaluateScriptAsync("document.body.removeAttribute('inert');");
     }
 
     #endregion
