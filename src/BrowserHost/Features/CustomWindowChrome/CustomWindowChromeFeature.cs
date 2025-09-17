@@ -1,4 +1,5 @@
 using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Interop;
 using BrowserHost.Utilities;
 using CefSharp;
 using System;
@@ -106,7 +107,7 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
             ResetDetachDrag();
 
         // Maximize the window if we dragged to the top of the screen
-        GetCursorPos(out var pt);
+        MonitorInterop.GetCursorPos(out var pt);
         if (!_isSimulatedMaximized && pt.Y <= 5)
         {
             ToggleMaximizedState();
@@ -385,10 +386,10 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
             return new Rect(wa.Left, wa.Top, wa.Width, wa.Height);
         }
 
-        var hMon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-        var mi = new MONITORINFO();
-        mi.cbSize = Marshal.SizeOf<MONITORINFO>();
-        if (!GetMonitorInfo(hMon, ref mi))
+        var hMon = MonitorInterop.MonitorFromWindow(hwnd, MonitorInterop.MONITOR_DEFAULTTONEAREST);
+        var mi = new MonitorInterop.MONITORINFO();
+        mi.cbSize = Marshal.SizeOf<MonitorInterop.MONITORINFO>();
+        if (!MonitorInterop.GetMonitorInfo(hMon, ref mi))
         {
             var wa = SystemParameters.WorkArea;
             return new Rect(wa.Left, wa.Top, wa.Width, wa.Height);
@@ -406,24 +407,6 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         return new Rect(left, top, width, height);
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct RECT
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    private struct MONITORINFO
-    {
-        public int cbSize;
-        public RECT rcMonitor;
-        public RECT rcWork;
-        public int dwFlags;
-    }
-
     internal void SimulateMaximize()
     {
         if (_isSimulatedMaximized) return;
@@ -435,8 +418,6 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         if (!_isSimulatedMaximized) return;
         ApplySimulatedRestore();
     }
-
-    private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
 
     #endregion
 
@@ -489,7 +470,7 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         var targetHeight = Math.Max(1, _restoreBounds.Height);
 
         // Get cursor in screen pixels, convert to DIPs, then clamp to current monitor work area
-        if (GetCursorPos(out var pt))
+        if (MonitorInterop.GetCursorPos(out var pt))
         {
             var src = (HwndSource?)PresentationSource.FromVisual(Window);
             var m = src?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
@@ -621,18 +602,4 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
     }
 
     #endregion
-
-    [LibraryImport("user32.dll")]
-    private static partial nint MonitorFromWindow(nint hwnd, uint dwFlags);
-
-    [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool GetMonitorInfo(nint hMonitor, ref MONITORINFO lpmi);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool GetCursorPos(out POINT lpPoint);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT { public int X; public int Y; }
 }
