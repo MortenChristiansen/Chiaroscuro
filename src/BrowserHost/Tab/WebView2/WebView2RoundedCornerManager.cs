@@ -1,5 +1,5 @@
+using BrowserHost.Interop;
 using System;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Threading;
@@ -51,23 +51,25 @@ internal sealed class WebView2RoundedCornerManager
     {
         if (_childWebViewHwnd == IntPtr.Zero || width <= 0 || height <= 0) return;
         var r = _cornerRadiusPx * 2;
-        var region = CreateRoundRectRgn(0, 0, width + 1, height + 1, r, r);
+        var region = WindowInterop.CreateRoundRectRgn(0, 0, width + 1, height + 1, r, r);
         if (region != IntPtr.Zero)
         {
-            var result = SetWindowRgn(_childWebViewHwnd, region, true);
+            var result = WindowInterop.SetWindowRgn(_childWebViewHwnd, region, true);
             if (result == 0)
             {
                 // OS did not take ownership; delete to prevent leak
-                DeleteObject(region);
+                WindowInterop.DeleteObject(region);
             }
         }
     }
 
     private void EnumerateChildWindows()
     {
-        EnumChildWindows(_parentHwnd, (hWnd, _) =>
+        WindowInterop.EnumChildWindows(_parentHwnd, (hWnd, _) =>
         {
-            var cls = GetClassName(hWnd);
+            var sb = new StringBuilder(256);
+            _ = WindowInterop.GetClassName(hWnd, sb, sb.Capacity);
+            var cls = sb.ToString();
             if (cls.StartsWith("Chrome_WidgetWin_", StringComparison.Ordinal))
             {
                 _childWebViewHwnd = hWnd;
@@ -75,30 +77,5 @@ internal sealed class WebView2RoundedCornerManager
             }
             return true; // continue
         }, IntPtr.Zero);
-    }
-
-    // P/Invoke
-    private delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    private static extern bool EnumChildWindows(IntPtr hWndParent, EnumChildProc lpEnumFunc, IntPtr lParam);
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
-
-    [DllImport("gdi32.dll")]
-    private static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
-
-    [DllImport("user32.dll")]
-    private static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
-
-    [DllImport("gdi32.dll")]
-    private static extern bool DeleteObject(IntPtr hObject);
-
-    private static string GetClassName(IntPtr hWnd)
-    {
-        var sb = new StringBuilder(256);
-        GetClassName(hWnd, sb, sb.Capacity);
-        return sb.ToString();
     }
 }

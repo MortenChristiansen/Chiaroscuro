@@ -107,8 +107,7 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
             ResetDetachDrag();
 
         // Maximize the window if we dragged to the top of the screen
-        MonitorInterop.GetCursorPos(out var pt);
-        if (!_isSimulatedMaximized && pt.Y <= 5)
+        if (MonitorInterop.GetCursorPos(out var pt) && !_isSimulatedMaximized && pt.Y <= 5)
         {
             ToggleMaximizedState();
         }
@@ -591,14 +590,12 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
             _ => Cursors.Arrow
         };
 
-    [DllImport("user32.dll")]
-    private static extern nint SendMessage(nint hWnd, int msg, nint wParam, nint lParam);
     private const int WM_NCLBUTTONDOWN = 0x00A1;
 
     private void ResizeWindow(HitTest hit)
     {
         var hwnd = new WindowInteropHelper(Window).Handle;
-        SendMessage(hwnd, WM_NCLBUTTONDOWN, (nint)hit, nint.Zero);
+        WindowInterop.SendMessage(hwnd, WM_NCLBUTTONDOWN, (nint)hit, nint.Zero);
     }
 
     #endregion

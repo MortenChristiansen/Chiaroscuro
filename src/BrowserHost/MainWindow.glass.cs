@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using BrowserHost.Interop;
 
 namespace BrowserHost;
 
@@ -41,19 +42,19 @@ public partial class MainWindow
             if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
             {
                 var backdropType = 2; // DWMSBT_MAINWINDOW
-                _ = DwmSetWindowAttribute(hwnd, 38, ref backdropType, sizeof(int)); // DWMWA_SYSTEMBACKDROP_TYPE = 38
+                _ = WindowInterop.DwmSetWindowAttribute(hwnd, 38, ref backdropType, sizeof(int)); // DWMWA_SYSTEMBACKDROP_TYPE = 38
 
                 // Request rounded corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWM_WINDOW_CORNER_PREFERENCE_ROUND = 2)
                 var cornerPref = 2;
-                _ = DwmSetWindowAttribute(hwnd, 33, ref cornerPref, sizeof(int));
+                _ = WindowInterop.DwmSetWindowAttribute(hwnd, 33, ref cornerPref, sizeof(int));
 
                 // Also enable legacy Mica flag (DWMWA_MICA_EFFECT = 1029) for older 22000 builds
                 var enable = 1;
-                _ = DwmSetWindowAttribute(hwnd, 1029, ref enable, sizeof(int));
+                _ = WindowInterop.DwmSetWindowAttribute(hwnd, 1029, ref enable, sizeof(int));
 
                 // Optional: dark mode hint
                 int useDark = 1;
-                _ = DwmSetWindowAttribute(hwnd, 20, ref useDark, sizeof(int)); // DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+                _ = WindowInterop.DwmSetWindowAttribute(hwnd, 20, ref useDark, sizeof(int)); // DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 
                 return;
             }
@@ -62,61 +63,29 @@ public partial class MainWindow
 
     }
 
-    private enum WINDOWCOMPOSITIONATTRIB
-    {
-        WCA_ACCENT_POLICY = 19
-    }
-
-    private enum ACCENT_STATE
-    {
-        ACCENT_DISABLED = 0,
-        ACCENT_ENABLE_GRADIENT = 1,
-        ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
-        ACCENT_ENABLE_BLURBEHIND = 3,
-        ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
-        ACCENT_INVALID_STATE = 5
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct ACCENT_POLICY
-    {
-        public ACCENT_STATE AccentState;
-        public int AccentFlags;
-        public uint GradientColor;
-        public int AnimationId;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct WINDOWCOMPOSITIONATTRIBDATA
-    {
-        public WINDOWCOMPOSITIONATTRIB Attribute;
-        public IntPtr Data;
-        public int SizeOfData;
-    }
-
     private static void EnableAccentBlur(IntPtr hwnd, Color color, byte opacity)
     {
-        var accent = new ACCENT_POLICY
+        var accent = new WindowInterop.ACCENT_POLICY
         {
-            AccentState = ACCENT_STATE.ACCENT_ENABLE_ACRYLICBLURBEHIND,
+            AccentState = WindowInterop.ACCENT_STATE.ACCENT_ENABLE_ACRYLICBLURBEHIND,
             AccentFlags = 0, // Is ignored
             // GradientColor format: 0xAABBGGRR (alpha in high byte)
             GradientColor = ((uint)opacity << 24) | ((uint)color.B << 16) | ((uint)color.G << 8) | color.R,
             AnimationId = 0
         };
 
-        var size = Marshal.SizeOf<ACCENT_POLICY>();
+        var size = Marshal.SizeOf<WindowInterop.ACCENT_POLICY>();
         var pAccent = Marshal.AllocHGlobal(size);
         try
         {
             Marshal.StructureToPtr(accent, pAccent, false);
-            var data = new WINDOWCOMPOSITIONATTRIBDATA
+            var data = new WindowInterop.WINDOWCOMPOSITIONATTRIBDATA
             {
-                Attribute = WINDOWCOMPOSITIONATTRIB.WCA_ACCENT_POLICY,
+                Attribute = WindowInterop.WINDOWCOMPOSITIONATTRIB.WCA_ACCENT_POLICY,
                 Data = pAccent,
                 SizeOfData = size
             };
-            _ = SetWindowCompositionAttribute(hwnd, ref data);
+            _ = WindowInterop.SetWindowCompositionAttribute(hwnd, ref data);
         }
         finally
         {
@@ -192,10 +161,10 @@ public partial class MainWindow
             int r = (int)Math.Round(CornerRadiusDip * (scaleX + scaleY) / 2.0);
             r = Math.Max(1, r);
 
-            IntPtr rgn = CreateRoundRectRgn(0, 0, w + 1, h + 1, r * 2, r * 2);
-            if (rgn != IntPtr.Zero)
+            nint rgn = WindowInterop.CreateRoundRectRgn(0, 0, w + 1, h + 1, r * 2, r * 2);
+            if (rgn != nint.Zero)
             {
-                SetWindowRgn(hwnd, rgn, true);
+                _ = WindowInterop.SetWindowRgn(hwnd, rgn, true);
                 // Ownership of rgn transfers to the window
             }
         }
@@ -216,16 +185,4 @@ public partial class MainWindow
 
         return IntPtr.Zero;
     }
-
-    [LibraryImport("gdi32.dll")]
-    private static partial IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
-
-    [LibraryImport("user32.dll")]
-    private static partial int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, [MarshalAs(UnmanagedType.Bool)] bool bRedraw);
-
-    [LibraryImport("dwmapi.dll")]
-    private static partial int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-    [LibraryImport("user32.dll")]
-    private static partial int SetWindowCompositionAttribute(IntPtr hwnd, ref WINDOWCOMPOSITIONATTRIBDATA data);
 }
