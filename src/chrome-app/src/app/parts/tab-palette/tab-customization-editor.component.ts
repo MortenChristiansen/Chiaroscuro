@@ -58,20 +58,19 @@ import { TabCustomizationApi } from './tabCustomizationApi';
           </svg>
         </icon-button>
       </div>
-      <div class="text-xs text-gray-500 h-4">
+      <div class="text-xs text-gray-500">
         @if(initialTitle() !== null && initialTitle() !== undefined) {
         Currently: "{{ initialTitle() || '(empty)' }}" } @else { No custom title
         set }
-      </div>
-      <div class="mt-4 pt-4 border-t border-white/10">
-        <label class="inline-flex items-center gap-2 select-none">
+        <div class="text-xs text-gray-400 mt-4">Fixed address</div>
+        <label class="inline-flex items-center gap-2 select-none pt-2">
           <input
             type="checkbox"
-            class="w-4 h-4 rounded border-white/10 bg-gray-800"
+            class="appearance-none w-4 h-4 rounded border-gray-600 border-1 bg-gray-900 checked:bg-gray-500 checked:border-0"
             [checked]="disableFixedAddress()"
             (change)="onToggleDisableFixed($any($event.target).checked)"
           />
-          <span class="text-sm text-gray-300">Disable fixed address</span>
+          <span class="text-sm text-gray-500">Disabled</span>
         </label>
       </div>
     </div>

@@ -8,9 +8,9 @@ import { FaviconComponent } from '../../shared/favicon.component';
   standalone: true,
   template: `
     <div
-      class="tab group flex items-center px-4 py-2 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 hover:bg-white/10"
+      class="tab group flex items-center px-3 py-1.5 rounded-lg select-none text-white font-sans text-sm transition-colors duration-200 hover:bg-white/5"
       [ngClass]="{
-        'bg-white/20 hover:bg-white/30': isActive(),
+        'bg-white/15 hover:bg-white/30': isActive(),
       }"
       (click)="onSelectTab()"
     >

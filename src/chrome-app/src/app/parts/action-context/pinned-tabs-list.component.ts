@@ -10,12 +10,12 @@ import { CommonModule } from '@angular/common';
   imports: [FaviconComponent, CommonModule],
   template: `
     <div class="pinned-tabs-container">
-      <div class="pinned-tabs-list flex flex-row gap-2 px-4 w-full">
+      <div class="pinned-tabs-list flex flex-row gap-2 w-full">
         @for (tab of pinnedTabs(); track tab.id) {
         <div
           class="pinned-tab flex items-center justify-center h-8 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 bg-white/5 hover:bg-white/10 relative flex-1 min-w-0"
           [ngClass]="{
-            'bg-white/20 hover:bg-white/30': activeTabId() == tab.id,
+            'bg-white/15 hover:bg-white/30': activeTabId() == tab.id,
           }"
           (click)="api.activateTab(tab.id)"
           [attr.title]="
