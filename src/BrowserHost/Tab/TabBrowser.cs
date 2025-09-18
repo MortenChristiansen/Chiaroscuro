@@ -1,8 +1,11 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.ActionContext;
+using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.Settings;
+using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Tab.CefSharp;
 using BrowserHost.Tab.WebView2;
+using BrowserHost.Utilities;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,9 +16,12 @@ namespace BrowserHost.Tab;
 
 public class TabBrowser : UserControl
 {
+    private record PersistableState(string Address, string? Favicon, string? Title);
+
     private ITabWebBrowser _browser;
     private readonly ActionContextBrowser _actionContextBrowser;
     private readonly string[] _ssoDomains;
+    private PersistableState? _persistableState;
 
     private event DependencyPropertyChangedEventHandler? _addressChanged;
     public event DependencyPropertyChangedEventHandler? AddressChanged
@@ -42,6 +48,7 @@ public class TabBrowser : UserControl
     {
         _actionContextBrowser = actionContextBrowser;
         _ssoDomains = SettingsFeature.ExecutionSettings.SsoEnabledDomains ?? [];
+        favicon ??= FileFaviconProvider.TryGetFaviconForAddress(address);
         _browser = CreateBrowser(id, address, setManualAddress, favicon);
         Content = _browser.AsUIElement();
         AttachBrowserEvents();
@@ -54,6 +61,20 @@ public class TabBrowser : UserControl
             return new WebView2Browser(id, address, _actionContextBrowser, setManualAddress, favicon);
         return new CefSharpTabBrowserAdapter(id, address, _actionContextBrowser, setManualAddress, favicon);
     }
+
+    public void SavePersistableState()
+    {
+        _persistableState = new PersistableState(_browser.Address, _browser.Favicon, _browser.Title);
+    }
+
+    public string GetAddressToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
+        isBookmarkedOrPinned && tabCustomizations.DisableFixedAddress != true ? _persistableState?.Address ?? _browser.Address : _browser.Address;
+
+    public string GetTitleToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
+        isBookmarkedOrPinned && tabCustomizations.DisableFixedAddress != true ? _persistableState?.Title ?? _browser.Title : _browser.Title;
+
+    public string? GetFaviconToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
+        isBookmarkedOrPinned && tabCustomizations.DisableFixedAddress != true ? _persistableState?.Favicon ?? _browser.Favicon : _browser.Favicon;
 
     private bool ShouldUseWebView2(string address)
     {
@@ -91,6 +112,16 @@ public class TabBrowser : UserControl
         {
             UpgradeToWebView2(newAddress);
         }
+
+        // If navigating to a file address, set a file-type favicon immediately if available
+        if (e.NewValue is string newAddr)
+        {
+            var fileFav = FileFaviconProvider.TryGetFaviconForAddress(newAddr);
+            if (!string.IsNullOrEmpty(fileFav))
+            {
+                _actionContextBrowser.UpdateTabFavicon(Id, fileFav);
+            }
+        }
     }
 
     private void UpgradeToWebView2(string targetAddress)
@@ -105,6 +136,12 @@ public class TabBrowser : UserControl
         Content = _browser.AsUIElement();
         AttachBrowserEvents();
         old.Dispose();
+    }
+
+    public void RestoreOriginalAddress()
+    {
+        if (_persistableState != null && _browser.Address != _persistableState?.Address)
+            SetAddress(_persistableState!.Address, setManualAddress: false);
     }
 
     public void SetAddress(string address, bool setManualAddress) => _browser.SetAddress(address, setManualAddress);

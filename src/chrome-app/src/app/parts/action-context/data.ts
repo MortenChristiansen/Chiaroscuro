@@ -243,34 +243,40 @@ export const workspaceIcons = [
 ];
 
 export const workspaceColors = [
-  '#202634', // dark gray-blue
-  '#23272a', // muted black
-  '#1a202c', // dark blue-gray
-  '#2d3748', // dark slate
-  '#374151', // dark gray
-  '#4b5563', // muted charcoal
-  '#334155', // deep blue-gray
-  '#212529', // very dark gray
-  '#283046', // muted midnight
-  '#22223b', // deep purple
-  '#3c4251', // muted purple-gray
-  '#2a2e37', // dark steel
-  '#3b3c4a', // muted navy
-  '#2f3136', // dark graphite
-  '#24262d', // dark onyx
-  '#343a40', // dark slate gray
-  '#1c1f26', // deep black
-  '#264653', // dark teal
-  '#2b2d42', // dark blue
-  '#3d405b', // muted indigo
-  '#4a4e69', // muted violet
-  '#222831', // dark cyan
-  '#393e46', // muted blue-black
-  '#232b2b', // dark olive
-  '#2e2e2e', // classic charcoal
-  '#2c3e50', // deep blue
-  '#2d3436', // muted graphite
-  '#1b263b', // deep navy
-  '#2c2f36', // dark neutral
-  '#2d2d2d', // classic dark
+  '#5E0000',
+  '#5E1000',
+  '#5E1F00',
+  '#5E2F00',
+  '#5E3E00',
+  '#5E4E00',
+  '#5E5E00',
+  '#4E5E00',
+  '#3E5E00',
+  '#2F5E00',
+  '#1F5E00',
+  '#105E00',
+  '#005E00',
+  '#005E10',
+  '#005E1F',
+  '#005E2F',
+  '#005E3E',
+  '#005E4E',
+  '#005E5E',
+  '#004E5E',
+  '#003E5E',
+  '#002F5E',
+  '#001F5E',
+  '#00105E',
+  '#00005E',
+  '#10005E',
+  '#1F005E',
+  '#2F005E',
+  '#3E005E',
+  '#4E005E',
+  '#5E005E',
+  '#5E004E',
+  '#5E003E',
+  '#5E002F',
+  '#5E001F',
+  '#5E0010',
 ];

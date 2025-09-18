@@ -58,10 +58,20 @@ import { TabCustomizationApi } from './tabCustomizationApi';
           </svg>
         </icon-button>
       </div>
-      <div class="text-xs text-gray-500 h-4">
+      <div class="text-xs text-gray-500">
         @if(initialTitle() !== null && initialTitle() !== undefined) {
         Currently: "{{ initialTitle() || '(empty)' }}" } @else { No custom title
         set }
+        <div class="text-xs text-gray-400 mt-4">Fixed address</div>
+        <label class="inline-flex items-center gap-2 select-none pt-2">
+          <input
+            type="checkbox"
+            class="appearance-none w-4 h-4 rounded border-gray-600 border-1 bg-gray-900 checked:bg-gray-500 checked:border-0"
+            [checked]="disableFixedAddress()"
+            (change)="onToggleDisableFixed($any($event.target).checked)"
+          />
+          <span class="text-sm text-gray-500">Disabled</span>
+        </label>
       </div>
     </div>
   `,
@@ -69,6 +79,7 @@ import { TabCustomizationApi } from './tabCustomizationApi';
 export class TabCustomizationEditorComponent implements OnInit {
   title = signal('');
   initialTitle = signal<string | null>(null);
+  disableFixedAddress = signal<boolean>(false);
 
   titleInput = viewChild.required<ElementRef<HTMLInputElement>>('titleInput');
   private api!: TabCustomizationApi;
@@ -77,11 +88,16 @@ export class TabCustomizationEditorComponent implements OnInit {
     this.api = await loadBackendApi<TabCustomizationApi>('tabCustomizationApi');
 
     exposeApiToBackend({
-      initCustomTitle: (currentTitle: string | null) => {
-        this.initialTitle.set(currentTitle);
-        this.title.set(currentTitle ?? '');
+      initCustomSettings: (settings: {
+        customTitle: string | null;
+        disableFixedAddress: boolean | null;
+      }) => {
+        this.initialTitle.set(settings.customTitle);
+        this.title.set(settings.customTitle ?? '');
         // I'm not sure why this is needed, but there are cases where the title signal does not update the input value.
-        this.titleInput().nativeElement.value = currentTitle ?? '';
+        this.titleInput().nativeElement.value = settings.customTitle ?? '';
+
+        this.disableFixedAddress.set(settings.disableFixedAddress ?? false);
       },
     });
   }
@@ -98,5 +114,10 @@ export class TabCustomizationEditorComponent implements OnInit {
     await this.api.setCustomTitle(null);
     this.initialTitle.set(null);
     input.focus();
+  }
+
+  async onToggleDisableFixed(checked: boolean) {
+    this.disableFixedAddress.set(!!checked);
+    await this.api.setDisableFixedAddress(!!checked);
   }
 }

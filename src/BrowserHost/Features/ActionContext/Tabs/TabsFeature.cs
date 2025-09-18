@@ -106,7 +106,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
         var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null);
         _tabBrowsers.Add(browser);
 
-        var tab = new TabDto(browser.Id, browser.Title, null, DateTimeOffset.UtcNow);
+        var tab = new TabDto(browser.Id, browser.Title, browser.Favicon, DateTimeOffset.UtcNow);
         Window.ActionContext.AddTab(tab, activate: true);
         Window.Dispatcher.Invoke(() => SetCurrentTab(browser));
 
@@ -119,6 +119,8 @@ public class TabsFeature(MainWindow window) : Feature(window)
         var browser = new TabBrowser(id, address, Window.ActionContext, setManualAddress: false, favicon);
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
+
+        browser.SavePersistableState();
 
         PubSub.Publish(new TabBrowserCreatedEvent(browser));
         return browser;
@@ -139,6 +141,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
         if (tab == null || Window.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id)) return;
 
         Window.ActionContext.ToggleTabBookmark(tab.Id);
+        tab.SavePersistableState();
     }
 
     public TabBrowser GetTabBrowserById(string tabId) =>

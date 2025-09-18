@@ -9,12 +9,13 @@ import { TabPaletteApi } from './tabPaletteApi';
   imports: [CommonModule, IconButtonComponent],
   template: `
     <div class="flex flex-col gap-2 w-full">
+      <div class="text-xs text-gray-400">Find in page</div>
       <div class="flex items-center gap-2">
         <input
           #input
           type="text"
           class="flex-1 px-2 py-1 rounded border border-gray-600 bg-gray-900 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Find in page..."
+          placeholder="Search..."
           [(value)]="searchTerm"
           (keydown.enter)="onSearchTermChange(input.value)"
         />
