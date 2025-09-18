@@ -5,6 +5,13 @@ namespace BrowserHost.Interop;
 
 internal static partial class WindowInterop
 {
+    // DWM attributes
+    internal const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    internal const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    internal const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
+    // Undocumented, used on early Win11 builds:
+    internal const int DWMWA_MICA_EFFECT = 1029;
+
     // Common window-related types
     internal enum WINDOWCOMPOSITIONATTRIB
     {
@@ -42,27 +49,27 @@ internal static partial class WindowInterop
     [DllImport("user32.dll")]
     internal static extern nint SendMessage(nint hWnd, int msg, nint wParam, nint lParam);
 
-    [DllImport("user32.dll")]
-    internal static extern int SetWindowCompositionAttribute(nint hwnd, ref WINDOWCOMPOSITIONATTRIBDATA data);
+    [LibraryImport("user32.dll")]
+    internal static partial int SetWindowCompositionAttribute(nint hwnd, ref WINDOWCOMPOSITIONATTRIBDATA data);
 
-    [DllImport("dwmapi.dll")]
-    internal static extern int DwmSetWindowAttribute(nint hwnd, int attr, ref int attrValue, int attrSize);
+    [LibraryImport("dwmapi.dll")]
+    internal static partial int DwmSetWindowAttribute(nint hwnd, int attr, ref int attrValue, int attrSize);
 
-    [DllImport("user32.dll")]
-    internal static extern int SetWindowRgn(nint hWnd, nint hRgn, [MarshalAs(UnmanagedType.Bool)] bool bRedraw);
+    [LibraryImport("user32.dll")]
+    internal static partial int SetWindowRgn(nint hWnd, nint hRgn, [MarshalAs(UnmanagedType.Bool)] bool bRedraw);
 
-    [DllImport("gdi32.dll")]
-    internal static extern nint CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
+    [LibraryImport("gdi32.dll")]
+    internal static partial nint CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
 
-    [DllImport("gdi32.dll")]
+    [LibraryImport("gdi32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool DeleteObject(nint hObject);
+    internal static partial bool DeleteObject(nint hObject);
 
     internal delegate bool EnumChildProc(nint hWnd, nint lParam);
 
-    [DllImport("user32.dll")] // Keep DllImport for delegate callback support
+    [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool EnumChildWindows(nint hWndParent, EnumChildProc lpEnumFunc, nint lParam);
+    internal static partial bool EnumChildWindows(nint hWndParent, EnumChildProc lpEnumFunc, nint lParam);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetClassNameW")]
     internal static extern int GetClassName(nint hWnd, StringBuilder lpClassName, int nMaxCount);

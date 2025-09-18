@@ -1,11 +1,11 @@
-﻿using System;
+﻿using BrowserHost.Interop;
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
-using BrowserHost.Interop;
 
 namespace BrowserHost;
 
@@ -42,19 +42,18 @@ public partial class MainWindow
             if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
             {
                 var backdropType = 2; // DWMSBT_MAINWINDOW
-                _ = WindowInterop.DwmSetWindowAttribute(hwnd, 38, ref backdropType, sizeof(int)); // DWMWA_SYSTEMBACKDROP_TYPE = 38
+                _ = WindowInterop.DwmSetWindowAttribute(hwnd, WindowInterop.DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
 
-                // Request rounded corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWM_WINDOW_CORNER_PREFERENCE_ROUND = 2)
+                // Request rounded corners (DWM_WINDOW_CORNER_PREFERENCE_ROUND = 2)
                 var cornerPref = 2;
-                _ = WindowInterop.DwmSetWindowAttribute(hwnd, 33, ref cornerPref, sizeof(int));
+                _ = WindowInterop.DwmSetWindowAttribute(hwnd, WindowInterop.DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPref, sizeof(int));
 
-                // Also enable legacy Mica flag (DWMWA_MICA_EFFECT = 1029) for older 22000 builds
+                // Also enable legacy Mica flag for older 22000 builds
                 var enable = 1;
-                _ = WindowInterop.DwmSetWindowAttribute(hwnd, 1029, ref enable, sizeof(int));
+                _ = WindowInterop.DwmSetWindowAttribute(hwnd, WindowInterop.DWMWA_MICA_EFFECT, ref enable, sizeof(int));
 
-                // Optional: dark mode hint
-                int useDark = 1;
-                _ = WindowInterop.DwmSetWindowAttribute(hwnd, 20, ref useDark, sizeof(int)); // DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+                var useDark = 1;
+                _ = WindowInterop.DwmSetWindowAttribute(hwnd, WindowInterop.DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
 
                 return;
             }
@@ -164,8 +163,13 @@ public partial class MainWindow
             nint rgn = WindowInterop.CreateRoundRectRgn(0, 0, w + 1, h + 1, r * 2, r * 2);
             if (rgn != nint.Zero)
             {
-                _ = WindowInterop.SetWindowRgn(hwnd, rgn, true);
-                // Ownership of rgn transfers to the window
+                var ok = WindowInterop.SetWindowRgn(hwnd, rgn, true);
+                if (ok == 0)
+                {
+                    // OS did not take ownership; free to avoid leak
+                    WindowInterop.DeleteObject(rgn);
+                }
+                // else: ownership transfers to the window
             }
         }
         catch (Exception ex)

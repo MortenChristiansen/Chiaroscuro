@@ -386,8 +386,10 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         }
 
         var hMon = MonitorInterop.MonitorFromWindow(hwnd, MonitorInterop.MONITOR_DEFAULTTONEAREST);
-        var mi = new MonitorInterop.MONITORINFO();
-        mi.cbSize = Marshal.SizeOf<MonitorInterop.MONITORINFO>();
+        var mi = new MonitorInterop.MONITORINFO()
+        {
+            cbSize = Marshal.SizeOf<MonitorInterop.MONITORINFO>()
+        };
         if (!MonitorInterop.GetMonitorInfo(hMon, ref mi))
         {
             var wa = SystemParameters.WorkArea;

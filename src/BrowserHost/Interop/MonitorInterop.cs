@@ -23,7 +23,7 @@ internal static partial class MonitorInterop
     [StructLayout(LayoutKind.Sequential)]
     internal struct MONITORINFO
     {
-        public int cbSize;
+        public required int cbSize;
         public RECT rcMonitor;
         public RECT rcWork;
         public int dwFlags;

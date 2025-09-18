@@ -44,6 +44,10 @@ internal sealed class WebView2RoundedCornerManager
             {
                 ApplyRoundedRegion(getWidth(), getHeight());
             }
+            else
+            {
+                _enumeratedChild = false;
+            }
         });
     }
 
