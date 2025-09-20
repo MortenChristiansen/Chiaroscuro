@@ -1,4 +1,5 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Logging;
 using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.CustomWindowChrome;
@@ -39,4 +40,7 @@ public class CustomWindowChromeBrowserApi : BrowserApi
 
     public bool IsLoading() =>
         MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.IsLoading ?? false);
+
+    public void OnLoaded() =>
+        Measure.Event("Window chrome frontend loaded");
 }

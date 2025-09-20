@@ -106,6 +106,7 @@ export default class WorkspaceSwitcherComponent implements OnInit {
       setWorkspaces: (workspaces: Workspace[]) => {
         this.workspaces.set(workspaces);
         this.activeWorkspaceId.set(workspaces[0].id);
+        this.api.onLoaded();
       },
       workspaceActivated: (workspaceId: string) => {
         this.activeWorkspaceId.set(workspaceId);
