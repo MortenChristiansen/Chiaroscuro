@@ -72,9 +72,9 @@ public static class TabCustomizationStateManager
                                 var versioned = JsonSerializer.Deserialize<PersistentData>(json);
                                 if (versioned?.Version == _currentVersion)
                                 {
-                                    var tabId = Path.GetFileName(dir);
-                                    var data = JsonSerializer.Deserialize<PersistentData<TabCustomizationDataV1>>(json)?.Data ?? CreateDefaultCustomization(tabId);
-                                    _cachedPerTab[data.TabId] = data;
+                                    var parsed = JsonSerializer.Deserialize<PersistentData<TabCustomizationDataV1>>(json);
+                                    if (parsed?.Data is not null)
+                                        _cachedPerTab[parsed.Data.TabId] = parsed.Data;
                                 }
                             }
                             catch (Exception e) when (!Debugger.IsAttached)
