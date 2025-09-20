@@ -5,7 +5,13 @@ namespace BrowserHost.Logging;
 
 public static class Measure
 {
-    private static readonly DateTime _startupTime = DateTime.Now;
+    private static DateTime _startupTime;
+
+    public static void RegisterStartup()
+    {
+        _startupTime = DateTime.Now;
+        LoggingService.Instance.Log(LogType.Info, $"========== Starting Application ==========");
+    }
 
     public static IDisposable Operation(string operationName)
     {

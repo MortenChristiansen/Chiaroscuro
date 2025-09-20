@@ -25,6 +25,8 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Velopack;
+using Measurement = BrowserHost.Logging.Measure;
 
 namespace BrowserHost;
 
@@ -73,15 +75,30 @@ public partial class MainWindow : Window
             new TabCustomizationFeature(this),
             new DomainCustomizationFeature(this),
         ];
-        _features.ForEach(f => f.Configure());
+        _features.ForEach(f =>
+        {
+            using (Measurement.Operation($"Configuring feature: {f.GetType().Name}"))
+            {
+                f.Configure();
+            }
+        });
 
-        ContentServer.Run();
+        using (Measurement.Operation("Starting content server"))
+        {
+            ContentServer.Run();
+        }
         Instance = this;
     }
 
     protected override void OnContentRendered(EventArgs e)
     {
-        _features.ForEach(f => f.Start());
+        _features.ForEach(f =>
+        {
+            using (Measurement.Operation($"Starting feature: {f.GetType().Name}"))
+            {
+                f.Start();
+            }
+        });
         base.OnContentRendered(e);
     }
 
@@ -98,7 +115,11 @@ public partial class MainWindow : Window
             if (!App.UpdateManager.IsInstalled)
                 return;
 
-            var updateInfo = await App.UpdateManager.CheckForUpdatesAsync();
+            UpdateInfo? updateInfo;
+            using (Measurement.Operation("Checking for application updates"))
+            {
+                updateInfo = await App.UpdateManager.CheckForUpdatesAsync();
+            }
             if (updateInfo != null)
             {
                 var result = MessageBox.Show(
@@ -111,8 +132,14 @@ public partial class MainWindow : Window
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    await App.UpdateManager.DownloadUpdatesAsync(updateInfo);
-                    App.UpdateManager.ApplyUpdatesAndRestart(updateInfo);
+                    using (Measurement.Operation("Downloading update"))
+                    {
+                        await App.UpdateManager.DownloadUpdatesAsync(updateInfo);
+                    }
+                    using (Measurement.Operation("Applying update"))
+                    {
+                        App.UpdateManager.ApplyUpdatesAndRestart(updateInfo);
+                    }
                 }
             }
         }

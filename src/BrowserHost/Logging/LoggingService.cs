@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BrowserHost.Logging;
 
@@ -23,7 +22,7 @@ public sealed class LoggingService : IDisposable
     {
         _logsFolder = Path.Combine(AppDataPathManager.GetAppDataFolderPath(), "logs");
         Directory.CreateDirectory(_logsFolder);
-        
+
         // Flush every 5 seconds
         _flushTimer = new Timer(FlushLogs, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
     }
@@ -31,7 +30,7 @@ public sealed class LoggingService : IDisposable
     public void Log(LogType type, string message)
     {
         if (_disposed) return;
-        
+
         var entry = new LogEntry(DateTime.Now, type, message);
         _logQueue.Enqueue(entry);
     }
@@ -44,7 +43,7 @@ public sealed class LoggingService : IDisposable
         {
             var today = DateTime.Today;
             var logFile = Path.Combine(_logsFolder, $"{today:yyyy-MM-dd}.log");
-            
+
             var entriesToWrite = new StringBuilder();
             while (_logQueue.TryDequeue(out var entry))
             {
@@ -68,12 +67,13 @@ public sealed class LoggingService : IDisposable
     {
         var typeString = entry.Type switch
         {
+            LogType.Info => "Info",
             LogType.Performance => "Performance",
-            LogType.Crashes => "Crashes", 
+            LogType.Crashes => "Crashes",
             LogType.ConsoleErrors => "ConsoleErrors",
             _ => entry.Type.ToString()
         };
-        
+
         return $"{entry.Timestamp:yyyy-MM-dd HH:mm:ss.fff}: [{typeString}] {entry.Message}";
     }
 
@@ -81,9 +81,9 @@ public sealed class LoggingService : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        
+
         _flushTimer?.Dispose();
-        
+
         // Flush any remaining logs
         FlushLogs(null);
     }

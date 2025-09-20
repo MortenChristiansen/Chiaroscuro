@@ -34,19 +34,25 @@ public class ProgramPublishSingleFile
                 LoggingService.Instance.Dispose(); // Flush logs before crash
             }
         };
-        
-        VelopackApp
+
+        // If this is a subprocess, pass execution to CefSharp
+        var exitCode = CefSharp.BrowserSubprocess.SelfHost.Main(args);
+        if (exitCode >= 0)
+            return exitCode;
+
+        Measure.RegisterStartup();
+
+        using (Measure.Operation("Performing Velopack initialization"))
+        {
+            VelopackApp
             .Build()
             .OnFirstRun(WindowsRegistrator.RegisterApplication)
             .OnRestarted(WindowsRegistrator.RegisterApplication)
             .Run();
+        }
 
         if (App.Options.ForceAppRegistration)
             WindowsRegistrator.RegisterApplication(new SemanticVersion(0, 0, 0));
-
-        var exitCode = CefSharp.BrowserSubprocess.SelfHost.Main(args);
-        if (exitCode >= 0)
-            return exitCode;
 
         var appSettings = SettingsFeature.ExecutionSettings;
 
@@ -75,10 +81,16 @@ public class ProgramPublishSingleFile
         //constructor for purposes of providing a self contained single file example we call it here.
         //You could remove this code and use the CefSharp.MinimalExample.Wpf.App example if you 
         //set BrowserSubprocessPath to an absolute path to your main application exe.
-        Cef.Initialize(settings, performDependencyCheck: false, new BrowserProcessHandler());
+        using (Measure.Operation("Performing Cef initialization"))
+        {
+            Cef.Initialize(settings, performDependencyCheck: false, new BrowserProcessHandler());
+        }
 
         var app = new App();
-        app.InitializeComponent();
+        using (Measure.Operation("Initializing app component"))
+        {
+            app.InitializeComponent();
+        }
         return app.Run();
     }
 
@@ -89,7 +101,7 @@ public class ProgramPublishSingleFile
         message.AppendLine($"Exception Type: {exception.GetType().FullName}");
         message.AppendLine("Stack Trace:");
         message.AppendLine(exception.StackTrace);
-        
+
         if (exception.InnerException != null)
         {
             message.AppendLine("Inner Exception:");
@@ -98,7 +110,7 @@ public class ProgramPublishSingleFile
             message.AppendLine("  Stack Trace:");
             message.AppendLine($"  {exception.InnerException.StackTrace}");
         }
-        
+
         LoggingService.Instance.Log(LogType.Crashes, message.ToString());
     }
 }
