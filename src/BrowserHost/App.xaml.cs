@@ -20,7 +20,7 @@ public partial class App : Application
         DispatcherUnhandledException += (sender, e) =>
         {
             LoggingService.Instance.LogCrash(e.Exception);
-            LoggingService.Instance.Dispose(); // Flush logs before crash
+            LoggingService.SafeFlushLogsOnShutdown();
         };
 
         AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
@@ -28,7 +28,7 @@ public partial class App : Application
             if (e.ExceptionObject is Exception ex)
             {
                 LoggingService.Instance.LogCrash(ex);
-                LoggingService.Instance.Dispose(); // Flush logs before crash
+                LoggingService.SafeFlushLogsOnShutdown();
             }
         };
 
@@ -83,7 +83,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        LoggingService.Instance.Dispose(); // Flush logs on normal exit
+        LoggingService.SafeFlushLogsOnShutdown();
         Cef.Shutdown();
         base.OnExit(e);
     }

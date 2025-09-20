@@ -210,7 +210,7 @@ public partial class MainWindow : Window
             downloadsFeature.CancelAllActiveDownloads();
         }
 
-        LoggingService.Instance.Dispose(); // Flush logs before crash
+        LoggingService.SafeFlushLogsOnShutdown();
 
         base.OnClosing(e);
     }

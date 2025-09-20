@@ -30,7 +30,7 @@ public class ProgramPublishSingleFile
             if (e.ExceptionObject is Exception ex)
             {
                 LoggingService.Instance.LogCrash(ex);
-                LoggingService.Instance.Dispose(); // Flush logs before crash
+                LoggingService.SafeFlushLogsOnShutdown();
             }
         };
 

@@ -32,19 +32,26 @@ public sealed class LoggingService : IDisposable
 
     public void LogCrash(Exception exception)
     {
-        var message = new StringBuilder();
-        void Append(Exception ex, string? prefix = null)
+        try
         {
-            var p = string.IsNullOrEmpty(prefix) ? "" : prefix + " ";
-            message.AppendLine($"{p}Exception: {ex.GetType().FullName}: {ex.Message}");
-            message.AppendLine($"{p}Stack Trace:");
-            message.AppendLine(ex.StackTrace);
-            if (ex.InnerException != null) Append(ex.InnerException, (prefix ?? "Inner").Trim());
-        }
-        message.AppendLine("Application crashed");
-        Append(exception);
+            var message = new StringBuilder();
+            void Append(Exception ex, string? prefix = null)
+            {
+                var p = string.IsNullOrEmpty(prefix) ? "" : prefix + " ";
+                message.AppendLine($"{p}Exception: {ex.GetType().FullName}: {ex.Message}");
+                message.AppendLine($"{p}Stack Trace:");
+                message.AppendLine(ex.StackTrace);
+                if (ex.InnerException != null) Append(ex.InnerException, (prefix ?? "Inner").Trim());
+            }
+            message.AppendLine("Application crashed");
+            Append(exception);
 
-        Log(LogType.Crashes, message.ToString());
+            Log(LogType.Crashes, message.ToString());
+        }
+        catch (Exception) when (!Debugger.IsAttached)
+        {
+            /* Preserve originalal crash */
+        }
     }
 
     public void Log(LogType type, string message)
@@ -133,6 +140,13 @@ public sealed class LoggingService : IDisposable
         }
 
         return;
+    }
+
+    private static int _crashFlushOnce;
+    public static void SafeFlushLogsOnShutdown()
+    {
+        if (Interlocked.Exchange(ref _crashFlushOnce, 1) != 0) return;
+        try { Instance.Dispose(); } catch { /* best-effort */ }
     }
 
     public void Dispose()
