@@ -52,7 +52,31 @@ public class CefSharpTabBrowserAdapter(string id, string address, ActionContextB
     public void Back() => _cefBrowser.Back();
     public void Forward() => _cefBrowser.Forward();
     public Task CallClientApi(string api, string? arguments = null) { _cefBrowser.CallClientApi(api, arguments); return Task.CompletedTask; }
-    public Task ExecuteScriptAsync(string script) { _cefBrowser.ExecuteScriptAsync(script); return Task.CompletedTask; }
+    public Task ExecuteScriptAsync(string script)
+    {
+        if (_cefBrowser.IsDisposed)
+            return Task.CompletedTask;
+
+        if (_cefBrowser.IsBrowserInitialized)
+        {
+            _cefBrowser.ExecuteScriptAsync(script);
+        }
+        else
+        {
+            void handler(object s, DependencyPropertyChangedEventArgs e)
+            {
+                _cefBrowser.IsBrowserInitializedChanged -= handler;
+                if (_cefBrowser.IsDisposed)
+                    return;
+
+                _cefBrowser.ExecuteScriptAsync(script);
+            }
+
+            _cefBrowser.IsBrowserInitializedChanged += handler;
+
+        }
+        return Task.CompletedTask;
+    }
     public object? GetBrowserHost() => _cefBrowser.GetBrowserHost();
     public Task<double> GetZoomLevelAsync() => _cefBrowser.GetZoomLevelAsync();
     public void SetZoomLevel(double level) => _cefBrowser.SetZoomLevel(level);
