@@ -1,4 +1,5 @@
-﻿using CefSharp;
+﻿using BrowserHost.Logging;
+using CefSharp;
 using CefSharp.Wpf;
 using System.Diagnostics;
 using System.Windows.Media;
@@ -53,8 +54,15 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
         ConsoleMessage += (sender, e) =>
         {
             Debug.WriteLine($"{GetType().Name}: {e.Message}");
-            if (e.Level == LogSeverity.Error && Debugger.IsAttached)
-                this.GetBrowserHost().ShowDevTools();
+            
+            // Log console errors to the application log (only for non-TabBrowser browsers)
+            if (e.Level == LogSeverity.Error)
+            {
+                LoggingService.Instance.Log(LogType.ConsoleErrors, $"{GetType().Name}: {e.Message}");
+                
+                if (Debugger.IsAttached)
+                    this.GetBrowserHost().ShowDevTools();
+            }
         };
 
         if (_disableContextMenu)

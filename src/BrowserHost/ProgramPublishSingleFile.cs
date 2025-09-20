@@ -1,5 +1,6 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.Settings;
+using BrowserHost.Logging;
 using BrowserHost.Utilities;
 using CefSharp;
 using CefSharp.Wpf;
@@ -8,6 +9,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.Versioning;
+using System.Text;
 using Velopack;
 
 namespace BrowserHost;
@@ -23,6 +25,16 @@ public class ProgramPublishSingleFile
     [SupportedOSPlatform("windows")]
     public static int Main(string[] args)
     {
+        // Set up unhandled exception handlers for crash logging
+        AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+        {
+            if (e.ExceptionObject is Exception ex)
+            {
+                LogCrash(ex);
+                LoggingService.Instance.Dispose(); // Flush logs before crash
+            }
+        };
+        
         VelopackApp
             .Build()
             .OnFirstRun(WindowsRegistrator.RegisterApplication)
@@ -68,5 +80,25 @@ public class ProgramPublishSingleFile
         var app = new App();
         app.InitializeComponent();
         return app.Run();
+    }
+
+    private static void LogCrash(Exception exception)
+    {
+        var message = new StringBuilder();
+        message.AppendLine($"Application crashed: {exception.Message}");
+        message.AppendLine($"Exception Type: {exception.GetType().FullName}");
+        message.AppendLine("Stack Trace:");
+        message.AppendLine(exception.StackTrace);
+        
+        if (exception.InnerException != null)
+        {
+            message.AppendLine("Inner Exception:");
+            message.AppendLine($"  {exception.InnerException.Message}");
+            message.AppendLine($"  Type: {exception.InnerException.GetType().FullName}");
+            message.AppendLine("  Stack Trace:");
+            message.AppendLine($"  {exception.InnerException.StackTrace}");
+        }
+        
+        LoggingService.Instance.Log(LogType.Crashes, message.ToString());
     }
 }

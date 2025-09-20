@@ -1,7 +1,9 @@
-﻿using CefSharp;
+﻿using BrowserHost.Logging;
+using CefSharp;
 using CefSharp.Wpf;
 using System;
 using System.IO;
+using System.Text;
 using System.Windows;
 using Velopack;
 using Velopack.Sources;
@@ -15,6 +17,22 @@ public partial class App : Application
 
     public App()
     {
+        // Set up unhandled exception handlers for crash logging
+        DispatcherUnhandledException += (sender, e) =>
+        {
+            LogCrash(e.Exception);
+            LoggingService.Instance.Dispose(); // Flush logs before crash
+        };
+        
+        AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+        {
+            if (e.ExceptionObject is Exception ex)
+            {
+                LogCrash(ex);
+                LoggingService.Instance.Dispose(); // Flush logs before crash
+            }
+        };
+        
         var cachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CefSharp\\Cache");
 #if ANYCPU
         //Only required for PlatformTarget of AnyCPU
@@ -66,7 +84,28 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        LoggingService.Instance.Dispose(); // Flush logs on normal exit
         Cef.Shutdown();
         base.OnExit(e);
+    }
+
+    private static void LogCrash(Exception exception)
+    {
+        var message = new StringBuilder();
+        message.AppendLine($"Application crashed: {exception.Message}");
+        message.AppendLine($"Exception Type: {exception.GetType().FullName}");
+        message.AppendLine("Stack Trace:");
+        message.AppendLine(exception.StackTrace);
+        
+        if (exception.InnerException != null)
+        {
+            message.AppendLine("Inner Exception:");
+            message.AppendLine($"  {exception.InnerException.Message}");
+            message.AppendLine($"  Type: {exception.InnerException.GetType().FullName}");
+            message.AppendLine("  Stack Trace:");
+            message.AppendLine($"  {exception.InnerException.StackTrace}");
+        }
+        
+        LoggingService.Instance.Log(LogType.Crashes, message.ToString());
     }
 }
