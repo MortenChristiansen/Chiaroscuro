@@ -3,7 +3,7 @@ using BrowserHost.Utilities;
 using CefSharp;
 using System.Windows;
 
-namespace BrowserHost.Features.ActionContext.Tabs;
+namespace BrowserHost.Features.Notifications;
 
 public record NotificationPermissionRequestedEvent(string TabId, string Origin);
 
@@ -56,7 +56,7 @@ public class PermissionHandler(string tabId) : CefSharp.Handler.PermissionHandle
                     PubSub.Publish(new TabNotificationPermissionChangedEvent(tabId, permission));
 
                     // Update JavaScript permission status
-                    var browser = MainWindow.Instance.CurrentTab as CefSharp.IWebBrowser;
+                    var browser = MainWindow.Instance.CurrentTab as IWebBrowser;
                     if (browser != null)
                     {
                         NotificationApiInjector.UpdatePermissionStatus(browser, permission);

@@ -2,19 +2,14 @@ using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Utilities;
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Windows;
 
 namespace BrowserHost.Features.Notifications;
 
 public record ShowNotificationEvent(string TabId, string Title, string Body, string? Icon, string Origin);
 
-public class WindowsNotificationService : Feature
+public class WindowsNotificationFeature(MainWindow window) : Feature(window)
 {
-    public WindowsNotificationService(MainWindow window) : base(window)
-    {
-    }
-
     public override void Configure()
     {
         PubSub.Subscribe<ShowNotificationEvent>(HandleShowNotification);
@@ -23,7 +18,7 @@ public class WindowsNotificationService : Feature
     private void HandleShowNotification(ShowNotificationEvent e)
     {
         var customization = TabCustomizationFeature.GetCustomizationsForTab(e.TabId);
-        
+
         // Only show notification if permission is granted
         if (customization.NotificationPermission != NotificationPermissionStatus.Granted)
             return;
@@ -71,13 +66,13 @@ public class WindowsNotificationService : Feature
             // - Windows.UI.Notifications (requires Windows Runtime support)
             // - Microsoft.Toolkit.Win32.UI.Controls (community toolkit)
             // - Or PInvoke to shell32.dll
-            
+
             // Since this is a WPF app and we want minimal dependencies,
             // we'll use a PowerShell command as a simple approach
             var escapedTitle = title.Replace("'", "''").Replace("`", "``");
             var escapedBody = body.Replace("'", "''").Replace("`", "``");
             var escapedOrigin = origin.Replace("'", "''").Replace("`", "``");
-            
+
             var script = $@"
                 [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null;
                 $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02);
@@ -104,7 +99,7 @@ public class WindowsNotificationService : Feature
 
             process.Start();
             process.WaitForExit(5000); // Wait max 5 seconds
-            
+
             return process.ExitCode == 0;
         }
         catch (Exception ex)
@@ -134,7 +129,7 @@ public class WindowsNotificationService : Feature
     {
         // Simple fallback that's always visible but non-intrusive
         var message = $"{title}\n\n{body}\n\nFrom: {origin}";
-        
+
         // Show as a custom notification window that auto-dismisses after a few seconds
         var notificationWindow = new NotificationWindow(title, body, origin);
         notificationWindow.Show();
@@ -155,17 +150,17 @@ public class NotificationWindow : Window
         ResizeMode = ResizeMode.NoResize;
         Topmost = true;
         ShowInTaskbar = false;
-        
+
         // Position in bottom-right corner
         WindowStartupLocation = WindowStartupLocation.Manual;
         Left = SystemParameters.WorkArea.Right - Width - 20;
         Top = SystemParameters.WorkArea.Bottom - Height - 20;
 
         Background = System.Windows.Media.Brushes.DarkBlue;
-        
+
         var grid = new System.Windows.Controls.Grid();
         grid.Margin = new Thickness(10);
-        
+
         var titleBlock = new System.Windows.Controls.TextBlock
         {
             Text = title,
@@ -174,7 +169,7 @@ public class NotificationWindow : Window
             FontSize = 14,
             TextWrapping = TextWrapping.Wrap
         };
-        
+
         var bodyBlock = new System.Windows.Controls.TextBlock
         {
             Text = body,
@@ -183,7 +178,7 @@ public class NotificationWindow : Window
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 5, 0, 0)
         };
-        
+
         var originBlock = new System.Windows.Controls.TextBlock
         {
             Text = $"From: {origin}",
@@ -197,7 +192,7 @@ public class NotificationWindow : Window
         stackPanel.Children.Add(titleBlock);
         stackPanel.Children.Add(bodyBlock);
         stackPanel.Children.Add(originBlock);
-        
+
         grid.Children.Add(stackPanel);
         Content = grid;
 

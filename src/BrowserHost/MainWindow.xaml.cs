@@ -76,7 +76,7 @@ public partial class MainWindow : Window
             new FindTextFeature(this),
             new TabCustomizationFeature(this),
             new DomainCustomizationFeature(this),
-            new WindowsNotificationService(this),
+            new WindowsNotificationFeature(this),
         ];
         _features.ForEach(f => f.Configure());
 

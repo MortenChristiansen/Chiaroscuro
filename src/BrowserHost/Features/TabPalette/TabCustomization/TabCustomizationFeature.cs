@@ -1,5 +1,6 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionContext.Workspaces;
+using BrowserHost.Features.Notifications;
 using BrowserHost.Utilities;
 using CefSharp;
 using System.Linq;
