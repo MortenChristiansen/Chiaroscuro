@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace BrowserHost.Logging;
 
@@ -25,6 +26,8 @@ public sealed class LoggingService : IDisposable
 
         // Flush every 5 seconds
         _flushTimer = new Timer(FlushLogs, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+
+        _ = Task.Factory.StartNew(DeleteLogsNotTouchedWithinLastWeek);
     }
 
     public void LogCrash(Exception exception)
@@ -95,6 +98,44 @@ public sealed class LoggingService : IDisposable
         };
 
         return $"{entry.Timestamp:yyyy-MM-dd HH:mm:ss.fff}: [{typeString}] {entry.Message}";
+    }
+
+    public void DeleteLogsNotTouchedWithinLastWeek()
+    {
+        if (_disposed) return;
+
+        var cutoff = DateTime.Now - TimeSpan.FromDays(7);
+
+        try
+        {
+            if (!Directory.Exists(_logsFolder))
+                return;
+
+            foreach (var file in Directory.EnumerateFiles(_logsFolder, "*.log", SearchOption.TopDirectoryOnly))
+            {
+                try
+                {
+                    var lastWrite = File.GetLastWriteTime(file);
+                    var lastAccess = File.GetLastAccessTime(file);
+                    var lastTouched = lastWrite > lastAccess ? lastWrite : lastAccess;
+
+                    if (lastTouched < cutoff)
+                    {
+                        File.Delete(file);
+                    }
+                }
+                catch (Exception ex) when (!Debugger.IsAttached)
+                {
+                    Debug.WriteLine($"Failed to delete log '{file}': {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex) when (!Debugger.IsAttached)
+        {
+            Debug.WriteLine($"Failed to enumerate logs for deletion: {ex.Message}");
+        }
+
+        return;
     }
 
     public void Dispose()
