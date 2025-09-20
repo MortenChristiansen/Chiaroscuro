@@ -240,6 +240,17 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 
             UpdateCssFileWatcher();
             NotifyFrontendOfDomainUpdate(domain);
+
+            var customization = DomainCustomizationStateManager.GetCustomization(domain);
+            if (customization == null)
+            {
+                customization = new DomainCustomizationDataV1(domain, true, true);
+            }
+            else
+            {
+                customization = customization with { CssEnabled = true, HasCustomCss = true };
+            }
+            DomainCustomizationStateManager.SaveCustomization(customization);
         }
         catch (Exception ex)
         {

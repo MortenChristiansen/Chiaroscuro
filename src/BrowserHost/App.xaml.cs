@@ -1,4 +1,5 @@
-﻿using CefSharp;
+﻿using BrowserHost.Logging;
+using CefSharp;
 using CefSharp.Wpf;
 using System;
 using System.IO;
@@ -15,6 +16,22 @@ public partial class App : Application
 
     public App()
     {
+        // Set up unhandled exception handlers for crash logging
+        DispatcherUnhandledException += (sender, e) =>
+        {
+            LoggingService.Instance.LogCrash(e.Exception);
+            LoggingService.SafeFlushLogsOnShutdown();
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+        {
+            if (e.ExceptionObject is Exception ex)
+            {
+                LoggingService.Instance.LogCrash(ex);
+                LoggingService.SafeFlushLogsOnShutdown();
+            }
+        };
+
         var cachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CefSharp\\Cache");
 #if ANYCPU
         //Only required for PlatformTarget of AnyCPU
@@ -66,6 +83,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        LoggingService.SafeFlushLogsOnShutdown();
         Cef.Shutdown();
         base.OnExit(e);
     }

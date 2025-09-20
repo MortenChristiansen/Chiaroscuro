@@ -1,3 +1,4 @@
+using BrowserHost.Logging;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
@@ -50,44 +51,47 @@ public static class TabCustomizationStateManager
         // This is not a very efficient implementation, but this is only called once.
         // We may want to optimize this later if needed.
 
-        lock (_lock)
+        using (Measure.Operation("Restoring tab customizations from disk"))
         {
-            var results = new List<TabCustomizationDataV1>();
-
-            try
+            lock (_lock)
             {
-                if (Directory.Exists(RootFolder))
+                var results = new List<TabCustomizationDataV1>();
+
+                try
                 {
-                    foreach (var dir in Directory.EnumerateDirectories(RootFolder))
+                    if (Directory.Exists(RootFolder))
                     {
-                        var file = Path.Combine(dir, "customization.json");
-                        if (!File.Exists(file))
-                            continue;
-                        try
+                        foreach (var dir in Directory.EnumerateDirectories(RootFolder))
                         {
-                            var json = File.ReadAllText(file);
-                            var versioned = JsonSerializer.Deserialize<PersistentData>(json);
-                            if (versioned?.Version == _currentVersion)
+                            var file = Path.Combine(dir, "customization.json");
+                            if (!File.Exists(file))
+                                continue;
+                            try
                             {
-                                var tabId = Path.GetFileName(dir);
-                                var data = JsonSerializer.Deserialize<PersistentData<TabCustomizationDataV1>>(json)?.Data ?? CreateDefaultCustomization(tabId);
-                                _cachedPerTab[data.TabId] = data;
+                                var json = File.ReadAllText(file);
+                                var versioned = JsonSerializer.Deserialize<PersistentData>(json);
+                                if (versioned?.Version == _currentVersion)
+                                {
+                                    var parsed = JsonSerializer.Deserialize<PersistentData<TabCustomizationDataV1>>(json);
+                                    if (parsed?.Data is not null)
+                                        _cachedPerTab[parsed.Data.TabId] = parsed.Data;
+                                }
                             }
-                        }
-                        catch (Exception e) when (!Debugger.IsAttached)
-                        {
-                            Debug.WriteLine($"Failed to read tab customization file '{file}': {e.Message}");
+                            catch (Exception e) when (!Debugger.IsAttached)
+                            {
+                                Debug.WriteLine($"Failed to read tab customization file '{file}': {e.Message}");
+                            }
                         }
                     }
                 }
-            }
-            catch (Exception e) when (!Debugger.IsAttached)
-            {
-                Debug.WriteLine($"Failed to enumerate tab customizations: {e.Message}");
-            }
+                catch (Exception e) when (!Debugger.IsAttached)
+                {
+                    Debug.WriteLine($"Failed to enumerate tab customizations: {e.Message}");
+                }
 
-            results.AddRange(_cachedPerTab.Values);
-            return results.AsReadOnly();
+                results.AddRange(_cachedPerTab.Values);
+                return results.AsReadOnly();
+            }
         }
     }
 

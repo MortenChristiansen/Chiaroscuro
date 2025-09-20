@@ -1,4 +1,5 @@
-﻿using BrowserHost.Utilities;
+﻿using BrowserHost.Logging;
+using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -87,44 +88,47 @@ public static class WorkspaceStateManager
 
     public static WorkspaceDtoV1[] RestoreWorkspacesFromDisk()
     {
-        lock (_lock)
+        using (Measure.Operation("Restoring workspaces from disk"))
         {
-            WorkspacesDataDtoV1? result = null;
-
-            try
+            lock (_lock)
             {
-                if (File.Exists(_persistedStatePath))
-                {
-                    var json = File.ReadAllText(_persistedStatePath);
+                WorkspacesDataDtoV1? result = null;
 
-                    try
+                try
+                {
+                    if (File.Exists(_persistedStatePath))
                     {
-                        var versionedData = JsonSerializer.Deserialize<PersistentData>(json);
-                        if (versionedData?.Version == _currentVersion)
+                        var json = File.ReadAllText(_persistedStatePath);
+
+                        try
                         {
-                            var rawData = JsonSerializer.Deserialize<PersistentData<WorkspacesDataDtoV1>>(json)?.Data ?? new([_defaultWorkspace]);
-                            result = FilterExpiredEphemeralTabs(rawData);
+                            var versionedData = JsonSerializer.Deserialize<PersistentData>(json);
+                            if (versionedData?.Version == _currentVersion)
+                            {
+                                var rawData = JsonSerializer.Deserialize<PersistentData<WorkspacesDataDtoV1>>(json)?.Data ?? new([_defaultWorkspace]);
+                                result = FilterExpiredEphemeralTabs(rawData);
+                            }
+                        }
+                        catch (Exception e) when (!Debugger.IsAttached)
+                        {
+                            Debug.WriteLine($"Failed to restore tabs state: {e.Message}");
                         }
                     }
-                    catch (Exception e) when (!Debugger.IsAttached)
-                    {
-                        Debug.WriteLine($"Failed to restore tabs state: {e.Message}");
-                    }
                 }
+                catch (Exception e2) when (!Debugger.IsAttached)
+                {
+                    Debug.WriteLine($"Failed to restore tabs state: {e2.Message}");
+                }
+
+                // Update the cache with the restored data (after filtering expired tabs)
+                _lastSavedWorkspaceData = result ?? new([_defaultWorkspace]);
+
+                // We ensure that there is always at least one workspace available
+                if (_lastSavedWorkspaceData.Workspaces.Length == 0)
+                    _lastSavedWorkspaceData = new([_defaultWorkspace]);
+
+                return _lastSavedWorkspaceData.Workspaces;
             }
-            catch (Exception e2) when (!Debugger.IsAttached)
-            {
-                Debug.WriteLine($"Failed to restore tabs state: {e2.Message}");
-            }
-
-            // Update the cache with the restored data (after filtering expired tabs)
-            _lastSavedWorkspaceData = result ?? new([_defaultWorkspace]);
-
-            // We ensure that there is always at least one workspace available
-            if (_lastSavedWorkspaceData.Workspaces.Length == 0)
-                _lastSavedWorkspaceData = new([_defaultWorkspace]);
-
-            return _lastSavedWorkspaceData.Workspaces;
         }
     }
 

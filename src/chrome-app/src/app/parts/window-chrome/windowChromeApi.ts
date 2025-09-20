@@ -11,4 +11,5 @@ export interface WindowsChromeApi extends Api {
   reload: () => Promise<void>;
   copyAddress: () => Promise<void>;
   isLoading: () => Promise<boolean>;
+  onLoaded: () => Promise<void>;
 }
