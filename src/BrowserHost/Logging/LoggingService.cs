@@ -100,7 +100,7 @@ public sealed class LoggingService : IDisposable
         return $"{entry.Timestamp:yyyy-MM-dd HH:mm:ss.fff}: [{typeString}] {entry.Message}";
     }
 
-    public void DeleteLogsNotTouchedWithinLastWeek()
+    private void DeleteLogsNotTouchedWithinLastWeek()
     {
         if (_disposed) return;
 
