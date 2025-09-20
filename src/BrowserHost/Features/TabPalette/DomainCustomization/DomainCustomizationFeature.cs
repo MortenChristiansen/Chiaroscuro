@@ -207,7 +207,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 
             _ = tab.ExecuteScriptAsync(script);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!Debugger.IsAttached)
         {
             Debug.WriteLine($"Failed to remove CSS from tab: {ex.Message}");
         }
