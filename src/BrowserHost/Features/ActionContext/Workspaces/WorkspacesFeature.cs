@@ -45,6 +45,8 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             {
                 _hasLoggedInitialWorkspaceTime = true;
                 Measure.Event("Initial workspace loaded");
+                if (e != null)
+                    throw new Exception("Oh noes");
             }
         });
         PubSub.Subscribe<WorkspaceCreatedEvent>(e =>

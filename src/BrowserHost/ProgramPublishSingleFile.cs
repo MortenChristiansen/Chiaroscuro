@@ -9,7 +9,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.Versioning;
-using System.Text;
 using Velopack;
 
 namespace BrowserHost;
@@ -30,7 +29,7 @@ public class ProgramPublishSingleFile
         {
             if (e.ExceptionObject is Exception ex)
             {
-                LogCrash(ex);
+                LoggingService.Instance.LogCrash(ex);
                 LoggingService.Instance.Dispose(); // Flush logs before crash
             }
         };
@@ -92,25 +91,5 @@ public class ProgramPublishSingleFile
             app.InitializeComponent();
         }
         return app.Run();
-    }
-
-    private static void LogCrash(Exception exception)
-    {
-        var message = new StringBuilder();
-        message.AppendLine($"Application crashed: {exception.Message}");
-        message.AppendLine($"Exception Type: {exception.GetType().FullName}");
-        message.AppendLine("Stack Trace:");
-        message.AppendLine(exception.StackTrace);
-
-        if (exception.InnerException != null)
-        {
-            message.AppendLine("Inner Exception:");
-            message.AppendLine($"  {exception.InnerException.Message}");
-            message.AppendLine($"  Type: {exception.InnerException.GetType().FullName}");
-            message.AppendLine("  Stack Trace:");
-            message.AppendLine($"  {exception.InnerException.StackTrace}");
-        }
-
-        LoggingService.Instance.Log(LogType.Crashes, message.ToString());
     }
 }
