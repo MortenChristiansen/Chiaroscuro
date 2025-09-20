@@ -33,19 +33,16 @@ public sealed class LoggingService : IDisposable
     public void LogCrash(Exception exception)
     {
         var message = new StringBuilder();
-        message.AppendLine($"Application crashed: {exception.Message}");
-        message.AppendLine($"Exception Type: {exception.GetType().FullName}");
-        message.AppendLine("Stack Trace:");
-        message.AppendLine(exception.StackTrace);
-
-        if (exception.InnerException != null)
+        void Append(Exception ex, string? prefix = null)
         {
-            message.AppendLine("Inner Exception:");
-            message.AppendLine($"  {exception.InnerException.Message}");
-            message.AppendLine($"  Type: {exception.InnerException.GetType().FullName}");
-            message.AppendLine("  Stack Trace:");
-            message.AppendLine($"  {exception.InnerException.StackTrace}");
+            var p = string.IsNullOrEmpty(prefix) ? "" : prefix + " ";
+            message.AppendLine($"{p}Exception: {ex.GetType().FullName}: {ex.Message}");
+            message.AppendLine($"{p}Stack Trace:");
+            message.AppendLine(ex.StackTrace);
+            if (ex.InnerException != null) Append(ex.InnerException, (prefix ?? "Inner").Trim());
         }
+        message.AppendLine("Application crashed");
+        Append(exception);
 
         Log(LogType.Crashes, message.ToString());
     }
