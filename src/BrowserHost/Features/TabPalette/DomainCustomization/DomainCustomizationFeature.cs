@@ -165,9 +165,9 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
                 }})();
             ";
 
-            tab.ExecuteScriptAsync(script);
+            _ = tab.ExecuteScriptAsync(script);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!Debugger.IsAttached)
         {
             Debug.WriteLine($"Failed to inject CSS into tab: {ex.Message}");
         }
@@ -186,7 +186,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
                 })();
             ";
 
-            tab.ExecuteScriptAsync(script);
+            _ = tab.ExecuteScriptAsync(script);
         }
         catch (Exception ex)
         {

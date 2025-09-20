@@ -52,7 +52,52 @@ public class CefSharpTabBrowserAdapter(string id, string address, ActionContextB
     public void Back() => _cefBrowser.Back();
     public void Forward() => _cefBrowser.Forward();
     public Task CallClientApi(string api, string? arguments = null) { _cefBrowser.CallClientApi(api, arguments); return Task.CompletedTask; }
-    public Task ExecuteScriptAsync(string script) { _cefBrowser.ExecuteScriptAsync(script); return Task.CompletedTask; }
+    public Task ExecuteScriptAsync(string script)
+    {
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        RunOnUi(() =>
+        {
+            if (_cefBrowser.IsDisposed)
+            {
+                tcs.TrySetException(new ObjectDisposedException(nameof(CefSharpTabBrowser)));
+                return;
+            }
+
+            void Execute()
+            {
+                try
+                {
+                    _cefBrowser.ExecuteScriptAsync(script);
+                    tcs.TrySetResult(true);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            }
+
+            if (_cefBrowser.IsBrowserInitialized)
+            {
+                _cefBrowser.Dispatcher.BeginInvoke((Action)Execute);
+            }
+            else
+            {
+                DependencyPropertyChangedEventHandler? handler = null;
+                handler = (s, e) =>
+                {
+                    _cefBrowser.IsBrowserInitializedChanged -= handler;
+                    if (_cefBrowser.IsDisposed)
+                    {
+                        tcs.TrySetException(new ObjectDisposedException(nameof(CefSharpTabBrowser)));
+                        return;
+                    }
+                    _cefBrowser.Dispatcher.BeginInvoke((Action)Execute);
+                };
+                _cefBrowser.IsBrowserInitializedChanged += handler;
+            }
+        });
+        return tcs.Task;
+    }
     public object? GetBrowserHost() => _cefBrowser.GetBrowserHost();
     public Task<double> GetZoomLevelAsync() => _cefBrowser.GetZoomLevelAsync();
     public void SetZoomLevel(double level) => _cefBrowser.SetZoomLevel(level);
