@@ -149,8 +149,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 
                     function applyCss() {{
                         const head = document.head || document.getElementsByTagName('head')[0];
-                        const body = document.body;
-                        if (!head || !body) {{
+                        if (!head) {{
                             if (tries++ < maxTries) {{
                                 setTimeout(applyCss, 100);
                             }}
