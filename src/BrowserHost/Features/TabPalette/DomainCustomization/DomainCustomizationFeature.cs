@@ -144,30 +144,49 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
                 (function() {{
                     const cssId = 'chiaroscuro-domain-css';
                     const expectedCss = '{escapedCss}';
-                    
-                    // Check if the CSS is already correctly applied
-                    const existingStyle = document.getElementById(cssId);
-                    if (existingStyle && existingStyle.textContent === expectedCss) {{
-                        // CSS is already correctly applied, no need to update
-                        return;
+                    let tries = 0;
+                    const maxTries = 50; // ~5s with 100ms intervals
+
+                    function applyCss() {{
+                        const head = document.head || document.getElementsByTagName('head')[0];
+                        if (!head) {{
+                            if (tries++ < maxTries) {{
+                                setTimeout(applyCss, 100);
+                            }}
+                            return;
+                        }}
+
+                        const existingStyle = document.getElementById(cssId);
+                        if (existingStyle && existingStyle.textContent === expectedCss) {{
+                            // Already applied
+                            return;
+                        }}
+
+                        // Remove old if present
+                        if (existingStyle) {{
+                            existingStyle.remove();
+                        }}
+
+                        // Add new custom CSS
+                        const style = document.createElement('style');
+                        style.id = cssId;
+                        style.textContent = expectedCss;
+                        head.appendChild(style);
                     }}
-                    
-                    // Remove existing custom CSS if any
-                    if (existingStyle) {{
-                        existingStyle.remove();
+
+                    if (document.readyState === 'loading') {{
+                        // Ensure we try again after DOM is parsed
+                        document.addEventListener('DOMContentLoaded', applyCss, {{ once: true }});
                     }}
-                    
-                    // Add new custom CSS
-                    const style = document.createElement('style');
-                    style.id = cssId;
-                    style.textContent = expectedCss;
-                    document.head.appendChild(style);
+
+                    // Initial attempt (and retries if needed)
+                    applyCss();
                 }})();
             ";
 
-            tab.ExecuteScriptAsync(script);
+            _ = tab.ExecuteScriptAsync(script);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!Debugger.IsAttached)
         {
             Debug.WriteLine($"Failed to inject CSS into tab: {ex.Message}");
         }
@@ -186,9 +205,9 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
                 })();
             ";
 
-            tab.ExecuteScriptAsync(script);
+            _ = tab.ExecuteScriptAsync(script);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!Debugger.IsAttached)
         {
             Debug.WriteLine($"Failed to remove CSS from tab: {ex.Message}");
         }
