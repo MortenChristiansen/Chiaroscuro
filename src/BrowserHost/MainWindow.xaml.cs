@@ -14,6 +14,7 @@ using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
+using BrowserHost.Logging;
 using BrowserHost.Tab;
 using BrowserHost.XamlUtilities;
 using CefSharp.Wpf;
@@ -208,6 +209,9 @@ public partial class MainWindow : Window
             }
             downloadsFeature.CancelAllActiveDownloads();
         }
+
+        LoggingService.Instance.Dispose(); // Flush logs before crash
+
         base.OnClosing(e);
     }
 

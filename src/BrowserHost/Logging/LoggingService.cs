@@ -80,11 +80,11 @@ public sealed class LoggingService : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        _disposed = true;
 
         _flushTimer?.Dispose();
 
         // Flush any remaining logs
         FlushLogs(null);
+        _disposed = true;
     }
 }
