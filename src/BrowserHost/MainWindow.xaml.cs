@@ -57,7 +57,9 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        _ = CheckForUpdates();
+        // Defer update check until the window is fully initialized (owner is non-null).
+        // Queued at ContextIdle to avoid competing with startup work.
+        Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, CheckForUpdates);
 
         _features =
         [
@@ -118,7 +120,7 @@ public partial class MainWindow : Window
                 return;
 
             UpdateInfo? updateInfo;
-            using (Measurement.Operation("Checking for application updates (async)"))
+            using (Measurement.Operation("Checking for application updates"))
             {
                 updateInfo = await App.UpdateManager.CheckForUpdatesAsync();
             }
@@ -134,11 +136,11 @@ public partial class MainWindow : Window
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    using (Measurement.Operation("Downloading update (async)"))
+                    using (Measurement.Operation("Downloading update"))
                     {
                         await App.UpdateManager.DownloadUpdatesAsync(updateInfo);
                     }
-                    using (Measurement.Operation("Applying update (async)"))
+                    using (Measurement.Operation("Applying update"))
                     {
                         App.UpdateManager.ApplyUpdatesAndRestart(updateInfo);
                     }
