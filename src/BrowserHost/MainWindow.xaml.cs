@@ -57,7 +57,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        _ = Task.Run(CheckForUpdates);
+        _ = CheckForUpdates();
 
         _features =
         [
@@ -110,7 +110,7 @@ public partial class MainWindow : Window
             ?? throw new InvalidOperationException($"Feature of type {typeof(TFeature).Name} not found.");
     }
 
-    private static async void CheckForUpdates()
+    private static async Task CheckForUpdates()
     {
         try
         {
