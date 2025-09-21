@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -56,7 +57,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        CheckForUpdates();
+        _ = Task.Run(CheckForUpdates);
 
         _features =
         [
@@ -117,7 +118,7 @@ public partial class MainWindow : Window
                 return;
 
             UpdateInfo? updateInfo;
-            using (Measurement.Operation("Checking for application updates"))
+            using (Measurement.Operation("Checking for application updates (async)"))
             {
                 updateInfo = await App.UpdateManager.CheckForUpdatesAsync();
             }
@@ -133,11 +134,11 @@ public partial class MainWindow : Window
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    using (Measurement.Operation("Downloading update"))
+                    using (Measurement.Operation("Downloading update (async)"))
                     {
                         await App.UpdateManager.DownloadUpdatesAsync(updateInfo);
                     }
-                    using (Measurement.Operation("Applying update"))
+                    using (Measurement.Operation("Applying update (async)"))
                     {
                         App.UpdateManager.ApplyUpdatesAndRestart(updateInfo);
                     }
