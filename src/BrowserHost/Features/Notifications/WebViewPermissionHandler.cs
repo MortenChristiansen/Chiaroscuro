@@ -14,7 +14,7 @@ public sealed class WebViewPermissionHandler : IDisposable
         browser.PermissionRequested += Core_PermissionRequested;
     }
 
-    public static WebViewPermissionHandler Register(CoreWebView2 browser) =>
+    public static IDisposable Register(CoreWebView2 browser) =>
         new WebViewPermissionHandler(browser);
 
     private static void Core_PermissionRequested(object? sender, CoreWebView2PermissionRequestedEventArgs e)
@@ -27,13 +27,15 @@ public sealed class WebViewPermissionHandler : IDisposable
         {
             try
             {
-                var origin = new Uri(e.Uri).GetLeftPart(UriPartial.Authority);
+                var origin = Uri.TryCreate(e.Uri, UriKind.Absolute, out var parsed)
+                    ? parsed.GetLeftPart(UriPartial.Authority)
+                    : e.Uri;
                 var result = NotificationPermissionDialog.ShowDialog(MainWindow.Instance, origin);
                 e.State = result ? CoreWebView2PermissionState.Allow : CoreWebView2PermissionState.Deny;
             }
             catch
             {
-                e.State = CoreWebView2PermissionState.Default;
+                e.State = CoreWebView2PermissionState.Deny;
             }
             finally
             {

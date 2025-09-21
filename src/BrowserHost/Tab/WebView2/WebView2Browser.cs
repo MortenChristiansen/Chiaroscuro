@@ -125,7 +125,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _roundedCornerManager.EnsureChildWindowAsync(Dispatcher, () => _controller?.Bounds.Width ?? 0, () => _controller?.Bounds.Height ?? 0);
     }
 
-    private List<IDisposable> _handlers = [];
+    private readonly List<IDisposable> _handlers = [];
     private void WireCoreEvents(ActionContextBrowser actionContextBrowser)
     {
         if (_core == null) return;
@@ -304,6 +304,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             if (_core != null)
             {
                 _handlers.ForEach(h => h.Dispose());
+                _handlers.Clear();
+
                 _core.NewWindowRequested -= Core_NewWindowRequested;
                 _core = null;
             }

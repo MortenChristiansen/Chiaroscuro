@@ -128,12 +128,14 @@ public class NotificationPermissionDialog : Window
             button.Background = new SolidColorBrush(Color.FromRgb(0, 120, 215));
             button.Foreground = Brushes.White;
             button.Click += (s, e) => { DialogResult = true; };
+            button.IsDefault = true;
         }
         else
         {
             button.Background = new SolidColorBrush(Color.FromRgb(68, 68, 68));
             button.Foreground = Brushes.White;
             button.Click += (s, e) => { DialogResult = false; };
+            button.IsCancel = true;
         }
 
         button.BorderThickness = new Thickness(0);

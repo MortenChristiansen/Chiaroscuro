@@ -1,4 +1,5 @@
 ﻿using CefSharp;
+using System;
 using System.Windows;
 
 namespace BrowserHost.Features.Notifications;
@@ -24,7 +25,9 @@ public class CefSharpPermissionHandler : CefSharp.Handler.PermissionHandler
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
-            var origin = new System.Uri(requestingOrigin).GetLeftPart(System.UriPartial.Authority);
+            var origin = Uri.TryCreate(requestingOrigin, UriKind.Absolute, out var parsed)
+                    ? parsed.GetLeftPart(UriPartial.Authority)
+                    : requestingOrigin;
             var result = NotificationPermissionDialog.ShowDialog(MainWindow.Instance, origin);
 
             var cefResult = result
