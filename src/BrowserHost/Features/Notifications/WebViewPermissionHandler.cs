@@ -4,12 +4,18 @@ using System.Windows;
 
 namespace BrowserHost.Features.Notifications;
 
-public static class WebViewPermissionHandler
+public sealed class WebViewPermissionHandler : IDisposable
 {
-    public static void Register(CoreWebView2 browser)
+    private readonly CoreWebView2 _browser;
+
+    private WebViewPermissionHandler(CoreWebView2 browser)
     {
+        _browser = browser;
         browser.PermissionRequested += Core_PermissionRequested;
     }
+
+    public static WebViewPermissionHandler Register(CoreWebView2 browser) =>
+        new WebViewPermissionHandler(browser);
 
     private static void Core_PermissionRequested(object? sender, CoreWebView2PermissionRequestedEventArgs e)
     {
@@ -34,5 +40,10 @@ public static class WebViewPermissionHandler
                 deferral.Complete();
             }
         });
+    }
+
+    public void Dispose()
+    {
+        _browser.PermissionRequested -= Core_PermissionRequested;
     }
 }

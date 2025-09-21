@@ -74,15 +74,8 @@ public class NotificationPermissionDialog : Window
         messageText.TextWrapping = TextWrapping.Wrap;
         messageText.Margin = new Thickness(0, 0, 0, 10);
 
-        var detailText = new TextBlock();
-        detailText.Text = "You can change this permission later in the tab customization settings.";
-        detailText.FontSize = 12;
-        detailText.Foreground = new SolidColorBrush(Color.FromRgb(160, 160, 160));
-        detailText.TextWrapping = TextWrapping.Wrap;
-
         contentPanel.Children.Add(headerPanel);
         contentPanel.Children.Add(messageText);
-        contentPanel.Children.Add(detailText);
 
         // Button area
         var buttonPanel = new StackPanel();
