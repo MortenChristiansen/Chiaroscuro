@@ -3,7 +3,7 @@ using System.Windows;
 
 namespace BrowserHost.Features.Notifications;
 
-public class PermissionHandler : CefSharp.Handler.PermissionHandler
+public class CefSharpPermissionHandler : CefSharp.Handler.PermissionHandler
 {
     protected override bool OnShowPermissionPrompt(IWebBrowser chromiumWebBrowser, IBrowser browser, ulong promptId, string requestingOrigin, PermissionRequestType requestedPermissions, IPermissionPromptCallback callback)
     {

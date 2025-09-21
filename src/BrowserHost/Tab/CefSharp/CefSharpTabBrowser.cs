@@ -39,7 +39,7 @@ public class CefSharpTabBrowser : Browser
         DownloadHandler = new DownloadHandler(downloadsPath);
         RequestHandler = new RequestHandler(Id);
         FindHandler = new FindHandler();
-        PermissionHandler = new PermissionHandler();
+        PermissionHandler = new CefSharpPermissionHandler();
 
         BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
     }
