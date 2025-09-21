@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -56,7 +57,9 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        CheckForUpdates();
+        // Defer update check until the window is fully initialized (owner is non-null).
+        // Queued at ContextIdle to avoid competing with startup work.
+        Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, CheckForUpdates);
 
         _features =
         [
@@ -109,7 +112,7 @@ public partial class MainWindow : Window
             ?? throw new InvalidOperationException($"Feature of type {typeof(TFeature).Name} not found.");
     }
 
-    private static async void CheckForUpdates()
+    private static async Task CheckForUpdates()
     {
         try
         {
