@@ -15,17 +15,12 @@ public class PermissionHandler : CefSharp.Handler.PermissionHandler
         return false; // Use default behavior for other permissions
     }
 
-    protected override void OnDismissPermissionPrompt(IWebBrowser chromiumWebBrowser, IBrowser browser, ulong promptId, PermissionRequestResult result)
-    {
-        base.OnDismissPermissionPrompt(chromiumWebBrowser, browser, promptId, result);
-    }
-
     protected override bool OnRequestMediaAccessPermission(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, string requestingOrigin, MediaAccessPermissionType requestedPermissions, IMediaAccessCallback callback)
     {
         return false; // Use default behavior for media permissions
     }
 
-    private bool HandleNotificationPermissionRequest(string requestingOrigin, IPermissionPromptCallback callback)
+    private static bool HandleNotificationPermissionRequest(string requestingOrigin, IPermissionPromptCallback callback)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {

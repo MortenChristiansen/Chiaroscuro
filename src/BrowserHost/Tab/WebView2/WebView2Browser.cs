@@ -3,6 +3,7 @@ using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
+using BrowserHost.Features.Notifications;
 using BrowserHost.Utilities;
 using Microsoft.Web.WebView2.Core;
 using System;
@@ -148,6 +149,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _core.FaviconChanged += (_, __) => { _favicon = _core.FaviconUri; actionContextBrowser.UpdateTabFavicon(_id, _favicon); };
         // Mimic CefSharp RequestHandler: open new window requests as background tabs instead of OS windows
         _core.NewWindowRequested += Core_NewWindowRequested;
+        _core.PermissionRequested += Core_PermissionRequested;
         _controller!.AcceleratorKeyPressed += Controller_AcceleratorKeyPressed;
     }
 
@@ -159,6 +161,31 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             PubSub.Publish(new NavigationStartedEvent(uri, UseCurrentTab: false, SaveInHistory: true));
             e.Handled = true; // Prevent external window
         }
+    }
+
+    private void Core_PermissionRequested(object? sender, CoreWebView2PermissionRequestedEventArgs e)
+    {
+        if (e.PermissionKind != CoreWebView2PermissionKind.Notifications)
+            return; // let default behavior handle other permissions
+
+        var deferral = e.GetDeferral();
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            try
+            {
+                var origin = new Uri(e.Uri).GetLeftPart(UriPartial.Authority);
+                var result = NotificationPermissionDialog.ShowDialog(MainWindow.Instance, origin);
+                e.State = result ? CoreWebView2PermissionState.Allow : CoreWebView2PermissionState.Deny;
+            }
+            catch
+            {
+                e.State = CoreWebView2PermissionState.Default;
+            }
+            finally
+            {
+                deferral.Complete();
+            }
+        });
     }
 
     private void ApplySettings()
@@ -300,6 +327,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             if (_core != null)
             {
                 _core.NewWindowRequested -= Core_NewWindowRequested;
+                _core.PermissionRequested -= Core_PermissionRequested;
                 _core = null;
             }
             if (_controller != null)
