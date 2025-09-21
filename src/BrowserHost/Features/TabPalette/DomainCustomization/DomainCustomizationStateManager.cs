@@ -1,3 +1,4 @@
+using BrowserHost.Logging;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
@@ -13,8 +14,9 @@ public record DomainCustomizationDataV1(string Domain, bool CssEnabled, bool Has
 public static class DomainCustomizationStateManager
 {
     private record DomainCustomizationSettingsV1(bool CssEnabled);
+    private record DomainCustomizationSettingsV2(string Domain, bool CssEnabled);
 
-    private const int _currentVersion = 1;
+    private const int _currentVersion = 2;
     private static readonly Lock _lock = new();
     private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
 
@@ -36,15 +38,18 @@ public static class DomainCustomizationStateManager
         return sanitized;
     }
 
+    private static string CacheKey(string domain) => SanitizeDomainName(domain);
+
     public static DomainCustomizationDataV1 GetCustomization(string domain)
     {
         lock (_lock)
         {
-            if (_cachedPerDomain.TryGetValue(domain, out var cached))
+            var key = CacheKey(domain);
+            if (_cachedPerDomain.TryGetValue(key, out var cached))
                 return cached;
 
             var customization = LoadCustomization(domain);
-            _cachedPerDomain[domain] = customization;
+            _cachedPerDomain[key] = customization;
             return customization;
         }
     }
@@ -61,6 +66,13 @@ public static class DomainCustomizationStateManager
                 var json = File.ReadAllText(filePath);
                 var versioned = JsonSerializer.Deserialize<PersistentData>(json);
                 if (versioned?.Version == _currentVersion)
+                {
+                    var hasCustomCss = File.Exists(cssPath);
+                    var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationSettingsV2>>(json)?.Data;
+                    var rawDomain = rawData?.Domain ?? domain;
+                    return new DomainCustomizationDataV1(rawDomain, rawData?.CssEnabled ?? false, hasCustomCss);
+                }
+                else if (versioned?.Version == 1)
                 {
                     var hasCustomCss = File.Exists(cssPath);
                     var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationSettingsV1>>(json)?.Data;
@@ -87,17 +99,17 @@ public static class DomainCustomizationStateManager
                 var domainFolder = GetDomainFolder(customization.Domain);
                 Directory.CreateDirectory(domainFolder);
 
-                var data = new PersistentData<DomainCustomizationSettingsV1>
+                var data = new PersistentData<DomainCustomizationSettingsV2>
                 {
                     Version = _currentVersion,
-                    Data = new DomainCustomizationSettingsV1(customization.CssEnabled)
+                    Data = new DomainCustomizationSettingsV2(customization.Domain, customization.CssEnabled)
                 };
                 var json = JsonSerializer.Serialize(data, _jsonSerializerOptions);
 
                 File.WriteAllText(GetCustomizationFilePath(customization.Domain), json);
 
                 var updated = customization with { HasCustomCss = File.Exists(GetCssFilePath(customization.Domain)) };
-                _cachedPerDomain[customization.Domain] = updated;
+                _cachedPerDomain[CacheKey(customization.Domain)] = updated;
 
                 return updated;
             }
@@ -135,61 +147,74 @@ public static class DomainCustomizationStateManager
     {
         lock (_lock)
         {
-            _cachedPerDomain.Remove(domain);
+            _cachedPerDomain.Remove(CacheKey(domain));
         }
     }
 
     public static IReadOnlyCollection<DomainCustomizationDataV1> GetAllCustomizations()
     {
-        lock (_lock)
+        using (Measure.Operation("Restoring domain customizations from disk"))
         {
-            var results = new List<DomainCustomizationDataV1>();
-
-            try
+            lock (_lock)
             {
-                if (Directory.Exists(RootFolder))
+                var results = new List<DomainCustomizationDataV1>();
+
+                try
                 {
-                    foreach (var dir in Directory.EnumerateDirectories(RootFolder))
+                    if (Directory.Exists(RootFolder))
                     {
-                        var settingsFile = Path.Combine(dir, "settings.json");
-                        var cssFile = Path.Combine(dir, "custom.css");
-
-                        var domainName = Path.GetFileName(dir);
-                        var hasCustomCss = File.Exists(cssFile);
-                        bool cssEnabled = hasCustomCss; // Default to enabled if CSS exists
-
-                        if (File.Exists(settingsFile))
+                        foreach (var dir in Directory.EnumerateDirectories(RootFolder))
                         {
-                            try
+                            var settingsFile = Path.Combine(dir, "settings.json");
+                            var cssFile = Path.Combine(dir, "custom.css");
+
+                            var sanitizedDomainName = Path.GetFileName(dir);
+                            var hasCustomCss = File.Exists(cssFile);
+                            bool cssEnabled = hasCustomCss; // Default to enabled if CSS exists
+                            var rawDomain = sanitizedDomainName; // Fallback for legacy entries
+
+                            if (File.Exists(settingsFile))
                             {
-                                var json = File.ReadAllText(settingsFile);
-                                var versioned = JsonSerializer.Deserialize<PersistentData>(json);
-                                if (versioned?.Version == _currentVersion)
+                                try
                                 {
-                                    var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationSettingsV1>>(json)?.Data;
-                                    cssEnabled = rawData?.CssEnabled ?? false;
+                                    var json = File.ReadAllText(settingsFile);
+                                    var versioned = JsonSerializer.Deserialize<PersistentData>(json);
+                                    if (versioned?.Version == _currentVersion)
+                                    {
+                                        var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationSettingsV2>>(json)?.Data;
+                                        if (rawData is not null)
+                                        {
+                                            cssEnabled = rawData.CssEnabled;
+                                            rawDomain = rawData.Domain;
+                                        }
+                                    }
+                                    else if (versioned?.Version == 1)
+                                    {
+                                        var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationSettingsV1>>(json)?.Data;
+                                        cssEnabled = rawData?.CssEnabled ?? cssEnabled;
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Debug.WriteLine($"Failed to parse settings for domain {sanitizedDomainName}: {ex.Message}");
                                 }
                             }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine($"Failed to parse settings for domain {domainName}: {ex.Message}");
-                            }
+
+                            var customization = new DomainCustomizationDataV1(rawDomain, cssEnabled, hasCustomCss);
+                            results.Add(customization);
+
+                            // Update cache while we're at it (use sanitized cache key)
+                            _cachedPerDomain[CacheKey(rawDomain)] = customization;
                         }
-
-                        var customization = new DomainCustomizationDataV1(domainName, cssEnabled, hasCustomCss);
-                        results.Add(customization);
-
-                        // Update cache while we're at it
-                        _cachedPerDomain[domainName] = customization;
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to enumerate domain customizations: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to enumerate domain customizations: {ex.Message}");
+                }
 
-            return results;
+                return results;
+            }
         }
     }
 }

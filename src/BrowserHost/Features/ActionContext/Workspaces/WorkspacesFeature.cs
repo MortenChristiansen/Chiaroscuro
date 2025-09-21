@@ -2,6 +2,7 @@
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.TabPalette.TabCustomization;
+using BrowserHost.Logging;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
@@ -14,6 +15,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 {
     private WorkspaceDtoV1[] _workspaces = [];
     private string _currentWorkspaceId = null!;
+    private bool _hasLoggedInitialWorkspaceTime = false;
 
     public WorkspaceDtoV1 CurrentWorkspace => _workspaces.FirstOrDefault(ws => ws.WorkspaceId == _currentWorkspaceId) ?? throw new ArgumentException("Error getting current workspace");
 
@@ -38,6 +40,12 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             _currentWorkspaceId = e.WorkspaceId;
             Window.ActionContext.WorkspaceActivated(e.WorkspaceId);
             Window.WorkspaceColor = GetCurrentWorkspaceColor();
+
+            if (!_hasLoggedInitialWorkspaceTime)
+            {
+                _hasLoggedInitialWorkspaceTime = true;
+                Measure.Event("Initial workspace loaded");
+            }
         });
         PubSub.Subscribe<WorkspaceCreatedEvent>(e =>
         {

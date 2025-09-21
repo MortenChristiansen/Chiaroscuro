@@ -17,4 +17,5 @@ export interface WorkspaceListApi extends Api {
     color: string
   ) => Promise<void>;
   deleteWorkspace: (workspaceId: string) => Promise<void>;
+  onLoaded: () => Promise<void>;
 }

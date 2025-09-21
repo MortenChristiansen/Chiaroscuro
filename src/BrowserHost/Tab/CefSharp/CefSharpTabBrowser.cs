@@ -4,6 +4,7 @@ using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DragDrop;
+using BrowserHost.Features.Notifications;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Utilities;
 using CefSharp;
@@ -38,6 +39,7 @@ public class CefSharpTabBrowser : Browser
         DownloadHandler = new DownloadHandler(downloadsPath);
         RequestHandler = new RequestHandler(Id);
         FindHandler = new FindHandler();
+        PermissionHandler = new CefSharpPermissionHandler();
 
         BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
     }

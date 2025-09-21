@@ -3,6 +3,7 @@ using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
+using BrowserHost.Features.Notifications;
 using BrowserHost.Utilities;
 using Microsoft.Web.WebView2.Core;
 using System;
@@ -124,6 +125,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _roundedCornerManager.EnsureChildWindowAsync(Dispatcher, () => _controller?.Bounds.Width ?? 0, () => _controller?.Bounds.Height ?? 0);
     }
 
+    private readonly List<IDisposable> _handlers = [];
     private void WireCoreEvents(ActionContextBrowser actionContextBrowser)
     {
         if (_core == null) return;
@@ -149,6 +151,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         // Mimic CefSharp RequestHandler: open new window requests as background tabs instead of OS windows
         _core.NewWindowRequested += Core_NewWindowRequested;
         _controller!.AcceleratorKeyPressed += Controller_AcceleratorKeyPressed;
+
+        _handlers.Add(WebViewPermissionHandler.Register(_core));
     }
 
     private void Core_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
@@ -299,6 +303,9 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             PubSub.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
             if (_core != null)
             {
+                _handlers.ForEach(h => h.Dispose());
+                _handlers.Clear();
+
                 _core.NewWindowRequested -= Core_NewWindowRequested;
                 _core = null;
             }

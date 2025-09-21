@@ -162,6 +162,8 @@ export default class WindowChromeComponent implements OnInit {
         this.isLoading.set(isLoading);
       },
     });
+
+    this.api.onLoaded();
   }
   canGoBack = signal(false);
   canGoForward = signal(false);

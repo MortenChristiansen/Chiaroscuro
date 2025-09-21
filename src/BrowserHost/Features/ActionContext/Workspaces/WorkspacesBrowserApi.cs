@@ -1,4 +1,5 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Logging;
 using BrowserHost.Utilities;
 using System;
 
@@ -23,4 +24,7 @@ public class WorkspacesBrowserApi() : BrowserApi
 
     public void DeleteWorkspace(string workspaceId) =>
         PubSub.Publish(new WorkspaceDeletedEvent(workspaceId));
+
+    public void OnLoaded() =>
+        Measure.Event("Workspaces frontend loaded");
 }
