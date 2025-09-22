@@ -97,11 +97,23 @@ public class TabBrowser : UserControl
     private void AttachBrowserEvents()
     {
         _browser.AddressChanged += OnBrowserAddressChanged;
+        PubSub.Subscribe<SsoFlowStartedEvent>(HandleSsoFlowIfNeeded);
     }
 
     private void DetachBrowserEvents()
     {
         _browser.AddressChanged -= OnBrowserAddressChanged;
+        PubSub.Unsubscribe<SsoFlowStartedEvent>(HandleSsoFlowIfNeeded);
+
+    }
+
+    private void HandleSsoFlowIfNeeded(SsoFlowStartedEvent e)
+    {
+        if (e.TabId == Id && _browser is not WebView2Browser)
+        {
+            // Upgrade to WebView2 when an SSO flow is detected
+            UpgradeToWebView2(e.OriginalUrl);
+        }
     }
 
     private void OnBrowserAddressChanged(object sender, DependencyPropertyChangedEventArgs e)

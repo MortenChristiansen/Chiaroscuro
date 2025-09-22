@@ -8,6 +8,7 @@ namespace BrowserHost.Features.Settings;
 
 public record SettingsPageLoadingEvent();
 public record SettingsSavedEvent(SettingUiStateDto Settings);
+public record SsoFlowStartedEvent(string TabId, string OriginalDomain, string OriginalUrl);
 
 public record SettingUiStateDto(string? UserAgent, string[] SsoEnabledDomains);
 

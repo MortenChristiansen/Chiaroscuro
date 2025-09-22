@@ -1,5 +1,6 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
+using System.Linq;
 
 namespace BrowserHost.Features.Settings;
 
@@ -8,10 +9,7 @@ public class SettingsFeature(MainWindow window) : Feature(window)
     private readonly SettingsBrowserApi _browserApi = new();
 
     // These are the settings for the current execution, loaded from disk.
-    // They are only loaded on startup.
-    public static SettingsDataV1 ExecutionSettings { get; } = SettingsStateManager.RestoreSettingsFromDisk();
-
-    private SettingsDataV1 _settings = ExecutionSettings;
+    public static SettingsDataV1 ExecutionSettings { get; private set; } = SettingsStateManager.RestoreSettingsFromDisk();
 
     public override void Configure()
     {
@@ -22,12 +20,25 @@ public class SettingsFeature(MainWindow window) : Feature(window)
         });
         PubSub.Subscribe<SettingsPageLoadingEvent>(e =>
         {
-            Window.CurrentTab?.SettingsLoaded(new SettingUiStateDto(_settings.UserAgent, _settings.SsoEnabledDomains ?? []));
+            var settings = ExecutionSettings;
+            Window.CurrentTab?.SettingsLoaded(new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? []));
         });
         PubSub.Subscribe<SettingsSavedEvent>(e =>
         {
             var mappedSettings = new SettingsDataV1(e.Settings.UserAgent, e.Settings.SsoEnabledDomains);
-            _settings = SettingsStateManager.SaveSettings(mappedSettings);
+            ExecutionSettings = SettingsStateManager.SaveSettings(mappedSettings);
+        });
+        PubSub.Subscribe<SsoFlowStartedEvent>(e =>
+        {
+            var settings = ExecutionSettings;
+
+            if (settings.SsoEnabledDomains?.Contains(e.OriginalDomain) == true)
+                return;
+
+            PubSub.Publish(new SettingsSavedEvent(new SettingUiStateDto(
+                settings.UserAgent,
+                [.. settings.SsoEnabledDomains ?? [], e.OriginalDomain]
+            )));
         });
     }
 }
