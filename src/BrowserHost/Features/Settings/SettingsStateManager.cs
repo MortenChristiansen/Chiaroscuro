@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace BrowserHost.Features.Settings;
 
-public record SettingsDataV1(string? UserAgent, string[]? SsoEnabledDomains);
+public record SettingsDataV1(string? UserAgent, string[]? SsoEnabledDomains, bool? AutoAddSsoDomains);
 
 public static class SettingsStateManager
 {
@@ -69,7 +69,7 @@ public static class SettingsStateManager
             {
                 Debug.WriteLine($"Failed to restore settings state: {e.Message}");
             }
-            return _lastSavedSettingsData ?? new SettingsDataV1(null, []);
+            return _lastSavedSettingsData ?? new SettingsDataV1(null, [], false);
         }
     }
 
@@ -78,9 +78,10 @@ public static class SettingsStateManager
         if (a is null) return false;
         if (a.UserAgent != b.UserAgent)
             return false;
-
-        return DataComparisons.AreArraysEqual(a.SsoEnabledDomains, b.SsoEnabledDomains);
+        if (!DataComparisons.AreArraysEqual(a.SsoEnabledDomains, b.SsoEnabledDomains))
+            return false;
+        if (a.AutoAddSsoDomains != b.AutoAddSsoDomains)
+            return false;
+        return true;
     }
-
-
 }
