@@ -160,7 +160,11 @@ public class TabBrowser : UserControl
     public void SetAddress(string address, bool setManualAddress) => _browser.SetAddress(address, setManualAddress);
     public void RegisterContentPageApi(BrowserApi api, string name) => _browser.RegisterContentPageApi(api, name);
     public void Reload(bool ignoreCache = false) => _browser.Reload(ignoreCache);
-    public void Dispose() => _browser.Dispose();
+    public void Dispose()
+    {
+        try { DetachBrowserEvents(); } catch { }
+        _browser.Dispose();
+    }
     public void Back() => _browser.Back();
     public void Forward() => _browser.Forward();
     public void CallClientApi(string api, string? arguments = null) => _browser.CallClientApi(api, arguments);

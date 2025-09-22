@@ -19,7 +19,7 @@ public class ResourceRequestHandler(string tabId) : CefSharp.Handler.ResourceReq
         if (pageIsSuccessfullyLoaded)
             PubSub.Publish(new TabUrlLoadedSuccessfullyEvent(tabId));
 
-        var redirectChainTerminated = frame.IsMain && request.ResourceType == ResourceType.MainFrame && response.StatusCode != 301;
+        var redirectChainTerminated = frame.IsMain && request.ResourceType == ResourceType.MainFrame && (response.StatusCode < 300 || response.StatusCode >= 400);
         if (redirectChainTerminated)
         {
             _redirectChainActive = false;
@@ -40,29 +40,21 @@ public class ResourceRequestHandler(string tabId) : CefSharp.Handler.ResourceReq
             {
                 _redirectChainActive = true;
                 _originalUrl = request.Url;
-                try
-                {
-                    if (Uri.TryCreate(_originalUrl, UriKind.Absolute, out var fromUri))
-                        _originalDomain = fromUri.Host;
-                }
-                catch { }
+                if (Uri.TryCreate(_originalUrl, UriKind.Absolute, out var fromUri))
+                    _originalDomain = fromUri.Host;
             }
 
             // Detect SSO flow start when redirecting to login.microsoft.com
             if (!_ssoFlowPublished)
             {
-                try
+                if (Uri.TryCreate(newUrl, UriKind.Absolute, out var toUri))
                 {
-                    if (Uri.TryCreate(newUrl, UriKind.Absolute, out var toUri))
+                    if (string.Equals(toUri.Host, "login.microsoftonline.com", StringComparison.OrdinalIgnoreCase) && _originalDomain != null && _originalUrl != null)
                     {
-                        if (string.Equals(toUri.Host, "login.microsoftonline.com", StringComparison.OrdinalIgnoreCase) && _originalDomain != null && _originalUrl != null)
-                        {
-                            _ssoFlowPublished = true;
-                            PubSub.Publish(new SsoFlowStartedEvent(tabId, _originalDomain, _originalUrl));
-                        }
+                        _ssoFlowPublished = true;
+                        PubSub.Publish(new SsoFlowStartedEvent(tabId, _originalDomain, _originalUrl));
                     }
                 }
-                catch { }
             }
         }
 

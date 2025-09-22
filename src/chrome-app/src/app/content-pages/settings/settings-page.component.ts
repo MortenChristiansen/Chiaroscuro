@@ -7,7 +7,7 @@ import {
   SettingsApi,
   SettingsValues,
   PlainSettings,
-} from './settingsApi.js';
+} from './settingsApi';
 import { settingsSchema } from './settings-schema';
 
 @Component({
