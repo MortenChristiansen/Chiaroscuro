@@ -21,23 +21,27 @@ public class SettingsFeature(MainWindow window) : Feature(window)
         PubSub.Subscribe<SettingsPageLoadingEvent>(e =>
         {
             var settings = ExecutionSettings;
-            Window.CurrentTab?.SettingsLoaded(new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? []));
+            Window.CurrentTab?.SettingsLoaded(new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? [], settings.AutoAddSsoDomains ?? false));
         });
         PubSub.Subscribe<SettingsSavedEvent>(e =>
         {
-            var mappedSettings = new SettingsDataV1(e.Settings.UserAgent, e.Settings.SsoEnabledDomains);
+            var mappedSettings = new SettingsDataV1(e.Settings.UserAgent, e.Settings.SsoEnabledDomains, e.Settings.AutoAddSsoDomains);
             ExecutionSettings = SettingsStateManager.SaveSettings(mappedSettings);
         });
         PubSub.Subscribe<SsoFlowStartedEvent>(e =>
         {
             var settings = ExecutionSettings;
 
+            if (settings.AutoAddSsoDomains != true)
+                return;
+
             if (settings.SsoEnabledDomains?.Contains(e.OriginalDomain) == true)
                 return;
 
             PubSub.Publish(new SettingsSavedEvent(new SettingUiStateDto(
                 settings.UserAgent,
-                [.. settings.SsoEnabledDomains ?? [], e.OriginalDomain]
+                [.. settings.SsoEnabledDomains ?? [], e.OriginalDomain],
+                AutoAddSsoDomains: true
             )));
         });
     }

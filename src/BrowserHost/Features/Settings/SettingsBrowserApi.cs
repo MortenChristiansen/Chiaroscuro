@@ -10,7 +10,7 @@ public record SettingsPageLoadingEvent();
 public record SettingsSavedEvent(SettingUiStateDto Settings);
 public record SsoFlowStartedEvent(string TabId, string OriginalDomain, string OriginalUrl);
 
-public record SettingUiStateDto(string? UserAgent, string[] SsoEnabledDomains);
+public record SettingUiStateDto(string? UserAgent, string[] SsoEnabledDomains, bool AutoAddSsoDomains);
 
 public class SettingsBrowserApi : BrowserApi
 {
@@ -28,8 +28,9 @@ public class SettingsBrowserApi : BrowserApi
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray()
             : [];
+        var autoAddSsoDomains = settings.TryGetValue("autoAddSsoDomains", out var o3) && o3 is bool b ? b : false;
 
-        var dto = new SettingUiStateDto(userAgent, ssoEnabledDomains);
+        var dto = new SettingUiStateDto(userAgent, ssoEnabledDomains, autoAddSsoDomains);
         PubSub.Publish(new SettingsSavedEvent(dto));
     }
 }

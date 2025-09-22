@@ -20,7 +20,6 @@ public class TabBrowser : UserControl
 
     private ITabWebBrowser _browser;
     private readonly ActionContextBrowser _actionContextBrowser;
-    private readonly string[] _ssoDomains;
     private PersistableState? _persistableState;
 
     private event DependencyPropertyChangedEventHandler? _addressChanged;
@@ -47,7 +46,6 @@ public class TabBrowser : UserControl
     public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon)
     {
         _actionContextBrowser = actionContextBrowser;
-        _ssoDomains = SettingsFeature.ExecutionSettings.SsoEnabledDomains ?? [];
         favicon ??= FileFaviconProvider.TryGetFaviconForAddress(address);
         _browser = CreateBrowser(id, address, setManualAddress, favicon);
         Content = _browser.AsUIElement();
@@ -79,7 +77,7 @@ public class TabBrowser : UserControl
     private bool ShouldUseWebView2(string address)
     {
         if (ContentServer.IsContentServerUrl(address)) return false;
-        return _ssoDomains.Any(domain => HasDomain(address, domain));
+        return SettingsFeature.ExecutionSettings.SsoEnabledDomains?.Any(domain => HasDomain(address, domain)) == true;
     }
 
     private static bool HasDomain(string address, string domain)
@@ -109,6 +107,9 @@ public class TabBrowser : UserControl
 
     private void HandleSsoFlowIfNeeded(SsoFlowStartedEvent e)
     {
+        if (SettingsFeature.ExecutionSettings.AutoAddSsoDomains != true)
+            return;
+
         if (e.TabId == Id && _browser is not WebView2Browser)
         {
             // Upgrade to WebView2 when an SSO flow is detected

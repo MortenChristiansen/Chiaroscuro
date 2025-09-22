@@ -9,6 +9,13 @@ export const settingsSchema: SettingField[] = [
     placeholder: '',
   },
   {
+    key: 'autoAddSsoDomains',
+    type: 'boolean',
+    name: 'Auto Add SSO Domains',
+    description:
+      'Automatically add domains that use SSO to the SSO Enabled Domains list.',
+  },
+  {
     key: 'ssoEnabledDomains',
     type: 'string[]',
     name: 'SSO Enabled Domains',
