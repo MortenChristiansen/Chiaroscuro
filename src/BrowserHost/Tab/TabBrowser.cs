@@ -110,15 +110,18 @@ public class TabBrowser : UserControl
         if (_browser is CefSharpTabBrowserAdapter && e.NewValue is string newAddress)
         {
             if (ShouldUseWebView2(newAddress))
+            {
                 UpgradeToWebView2(newAddress);
-
-            if (SettingsFeature.ExecutionSettings.AutoAddSsoDomains == true &&
-                IsSsoLoginPage(newAddress) && e.OldValue is string oldAddress &&
+            }
+            else if (
+                SettingsFeature.ExecutionSettings.AutoAddSsoDomains == true &&
+                IsSsoLoginPage(newAddress) &&
+                e.OldValue is string oldAddress &&
                 Uri.TryCreate(oldAddress, UriKind.Absolute, out var oldUri))
             {
                 UpgradeToWebView2(oldAddress);
                 PubSub.Publish(new SsoFlowStartedEvent(Id, oldUri.Host, oldAddress));
-                return;
+                return; // We restored the old address, so no further processing is needed
             }
         }
 
@@ -133,7 +136,7 @@ public class TabBrowser : UserControl
         }
     }
 
-    private bool IsSsoLoginPage(string address) =>
+    private static bool IsSsoLoginPage(string address) =>
         Uri.TryCreate(address, UriKind.Absolute, out var toUri) &&
         string.Equals(toUri.Host, "login.microsoftonline.com", StringComparison.OrdinalIgnoreCase);
 
