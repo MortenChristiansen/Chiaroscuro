@@ -105,7 +105,7 @@ import {
         </span>
         <button
           class="edit-button ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-1 rounded"
-          (click)="$event.stopPropagation(); isEditing.set(true)"
+          (click)="onEditButtonClick($event)"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -141,6 +141,7 @@ export class TabsListFolderComponent {
   isOpen = input.required<boolean>();
   isNew = input.required<boolean>();
   containsActiveTab = input.required<boolean>();
+  isDragging = input.required<boolean>();
   toggleOpen = output<void>();
   folderRenamed = output<string>();
 
@@ -172,5 +173,12 @@ export class TabsListFolderComponent {
   }
   onAnimationDone() {
     this.animating = false;
+  }
+
+  onEditButtonClick(event: Event) {
+    if (!this.isDragging()) {
+      event.stopPropagation();
+      this.isEditing.set(true);
+    }
   }
 }

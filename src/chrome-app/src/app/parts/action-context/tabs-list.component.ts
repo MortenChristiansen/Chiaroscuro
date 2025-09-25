@@ -62,6 +62,7 @@ interface FolderDto {
         [isOpen]="folder.isOpen"
         [isNew]="folder.isNew"
         [containsActiveTab]="containsActiveTab(folder)"
+        [isDragging]="isDragging()"
         (toggleOpen)="toggleFolder(folder.id)"
         (folderRenamed)="renameFolder(folder.id, $event)"
       >
@@ -119,6 +120,7 @@ export class TabsListComponent implements OnInit {
   activeTabId = signal<TabId | undefined>(undefined);
   tabsInitialized = signal(false);
   tabCustomizations = signal<TabCustomization[]>([]);
+  isDragging = signal(false);
   private saveTabsDebounceDelay = 1000;
   private tabActivationOrderStack = new Stack<TabId>();
   private folderOpenState: Record<string, boolean> = {};
@@ -144,6 +146,12 @@ export class TabsListComponent implements OnInit {
           draggedElement.tagName !== 'TABS-LIST-FOLDER'
         );
       },
+    },
+    onStart: (e) => {
+      this.isDragging.set(true);
+    },
+    onEnd: (e) => {
+      this.isDragging.set(false);
     },
     onUpdate: (e) => {
       if (
