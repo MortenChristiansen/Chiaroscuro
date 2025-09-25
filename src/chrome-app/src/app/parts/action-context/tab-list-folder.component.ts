@@ -162,7 +162,6 @@ export class TabsListFolderComponent {
   hasStartedEditingDueToNewState = false;
 
   folderNameInput = viewChild<ElementRef<HTMLInputElement>>('folderNameInput');
-  private contentElement?: HTMLElement;
 
   constructor() {
     effect(() => {
