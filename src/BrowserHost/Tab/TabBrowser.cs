@@ -95,35 +95,36 @@ public class TabBrowser : UserControl
     private void AttachBrowserEvents()
     {
         _browser.AddressChanged += OnBrowserAddressChanged;
-        PubSub.Subscribe<SsoFlowStartedEvent>(HandleSsoFlowIfNeeded);
     }
 
     private void DetachBrowserEvents()
     {
         _browser.AddressChanged -= OnBrowserAddressChanged;
-        PubSub.Unsubscribe<SsoFlowStartedEvent>(HandleSsoFlowIfNeeded);
 
-    }
-
-    private void HandleSsoFlowIfNeeded(SsoFlowStartedEvent e)
-    {
-        if (SettingsFeature.ExecutionSettings.AutoAddSsoDomains != true)
-            return;
-
-        if (e.TabId == Id && _browser is not WebView2Browser)
-        {
-            // Upgrade to WebView2 when an SSO flow is detected
-            UpgradeToWebView2(e.OriginalUrl);
-        }
     }
 
     private void OnBrowserAddressChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         _addressChanged?.Invoke(this, e);
 
-        if (_browser is CefSharpTabBrowserAdapter && e.NewValue is string newAddress && ShouldUseWebView2(newAddress))
+        if (_browser is CefSharpTabBrowserAdapter && e.NewValue is string newAddress)
         {
-            UpgradeToWebView2(newAddress);
+            if (ShouldUseWebView2(newAddress))
+            {
+                UpgradeToWebView2(newAddress);
+            }
+            else if (
+                SettingsFeature.ExecutionSettings.AutoAddSsoDomains == true &&
+                IsSsoLoginPage(newAddress) &&
+                e.OldValue is string oldAddress &&
+                Uri.TryCreate(oldAddress, UriKind.Absolute, out var oldUri) &&
+                !string.IsNullOrEmpty(oldUri.Host) &&
+                !ContentServer.IsContentServerUrl(oldAddress))
+            {
+                UpgradeToWebView2(oldAddress);
+                PubSub.Publish(new SsoFlowStartedEvent(Id, oldUri.Host, oldAddress));
+                return; // We restored the old address, so no further processing is needed
+            }
         }
 
         // If navigating to a file address, set a file-type favicon immediately if available
@@ -136,6 +137,10 @@ public class TabBrowser : UserControl
             }
         }
     }
+
+    private static bool IsSsoLoginPage(string address) =>
+        Uri.TryCreate(address, UriKind.Absolute, out var toUri) &&
+        string.Equals(toUri.Host, "login.microsoftonline.com", StringComparison.OrdinalIgnoreCase);
 
     private void UpgradeToWebView2(string targetAddress)
     {

@@ -5,6 +5,16 @@ namespace BrowserHost.Interop;
 internal static partial class MonitorInterop
 {
     [StructLayout(LayoutKind.Sequential)]
+    internal struct MINMAXINFO
+    {
+        public POINT ptReserved;
+        public POINT ptMaxSize;
+        public POINT ptMaxPosition;
+        public POINT ptMinTrackSize;
+        public POINT ptMaxTrackSize;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     internal struct POINT
     {
         public int X;

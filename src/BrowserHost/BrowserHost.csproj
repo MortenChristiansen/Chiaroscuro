@@ -68,7 +68,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CefSharp.Wpf.NetCore" Version="139.0.280" />
+    <PackageReference Include="CefSharp.Wpf.NetCore" Version="140.1.140" />
     <PackageReference Include="EmbedIO" Version="3.5.2" />
 	<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3485.44" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
