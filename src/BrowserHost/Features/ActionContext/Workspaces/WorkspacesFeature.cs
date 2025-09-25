@@ -247,4 +247,12 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         var tabIndex = workspace.Tabs.ToList().FindIndex(t => t.TabId == tabId);
         return workspace.EphemeralTabStartIndex > tabIndex;
     }
+
+    /// <summary>
+    /// Updates the workspaces data synchronously, used by features that need immediate state updates
+    /// </summary>
+    internal void UpdateWorkspacesFromStateManager()
+    {
+        _workspaces = WorkspaceStateManager.GetCurrentWorkspaces();
+    }
 }

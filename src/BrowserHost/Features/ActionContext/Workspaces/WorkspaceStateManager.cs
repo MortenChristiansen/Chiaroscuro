@@ -207,4 +207,12 @@ public static class WorkspaceStateManager
         }
         return _lastSavedWorkspaceData.Workspaces;
     }
+
+    public static WorkspaceDtoV1[] GetCurrentWorkspaces()
+    {
+        lock (_lock)
+        {
+            return _lastSavedWorkspaceData?.Workspaces ?? [_defaultWorkspace];
+        }
+    }
 }
