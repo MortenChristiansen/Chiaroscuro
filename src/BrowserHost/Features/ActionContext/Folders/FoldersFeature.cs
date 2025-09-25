@@ -1,5 +1,6 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionContext.Workspaces;
+using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
@@ -101,6 +102,35 @@ public class FoldersFeature(MainWindow window) : Feature(window)
 
     private void SaveFolders(FolderDtoV1[] folders, WorkspaceDtoV1 currentWorkspace)
     {
+        // Update the workspace state synchronously first
+        var workspacesFeature = Window.GetFeature<WorkspacesFeature>();
+        var tabsFeature = Window.GetFeature<TabsFeature>();
+        
+        // Convert current workspace tabs to proper format for saving
+        var tabsToSave = currentWorkspace.Tabs.Select((t, idx) => {
+            var customization = TabCustomizationFeature.GetCustomizationsForTab(t.TabId);
+            var isBookmarked = workspacesFeature.IsTabBookmarked(t.TabId);
+            var browserTab = tabsFeature.GetTabBrowserById(t.TabId);
+            return new WorkspaceTabStateDtoV1(
+                t.TabId,
+                browserTab?.GetAddressToPersist(isBookmarked, customization) ?? "",
+                browserTab?.GetTitleToPersist(isBookmarked, customization) ?? t.Title ?? "",
+                browserTab?.GetFaviconToPersist(isBookmarked, customization) ?? t.Favicon ?? "",
+                t.IsActive,
+                t.Created
+            );
+        });
+
+        var updatedWorkspaces = WorkspaceStateManager.SaveWorkspaceTabs(
+            workspacesFeature.CurrentWorkspace.WorkspaceId,
+            tabsToSave,
+            currentWorkspace.EphemeralTabStartIndex,
+            folders
+        );
+
+        // Update WorkspacesFeature cache synchronously to prevent race conditions
+        workspacesFeature.UpdateWorkspacesFromStateManager();
+
         // Persist the updated workspace state
         PubSub.Publish(new TabsChangedEvent(
             [..currentWorkspace.Tabs.Select(t => new TabUiStateDto(
@@ -115,7 +145,6 @@ public class FoldersFeature(MainWindow window) : Feature(window)
         ));
 
         // Notify the frontend
-        var tabsFeature = Window.GetFeature<TabsFeature>();
         Window.ActionContext.UpdateFolders(
             [.. folders.Select(f => new Tabs.FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
         );
