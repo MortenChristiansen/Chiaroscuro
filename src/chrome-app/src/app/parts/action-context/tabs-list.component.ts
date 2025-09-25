@@ -150,10 +150,13 @@ export class TabsListComponent implements OnInit {
         e.from.id === 'persistent-tabs' ||
         e.from.classList.contains('tab-folder')
       ) {
-        this.persistedTabs.set(this.sortablePersistedTabs);
+        // IMPORTANT: create a fresh array so Angular signal change detection always fires
+        // SortableJS mutates the underlying array in-place; if we pass the same reference
+        // Angular may skip updates leading to internal DOM/view mismatches.
+        this.persistedTabs.set([...this.sortablePersistedTabs]);
       }
       if (e.from.id === 'ephemeral-tabs') {
-        this.ephemeralTabs.set(this.sortableEphemeralTabs);
+        this.ephemeralTabs.set([...this.sortableEphemeralTabs]);
       }
     },
     onAdd: (e) => {
@@ -164,10 +167,10 @@ export class TabsListComponent implements OnInit {
         e.to.id === 'persistent-tabs' ||
         e.to.classList.contains('tab-folder')
       ) {
-        this.persistedTabs.set(this.sortablePersistedTabs);
+        this.persistedTabs.set([...this.sortablePersistedTabs]);
       }
       if (e.to.id === 'ephemeral-tabs') {
-        this.ephemeralTabs.set(this.sortableEphemeralTabs);
+        this.ephemeralTabs.set([...this.sortableEphemeralTabs]);
       }
     },
     onRemove: (e) => {
@@ -175,10 +178,10 @@ export class TabsListComponent implements OnInit {
         e.from.id === 'persistent-tabs' ||
         e.from.classList.contains('tab-folder')
       ) {
-        this.persistedTabs.set(this.sortablePersistedTabs);
+        this.persistedTabs.set([...this.sortablePersistedTabs]);
       }
       if (e.from.id === 'ephemeral-tabs') {
-        this.ephemeralTabs.set(this.sortableEphemeralTabs);
+        this.ephemeralTabs.set([...this.sortableEphemeralTabs]);
       }
     },
   };
@@ -462,6 +465,10 @@ export class TabsListComponent implements OnInit {
 
   // If we just track by id, Angular can get confused when reordering items, causing layout issues
   getTrackingKey(tabOrFolder: Tab | FolderDto, index: number): string {
-    return `${tabOrFolder.id}-${index}`;
+    // Use a stable key so Angular treats moves as moves instead of destroy/create cycles.
+    // Prior implementation appended the index, producing a new key after each reorder.
+    // Combined with direct DOM mutation from SortableJS this could desync Angular's
+    // internal view ordering and cause 'insertBefore' NotFoundError during reconciliation.
+    return tabOrFolder.id;
   }
 }
