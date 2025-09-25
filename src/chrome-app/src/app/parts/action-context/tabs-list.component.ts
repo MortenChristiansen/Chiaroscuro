@@ -157,9 +157,6 @@ export class TabsListComponent implements OnInit {
       }
     },
     onAdd: (e) => {
-      const classes: string[] = [];
-      e.to.classList.forEach((cls) => classes.push(cls));
-
       if (
         e.to.id === 'persistent-tabs' ||
         e.to.classList.contains('tab-folder')

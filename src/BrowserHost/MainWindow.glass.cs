@@ -213,14 +213,14 @@ public partial class MainWindow
                     var src = (HwndSource?)HwndSource.FromHwnd(hwnd);
                     double scaleX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
                     double scaleY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
-                    mmi.ptMinTrackSize.X = (int)(MinWindowWidth * scaleX);
-                    mmi.ptMinTrackSize.Y = (int)(MinWindowHeight * scaleY);
+                    mmi.ptMinTrackSize.X = (int)Math.Ceiling(MinWindowWidth * scaleX);
+                    mmi.ptMinTrackSize.Y = (int)Math.Ceiling(MinWindowHeight * scaleY);
 
                     // Max tracking size limited to monitor size
                     mmi.ptMaxTrackSize.X = monitorWidth;
                     mmi.ptMaxTrackSize.Y = monitorHeight;
 
-                    Marshal.StructureToPtr(mmi, lParam, true);
+                    Marshal.StructureToPtr(mmi, lParam, false);
                     handled = false; // Let default proc continue, we just adjusted values
                 }
             }
