@@ -38,10 +38,9 @@ public partial class MainWindow
 
         try
         {
-            // Prefer Windows 11 system backdrop (Mica)
             if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
             {
-                var backdropType = 1; // DWMSBT_MAINWINDOW
+                var backdropType = 1; // DWMSBT_NONE
                 _ = WindowInterop.DwmSetWindowAttribute(hwnd, WindowInterop.DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
 
                 // Request rounded corners (DWM_WINDOW_CORNER_PREFERENCE_ROUND = 2)
