@@ -117,7 +117,9 @@ public class TabBrowser : UserControl
                 SettingsFeature.ExecutionSettings.AutoAddSsoDomains == true &&
                 IsSsoLoginPage(newAddress) &&
                 e.OldValue is string oldAddress &&
-                Uri.TryCreate(oldAddress, UriKind.Absolute, out var oldUri))
+                Uri.TryCreate(oldAddress, UriKind.Absolute, out var oldUri) &&
+                !string.IsNullOrEmpty(oldUri.Host) &&
+                !ContentServer.IsContentServerUrl(oldAddress))
             {
                 UpgradeToWebView2(oldAddress);
                 PubSub.Publish(new SsoFlowStartedEvent(Id, oldUri.Host, oldAddress));
