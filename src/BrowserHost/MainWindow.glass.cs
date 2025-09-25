@@ -13,7 +13,7 @@ public partial class MainWindow
 {
     private const int MinWindowWidth = 400;
     private const int MinWindowHeight = 300;
-    private const byte AcrylicTintOpacity = 0x2F; // 0x00..0xFF (higher = more solid tint)
+    private const byte AcrylicTintOpacity = 0x7F; // 0x00..0xFF (higher = more solid tint)
 
     public override void EndInit()
     {
@@ -38,10 +38,9 @@ public partial class MainWindow
 
         try
         {
-            // Prefer Windows 11 system backdrop (Mica)
             if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
             {
-                var backdropType = 2; // DWMSBT_MAINWINDOW
+                var backdropType = 1; // DWMSBT_NONE
                 _ = WindowInterop.DwmSetWindowAttribute(hwnd, WindowInterop.DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
 
                 // Request rounded corners (DWM_WINDOW_CORNER_PREFERENCE_ROUND = 2)
@@ -181,10 +180,50 @@ public partial class MainWindow
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         const int WM_DPICHANGED = 0x02E0;
+        const int WM_GETMINMAXINFO = 0x0024;
 
         if (msg == WM_DPICHANGED)
         {
             Dispatcher.BeginInvoke(ApplyRoundedWindowRegion);
+        }
+        else if (msg == WM_GETMINMAXINFO)
+        {
+            try
+            {
+                var mmi = Marshal.PtrToStructure<MonitorInterop.MINMAXINFO>(lParam);
+
+                // Determine monitor work area (excludes taskbar) & full monitor area
+                var monitor = MonitorInterop.MonitorFromWindow(hwnd, MonitorInterop.MONITOR_DEFAULTTONEAREST);
+                var mi = new MonitorInterop.MONITORINFO { cbSize = Marshal.SizeOf<MonitorInterop.MONITORINFO>() };
+                if (MonitorInterop.GetMonitorInfo(monitor, ref mi))
+                {
+                    int monitorWidth = mi.rcMonitor.Right - mi.rcMonitor.Left;
+                    int monitorHeight = mi.rcMonitor.Bottom - mi.rcMonitor.Top;
+                    int workWidth = mi.rcWork.Right - mi.rcWork.Left;
+                    int workHeight = mi.rcWork.Bottom - mi.rcWork.Top;
+
+                    // Position of the maximized window relative to the monitor
+                    mmi.ptMaxPosition.X = mi.rcWork.Left - mi.rcMonitor.Left;
+                    mmi.ptMaxPosition.Y = mi.rcWork.Top - mi.rcMonitor.Top;
+                    mmi.ptMaxSize.X = workWidth;
+                    mmi.ptMaxSize.Y = workHeight;
+
+                    // Min tracking size (convert desired DIP min size to physical pixels)
+                    var src = (HwndSource?)HwndSource.FromHwnd(hwnd);
+                    double scaleX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+                    double scaleY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+                    mmi.ptMinTrackSize.X = (int)Math.Ceiling(MinWindowWidth * scaleX);
+                    mmi.ptMinTrackSize.Y = (int)Math.Ceiling(MinWindowHeight * scaleY);
+
+                    // Max tracking size limited to monitor size
+                    mmi.ptMaxTrackSize.X = monitorWidth;
+                    mmi.ptMaxTrackSize.Y = monitorHeight;
+
+                    Marshal.StructureToPtr(mmi, lParam, false);
+                    handled = false; // Let default proc continue, we just adjusted values
+                }
+            }
+            catch { }
         }
 
         return IntPtr.Zero;

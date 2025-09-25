@@ -4,34 +4,32 @@ using BrowserHost.Utilities;
 using CefSharp;
 using System;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
 public partial class CustomWindowChromeFeature(MainWindow window) : Feature(window)
 {
+    private Rect? _lastNormalBounds; // Stored size/position before maximizing (for detach drag only)
+    private bool _applyingRestoreBounds; // Prevent recursive capture while programmatically setting during detach
+
     public override void Configure()
     {
         Window.WindowStyle = WindowStyle.None;
         Window.AllowsTransparency = true;
 
         Window.ChromeUI.PreviewMouseLeftButtonDown += ChromeUI_PreviewMouseLeftButtonDown;
-        Window.PreviewMouseLeftButtonUp += MainWindow_PreviewMouseLeftButtonUp;
-        Window.PreviewMouseMove += MainWindow_PreviewMouseMove;
 
         Window.ResizeBorder.PreviewMouseMove += ResizeBorder_PreviewMouseMove;
         Window.ResizeBorder.PreviewMouseLeftButtonDown += ResizeBorder_PreviewMouseLeftButtonDown;
-
-        Window.StateChanged += (s, e) => AdjustWindowBorder();
-        // Add a lightweight post state-change animation when maximize/restore happens outside our own handlers
-        Window.StateChanged += Window_StateChangedAnimate;
+        Window.StateChanged += Window_StateChangedCapture;
+        Window.LocationChanged += (_, __) => CaptureNormalBounds();
+        Window.SizeChanged += (_, __) => CaptureNormalBounds();
 
         PubSub.Subscribe<WindowMinimizedEvent>(_ => Minimize());
         PubSub.Subscribe<WindowStateToggledEvent>(_ => ToggleMaximizedState());
@@ -44,8 +42,24 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
         PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
 
-        // Initialize restore bounds
-        _restoreBounds = new Rect(Window.Left, Window.Top, Math.Max(1, Window.Width), Math.Max(1, Window.Height));
+        CaptureNormalBounds();
+    }
+
+    private void CaptureNormalBounds()
+    {
+        if (_applyingRestoreBounds) return;
+        if (Window.WindowState == WindowState.Normal && Window.ActualWidth > 0 && Window.ActualHeight > 0)
+        {
+            _lastNormalBounds = new Rect(Window.Left, Window.Top, Window.Width, Window.Height);
+        }
+    }
+
+    private void Window_StateChangedCapture(object? sender, EventArgs e)
+    {
+        // When transitioning to maximized ensure we have latest normal bounds (already handled by capture logic, but explicit call is cheap)
+        if (Window.WindowState == WindowState.Maximized)
+            CaptureNormalBounds();
+        // Do NOT manually set size/position here; rely on normal WPF + WM_GETMINMAXINFO for proper maximize.
     }
 
     private void ChromeUI_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -58,27 +72,13 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
 
         if (e.ButtonState == MouseButtonState.Pressed && IsMouseOverTransparentPixel(e))
         {
-            // When simulated maximized, do NOT allow normal drag.
-            // Only allow drag-to-detach logic to escape the maximized state.
-            if (_isSimulatedMaximized)
+            if (Window.WindowState == WindowState.Maximized)
             {
-                HandleDragToDetachFromMaximizedState(e);
-                e.Handled = true;
+                BeginDetachDragFromMaximized(e);
                 return;
             }
 
-            // Temporarily disable resize mode to avoid Aero snapping triggering actual maximize
-            Window.ResizeMode = ResizeMode.NoResize;
-
-            try
-            {
-                // Normal drag when not maximized
-                Window.DragMove();
-            }
-            finally
-            {
-                Window.ResizeMode = ResizeMode.CanResize;
-            }
+            try { Window.DragMove(); } catch { }
         }
     }
 
@@ -86,7 +86,6 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
     {
         if (e.OriginalSource is Image source && source.Source is BitmapSource bitmap)
         {
-            // Get mouse position relative to the image
             var pos = e.GetPosition(source);
             int x = (int)(pos.X * bitmap.PixelWidth / source.ActualWidth);
             int y = (int)(pos.Y * bitmap.PixelHeight / source.ActualHeight);
@@ -94,29 +93,10 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
             {
                 byte[] pixels = new byte[4];
                 bitmap.CopyPixels(new Int32Rect(x, y, 1, 1), pixels, 4, 0);
-                byte alpha = pixels[3];
-                return alpha == 0;
+                return pixels[3] == 0; // alpha
             }
         }
         return false;
-    }
-
-    private void MainWindow_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-    {
-        if (e.ButtonState == MouseButtonState.Released && _isDraggingToDetach)
-            ResetDetachDrag();
-
-        // Maximize the window if we dragged to the top of the screen
-        if (MonitorInterop.GetCursorPos(out var pt) && !_isSimulatedMaximized && pt.Y <= 5)
-        {
-            ToggleMaximizedState();
-        }
-    }
-
-    private void MainWindow_PreviewMouseMove(object sender, MouseEventArgs e)
-    {
-        if (e.LeftButton == MouseButtonState.Pressed && _isDraggingToDetach)
-            HandleDragToDetachFromMaximizedState(e);
     }
 
     private void OnTabLoadingStateChanged(TabLoadingStateChangedEvent e)
@@ -131,247 +111,63 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         Window.ChromeUI.UpdateLoadingState(isLoading);
     }
 
-    #region Minimize/Maximize
-
-    private bool _isSimulatedMaximized;
-    private Rect _restoreBounds;
-
-    private void ApplySimulatedMaximize()
-    {
-        if (_isSimulatedMaximized) return;
-
-        // Save current bounds to restore later
-        _restoreBounds = new Rect(Window.Left, Window.Top, Math.Max(1, Window.Width), Math.Max(1, Window.Height));
-
-        var wa = GetCurrentMonitorWorkAreaDip();
-        Window.Left = wa.Left;
-        Window.Top = wa.Top;
-        Window.Width = wa.Width;
-        Window.Height = wa.Height;
-
-        // Prevent standard resize limits from shrinking our simulated maximize
-        Window.MaxWidth = wa.Width;
-        Window.MaxHeight = wa.Height;
-
-        _isSimulatedMaximized = true;
-    }
-
-    private void ApplySimulatedRestore()
-    {
-        if (!_isSimulatedMaximized) return;
-
-        _isSimulatedMaximized = false;
-        Window.MaxWidth = double.PositiveInfinity;
-        Window.MaxHeight = double.PositiveInfinity;
-
-        // Restore to saved bounds
-        if (_restoreBounds.Width > 0 && _restoreBounds.Height > 0)
-        {
-            Window.Left = _restoreBounds.Left;
-            Window.Top = _restoreBounds.Top;
-            Window.Width = _restoreBounds.Width;
-            Window.Height = _restoreBounds.Height;
-        }
-    }
+    #region Maximize / Minimize / Detach Drag
 
     private void ToggleMaximizedState()
     {
-        _ = AnimateToggleMaximizeAsync();
-    }
-
-    private void Minimize()
-    {
-        _ = AnimateMinimizeAsync();
-    }
-
-    private async Task AnimateToggleMaximizeAsync()
-    {
-        if (_isAnimating) return;
-        var targetSimulated = !_isSimulatedMaximized;
-
-        // Subtle bounce/settle animation post change
-        var root = GetRoot();
-        if (root is null)
-        {
-            if (targetSimulated) ApplySimulatedMaximize(); else ApplySimulatedRestore();
-            return;
-        }
-        EnsureTransforms(root);
-
-        var initialScale = targetSimulated ? 0.985 : 1.015;
-        _scaleTransform.ScaleX = initialScale;
-        _scaleTransform.ScaleY = initialScale;
-        root.Opacity = 0.985;
-
-        // Apply the geometry change immediately
-        if (targetSimulated) ApplySimulatedMaximize(); else ApplySimulatedRestore();
-
-        _isAnimating = true;
-        try
-        {
-            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-            var duration = TimeSpan.FromMilliseconds(140);
-
-            root.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
-
-            await Task.Delay(duration + TimeSpan.FromMilliseconds(20));
-        }
-        finally
-        {
-            // Clear animations and reset to identity
-            root.BeginAnimation(UIElement.OpacityProperty, null);
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-            root.Opacity = 1.0;
-            _scaleTransform.ScaleX = 1.0;
-            _scaleTransform.ScaleY = 1.0;
-            _isAnimating = false;
-        }
-    }
-
-    private async Task AnimateMinimizeAsync()
-    {
-        if (_isAnimating) return;
-        var root = GetRoot();
-        if (root is null)
-        {
-            Window.WindowState = WindowState.Minimized;
-            return;
-        }
-
-        EnsureTransforms(root);
-        _isAnimating = true;
-        try
-        {
-            var ease = new CubicEase { EasingMode = EasingMode.EaseIn };
-            var duration = TimeSpan.FromMilliseconds(120);
-
-            root.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0.0, duration) { EasingFunction = ease });
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.96, duration) { EasingFunction = ease });
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.96, duration) { EasingFunction = ease });
-
-            await Task.Delay(duration + TimeSpan.FromMilliseconds(20));
-        }
-        finally
-        {
-            Window.WindowState = WindowState.Minimized;
-            // Clear animations and reset for when restored
-            if (root is not null)
-            {
-                root.BeginAnimation(UIElement.OpacityProperty, null);
-                _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-                _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-                root.Opacity = 1.0;
-                _scaleTransform.ScaleX = 1.0;
-                _scaleTransform.ScaleY = 1.0;
-            }
-            _isAnimating = false;
-        }
-    }
-
-    private void Window_StateChangedAnimate(object? sender, EventArgs e)
-    {
-        // Only add a subtle settle animation for changes initiated externally
-        if (Window.WindowState is WindowState.Normal)
-        {
-            var root = GetRoot();
-            if (root is null) return;
-            EnsureTransforms(root);
-
-            var initial = _isSimulatedMaximized ? 0.985 : 1.015;
-            _ = AnimateBounceAsync(root, initial);
-        }
-    }
-
-    private async Task AnimateBounceAsync(FrameworkElement root, double initialScale)
-    {
-        if (_isAnimating) return;
-        EnsureTransforms(root);
-        _scaleTransform.ScaleX = initialScale;
-        _scaleTransform.ScaleY = initialScale;
-        root.Opacity = 0.985;
-
-        _isAnimating = true;
-        try
-        {
-            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-            var duration = TimeSpan.FromMilliseconds(140);
-
-            root.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1.0, duration) { EasingFunction = ease });
-
-            await Task.Delay(duration + TimeSpan.FromMilliseconds(20));
-        }
-        finally
-        {
-            root.BeginAnimation(UIElement.OpacityProperty, null);
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-            root.Opacity = 1.0;
-            _scaleTransform.ScaleX = 1.0;
-            _scaleTransform.ScaleY = 1.0;
-            _isAnimating = false;
-        }
-    }
-
-    private FrameworkElement? GetRoot()
-    {
-        return Window.Content as FrameworkElement;
-    }
-
-    private void EnsureTransforms(FrameworkElement root)
-    {
-        if (root.RenderTransform is not TransformGroup group)
-        {
-            group = new TransformGroup();
-            _scaleTransform = new ScaleTransform(1.0, 1.0);
-            group.Children.Add(_scaleTransform);
-            root.RenderTransform = group;
-        }
+        if (Window.WindowState == WindowState.Maximized)
+            Window.WindowState = WindowState.Normal;
         else
-        {
-            // Try find existing scale transform
-            ScaleTransform? st = null;
-            foreach (var t in group.Children)
-            {
-                if (t is ScaleTransform s)
-                {
-                    st = s;
-                    break;
-                }
-            }
-            _scaleTransform = st ?? new ScaleTransform(1.0, 1.0);
-            if (!group.Children.Contains(_scaleTransform))
-                group.Children.Insert(0, _scaleTransform);
-        }
-
-        root.RenderTransformOrigin = new Point(0.5, 0.5);
+            Window.WindowState = WindowState.Maximized;
     }
 
-    private ScaleTransform _scaleTransform = new(1.0, 1.0);
-    private bool _isAnimating;
+    private void Minimize() => Window.WindowState = WindowState.Minimized;
 
-    private void AdjustWindowBorder()
+    private void BeginDetachDragFromMaximized(MouseEventArgs e)
     {
-        if (_isSimulatedMaximized)
-        {
-            // Ensure we stay within current monitor work area
-            var wa = GetCurrentMonitorWorkAreaDip();
+        var wa = GetCurrentMonitorWorkAreaDip();
+        var posInWindow = e.GetPosition(Window);
+        double percentX = posInWindow.X / Window.ActualWidth;
+        double percentY = posInWindow.Y / Window.ActualHeight;
 
-            Window.MaxWidth = wa.Width;
-            Window.MaxHeight = wa.Height;
-            Window.Left = wa.Left;
-            Window.Top = wa.Top;
-            Window.Width = wa.Width;
-            Window.Height = wa.Height;
-        }
-        else if (Window.WindowState == WindowState.Normal)
+        var restore = _lastNormalBounds ?? Window.RestoreBounds;
+        if (restore.Width < 50 || restore.Height < 50)
         {
-            Window.MaxWidth = double.PositiveInfinity;
-            Window.MaxHeight = double.PositiveInfinity;
+            restore = new Rect(wa.Left + wa.Width * 0.1, wa.Top + wa.Height * 0.1, wa.Width * 0.8, wa.Height * 0.8);
+        }
+
+        if (MonitorInterop.GetCursorPos(out var pt))
+        {
+            var src = (HwndSource?)PresentationSource.FromVisual(Window);
+            double scaleX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+            double scaleY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+            double cursorX = pt.X / scaleX;
+            double cursorY = pt.Y / scaleY;
+
+            Window.WindowState = WindowState.Normal; // triggers restore
+
+            double targetWidth = restore.Width;
+            double targetHeight = restore.Height;
+
+            double newLeft = cursorX - targetWidth * percentX;
+            double newTop = cursorY - targetHeight * percentY;
+
+            newLeft = Math.Clamp(newLeft, wa.Left, wa.Right - targetWidth);
+            newTop = Math.Clamp(newTop, wa.Top, wa.Bottom - targetHeight);
+
+            _applyingRestoreBounds = true;
+            try
+            {
+                Window.Left = newLeft;
+                Window.Top = newTop;
+                Window.Width = targetWidth;
+                Window.Height = targetHeight;
+            }
+            finally { _applyingRestoreBounds = false; }
+
+            CaptureNormalBounds();
+            Window.UpdateLayout();
+            try { Window.DragMove(); } catch { }
         }
     }
 
@@ -380,23 +176,18 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         var hwnd = new WindowInteropHelper(Window).Handle;
         if (hwnd == nint.Zero)
         {
-            // Fallback to primary work area
             var wa = SystemParameters.WorkArea;
             return new Rect(wa.Left, wa.Top, wa.Width, wa.Height);
         }
 
         var hMon = MonitorInterop.MonitorFromWindow(hwnd, MonitorInterop.MONITOR_DEFAULTTONEAREST);
-        var mi = new MonitorInterop.MONITORINFO()
-        {
-            cbSize = Marshal.SizeOf<MonitorInterop.MONITORINFO>()
-        };
+        var mi = new MonitorInterop.MONITORINFO() { cbSize = Marshal.SizeOf<MonitorInterop.MONITORINFO>() };
         if (!MonitorInterop.GetMonitorInfo(hMon, ref mi))
         {
             var wa = SystemParameters.WorkArea;
             return new Rect(wa.Left, wa.Top, wa.Width, wa.Height);
         }
 
-        // Convert from physical pixels to device independent units
         var src = (HwndSource?)PresentationSource.FromVisual(Window);
         double scaleX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
         double scaleY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
@@ -408,120 +199,13 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         return new Rect(left, top, width, height);
     }
 
-    internal void SimulateMaximize()
-    {
-        if (_isSimulatedMaximized) return;
-        ApplySimulatedMaximize();
-    }
-
-    internal void SimulateRestore()
-    {
-        if (!_isSimulatedMaximized) return;
-        ApplySimulatedRestore();
-    }
-
-    #endregion
-
-    #region Window Detach Drag Handling
-
-    private bool _isDraggingToDetach = false;
-    private Point? _dragStartPoint;
-    private void HandleDragToDetachFromMaximizedState(MouseEventArgs e)
-    {
-        if (_isDraggingToDetach && _dragStartPoint.HasValue)
-        {
-            // If already dragging, calculate the distance moved
-            var currentPoint = e.GetPosition(Window);
-            var distance = (currentPoint - _dragStartPoint.Value).Length;
-            // If the mouse has moved significantly, allow detaching
-            if (distance < 20)
-                return; // Not enough movement to detach
-        }
-
-        if (!_isDraggingToDetach)
-        {
-            StartDetachDrag(e);
-            return;
-        }
-
-        PerformDetachOfWindow(e);
-
-        e.Handled = true;
-        ResetDetachDrag();
-        Window.ChromeUI.ReleaseMouseCapture();
-        Window.DragMove();
-    }
-
-    private void PerformDetachOfWindow(MouseEventArgs e)
-    {
-        // Calculate mouse position relative to window
-        var mouseX = e.GetPosition(Window).X;
-        var percentX = mouseX / Window.ActualWidth;
-        var mouseY = e.GetPosition(Window).Y;
-        var percentY = mouseY / Window.ActualHeight;
-
-        // Ensure normal state (we already are, but keep consistent)
-        Window.WindowState = WindowState.Normal;
-        _isSimulatedMaximized = false;
-        Window.MaxWidth = double.PositiveInfinity;
-        Window.MaxHeight = double.PositiveInfinity;
-
-        // Determine target size from pre-maximize restore bounds
-        var targetWidth = Math.Max(1, _restoreBounds.Width);
-        var targetHeight = Math.Max(1, _restoreBounds.Height);
-
-        // Get cursor in screen pixels, convert to DIPs, then clamp to current monitor work area
-        if (MonitorInterop.GetCursorPos(out var pt))
-        {
-            var src = (HwndSource?)PresentationSource.FromVisual(Window);
-            var m = src?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
-            var cursorDip = m.Transform(new Point(pt.X, pt.Y));
-
-            var wa = GetCurrentMonitorWorkAreaDip();
-
-            var newLeft = cursorDip.X - targetWidth * percentX;
-            var newTop = cursorDip.Y - targetHeight * percentY;
-
-            newLeft = Math.Clamp(newLeft, wa.Left, wa.Right - targetWidth);
-            newTop = Math.Clamp(newTop, wa.Top, wa.Bottom - targetHeight);
-
-            Window.Left = newLeft;
-            Window.Top = newTop;
-        }
-
-        // Apply the restored size
-        Window.Width = targetWidth;
-        Window.Height = targetHeight;
-
-        // Save as new restore bounds
-        _restoreBounds = new Rect(Window.Left, Window.Top, Math.Max(1, Window.Width), Math.Max(1, Window.Height));
-        Window.UpdateLayout();
-    }
-
-    private void StartDetachDrag(MouseEventArgs e)
-    {
-        _dragStartPoint = e.GetPosition(Window);
-        _isDraggingToDetach = true;
-        Window.Cursor = Cursors.SizeAll;
-        // Prevents selecting elements as we complete the detach operation
-        _ = Window.ChromeUI.EvaluateScriptAsync("document.body.setAttribute('inert', '');");
-    }
-
-    private void ResetDetachDrag()
-    {
-        _dragStartPoint = null;
-        _isDraggingToDetach = false;
-        Window.Cursor = Cursors.Arrow;
-        _ = Window.ChromeUI.EvaluateScriptAsync("document.body.removeAttribute('inert');");
-    }
-
     #endregion
 
     #region Resize Border Handling
 
     private void ResizeBorder_PreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (Window.WindowState == WindowState.Normal && !_isSimulatedMaximized)
+        if (Window.WindowState == WindowState.Normal)
         {
             var pos = e.GetPosition(Window.ResizeBorder);
             var hit = GetResizeDirection(pos, Window.ResizeBorder.ActualWidth, Window.ResizeBorder.ActualHeight);
@@ -535,14 +219,12 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
 
     private void ResizeBorder_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (Window.WindowState == WindowState.Normal && !_isSimulatedMaximized && e.LeftButton == MouseButtonState.Pressed)
+        if (Window.WindowState == WindowState.Normal && e.LeftButton == MouseButtonState.Pressed)
         {
             var pos = e.GetPosition(Window.ResizeBorder);
             var hit = GetResizeDirection(pos, Window.ResizeBorder.ActualWidth, Window.ResizeBorder.ActualHeight);
             if (hit != HitTest.HTNOWHERE)
-            {
                 ResizeWindow(hit);
-            }
         }
     }
 
@@ -578,19 +260,18 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         return HitTest.HTNOWHERE;
     }
 
-    private static Cursor GetCursorForResizeDirection(HitTest hit) =>
-        hit switch
-        {
-            HitTest.HTLEFT => Cursors.SizeWE,
-            HitTest.HTRIGHT => Cursors.SizeWE,
-            HitTest.HTTOP => Cursors.SizeNS,
-            HitTest.HTBOTTOM => Cursors.SizeNS,
-            HitTest.HTTOPLEFT => Cursors.SizeNWSE,
-            HitTest.HTTOPRIGHT => Cursors.SizeNESW,
-            HitTest.HTBOTTOMLEFT => Cursors.SizeNESW,
-            HitTest.HTBOTTOMRIGHT => Cursors.SizeNWSE,
-            _ => Cursors.Arrow
-        };
+    private static Cursor GetCursorForResizeDirection(HitTest hit) => hit switch
+    {
+        HitTest.HTLEFT => Cursors.SizeWE,
+        HitTest.HTRIGHT => Cursors.SizeWE,
+        HitTest.HTTOP => Cursors.SizeNS,
+        HitTest.HTBOTTOM => Cursors.SizeNS,
+        HitTest.HTTOPLEFT => Cursors.SizeNWSE,
+        HitTest.HTTOPRIGHT => Cursors.SizeNESW,
+        HitTest.HTBOTTOMLEFT => Cursors.SizeNESW,
+        HitTest.HTBOTTOMRIGHT => Cursors.SizeNWSE,
+        _ => Cursors.Arrow
+    };
 
     private const int WM_NCLBUTTONDOWN = 0x00A1;
 
