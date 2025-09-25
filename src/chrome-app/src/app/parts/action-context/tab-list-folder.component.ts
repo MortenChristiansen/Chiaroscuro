@@ -126,15 +126,28 @@ import {
       </div>
       <div
         [@expandCollapse]="isOpen() ? 'open' : 'closed'"
-        class="flex flex-col mt-2 ml-6 transition-all duration-200"
+        class="folder-content flex flex-col mt-2 ml-6 transition-all duration-200"
         (@expandCollapse.start)="onAnimationStart()"
         (@expandCollapse.done)="onAnimationDone()"
         style="will-change: height, opacity;"
+        [class.force-closed]="!isOpen()"
       >
         <ng-content />
       </div>
     </div>
   `,
+  styles: [
+    `
+      /* Defensive styling: if a closed folder gets visually 'stuck' open after a DOM move
+       (e.g., SortableJS reparenting interfering with Angular animation inline styles),
+       enforce the closed appearance with a class that reflects the source of truth (isOpen=false). */
+      .folder-content.force-closed {
+        height: 0 !important;
+        opacity: 0 !important;
+        overflow: hidden !important;
+      }
+    `,
+  ],
 })
 export class TabsListFolderComponent {
   name = input.required<string>();
@@ -149,6 +162,7 @@ export class TabsListFolderComponent {
   hasStartedEditingDueToNewState = false;
 
   folderNameInput = viewChild<ElementRef<HTMLInputElement>>('folderNameInput');
+  private contentElement?: HTMLElement;
 
   constructor() {
     effect(() => {
