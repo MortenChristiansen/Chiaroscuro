@@ -181,10 +181,50 @@ public partial class MainWindow
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         const int WM_DPICHANGED = 0x02E0;
+        const int WM_GETMINMAXINFO = 0x0024;
 
         if (msg == WM_DPICHANGED)
         {
             Dispatcher.BeginInvoke(ApplyRoundedWindowRegion);
+        }
+        else if (msg == WM_GETMINMAXINFO)
+        {
+            try
+            {
+                var mmi = Marshal.PtrToStructure<MonitorInterop.MINMAXINFO>(lParam);
+
+                // Determine monitor work area (excludes taskbar) & full monitor area
+                var monitor = MonitorInterop.MonitorFromWindow(hwnd, MonitorInterop.MONITOR_DEFAULTTONEAREST);
+                var mi = new MonitorInterop.MONITORINFO { cbSize = Marshal.SizeOf<MonitorInterop.MONITORINFO>() };
+                if (MonitorInterop.GetMonitorInfo(monitor, ref mi))
+                {
+                    int monitorWidth = mi.rcMonitor.Right - mi.rcMonitor.Left;
+                    int monitorHeight = mi.rcMonitor.Bottom - mi.rcMonitor.Top;
+                    int workWidth = mi.rcWork.Right - mi.rcWork.Left;
+                    int workHeight = mi.rcWork.Bottom - mi.rcWork.Top;
+
+                    // Position of the maximized window relative to the monitor
+                    mmi.ptMaxPosition.X = mi.rcWork.Left - mi.rcMonitor.Left;
+                    mmi.ptMaxPosition.Y = mi.rcWork.Top - mi.rcMonitor.Top;
+                    mmi.ptMaxSize.X = workWidth;
+                    mmi.ptMaxSize.Y = workHeight;
+
+                    // Min tracking size (convert desired DIP min size to physical pixels)
+                    var src = (HwndSource?)HwndSource.FromHwnd(hwnd);
+                    double scaleX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+                    double scaleY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+                    mmi.ptMinTrackSize.X = (int)(MinWindowWidth * scaleX);
+                    mmi.ptMinTrackSize.Y = (int)(MinWindowHeight * scaleY);
+
+                    // Max tracking size limited to monitor size
+                    mmi.ptMaxTrackSize.X = monitorWidth;
+                    mmi.ptMaxTrackSize.Y = monitorHeight;
+
+                    Marshal.StructureToPtr(mmi, lParam, true);
+                    handled = false; // Let default proc continue, we just adjusted values
+                }
+            }
+            catch { }
         }
 
         return IntPtr.Zero;
