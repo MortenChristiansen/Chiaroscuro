@@ -13,7 +13,7 @@ public partial class MainWindow
 {
     private const int MinWindowWidth = 400;
     private const int MinWindowHeight = 300;
-    private const byte AcrylicTintOpacity = 0x2F; // 0x00..0xFF (higher = more solid tint)
+    private const byte AcrylicTintOpacity = 0x7F; // 0x00..0xFF (higher = more solid tint)
 
     public override void EndInit()
     {
@@ -41,7 +41,7 @@ public partial class MainWindow
             // Prefer Windows 11 system backdrop (Mica)
             if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
             {
-                var backdropType = 2; // DWMSBT_MAINWINDOW
+                var backdropType = 1; // DWMSBT_MAINWINDOW
                 _ = WindowInterop.DwmSetWindowAttribute(hwnd, WindowInterop.DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
 
                 // Request rounded corners (DWM_WINDOW_CORNER_PREFERENCE_ROUND = 2)
