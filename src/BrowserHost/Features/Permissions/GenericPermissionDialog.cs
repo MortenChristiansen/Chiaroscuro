@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
@@ -43,7 +43,7 @@ public class GenericPermissionDialog : Window
 
         var iconText = new TextBlock
         {
-            Text = "??",
+            Text = "🦄",
             FontSize = 16,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
