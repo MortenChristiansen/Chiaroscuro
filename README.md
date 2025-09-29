@@ -16,6 +16,8 @@ In browser:
 - **Ctrl-Delete**: Reset zoom level.
 - **Ctrl-1, Ctrl-2, Ctrl-3, etc.**: Switch to workspace 1, 2, 3, etc.
 - **Ctrl-Shift-1, Ctrl-Shift-2, Ctrl-Shift-3, etc.**: Move current tab to workspace 1, 2, 3, etc.
+- **F1**: Open tab palette.
+- **F3**: Open tab palette and focus the Find in Page input.
 - **F5**: Reload page.
 - **Ctrl-F5**: Reload page, ignoring cache.
 - **F12**: Toggle dev tools.

@@ -3,7 +3,7 @@ using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
-using BrowserHost.Features.Notifications;
+using BrowserHost.Features.Permissions;
 using BrowserHost.Utilities;
 using Microsoft.Web.WebView2.Core;
 using System;
