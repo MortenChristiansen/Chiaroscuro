@@ -39,6 +39,15 @@ public class FindTextFeature(MainWindow window) : Feature(window)
             return true;
         }
 
+        if (_findingTextTerm == null && e.Key == Key.F3)
+        {
+            PubSub.Publish(new TabPaletteRequestedEvent());
+            Window.TabPaletteBrowserControl.Focus();
+            Window.TabPaletteBrowserControl.FocusFindTextInput();
+
+            return true;
+        }
+
         return base.HandleOnPreviewKeyDown(e);
     }
 

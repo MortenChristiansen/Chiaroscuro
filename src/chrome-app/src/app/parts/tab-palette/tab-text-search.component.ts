@@ -1,6 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { IconButtonComponent } from '../../shared/icon-button.component';
-import { Component, signal, OnInit, computed } from '@angular/core';
+import {
+  Component,
+  signal,
+  OnInit,
+  computed,
+  viewChild,
+  ElementRef,
+} from '@angular/core';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { TabPaletteApi } from './tabPaletteApi';
 
@@ -95,6 +102,9 @@ export class TabTextSearchComponent implements OnInit {
     () => this.totalMatches() != null && this.totalMatches()! > 0
   );
 
+  private searchInput =
+    viewChild.required<ElementRef<HTMLInputElement>>('input');
+
   private api!: TabPaletteApi;
 
   async ngOnInit() {
@@ -104,6 +114,9 @@ export class TabTextSearchComponent implements OnInit {
       findStatusChanged: (totalMatches?: number) => {
         console.log('Search status changed:', totalMatches);
         this.totalMatches.set(totalMatches ?? null);
+      },
+      focusFindTextInput: () => {
+        setTimeout(() => this.searchInput().nativeElement.focus());
       },
       init: () => {
         this.resetSearch();

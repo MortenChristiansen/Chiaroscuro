@@ -6,4 +6,9 @@ public static class TabPaletteBrowserExtensions
     {
         browser.CallClientApi("findStatusChanged", $"{totalMatches}");
     }
+
+    public static void FocusFindTextInput(this TabPaletteBrowser browser)
+    {
+        browser.CallClientApi("focusFindTextInput");
+    }
 }
