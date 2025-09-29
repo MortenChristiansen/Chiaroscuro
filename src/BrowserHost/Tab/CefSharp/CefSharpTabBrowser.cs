@@ -4,7 +4,7 @@ using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DragDrop;
-using BrowserHost.Features.Notifications;
+using BrowserHost.Features.Permissions;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Utilities;
 using CefSharp;
