@@ -5,21 +5,21 @@ using System.IO;
 using System.Text.Json;
 using System.Threading;
 
-namespace BrowserHost.Features.AppLayout;
+namespace BrowserHost.Features.AppState;
 
-public record AppLayoutDataV1(double ActionContextWidth, double TabPaletteWidth);
+public record AppStateDataV1(double ActionContextWidth, double TabPaletteWidth);
 
-public static class AppLayoutStateManager
+public static class AppStateStateManager
 {
-    private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("appLayout.json");
+    private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("appState.json");
     private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
     private const int _currentVersion = 1;
-    private static AppLayoutDataV1? _lastSavedLayout;
+    private static AppStateDataV1? _lastSavedState;
     private static readonly Lock _lock = new();
 
-    private static AppLayoutDataV1 Default => new(ActionContextWidth: 300, TabPaletteWidth: 350);
+    private static AppStateDataV1 Default => new(ActionContextWidth: 300, TabPaletteWidth: 350);
 
-    public static AppLayoutDataV1 RestoreAppLayoutFromDisk()
+    public static AppStateDataV1 RestoreAppStateFromDisk()
     {
         lock (_lock)
         {
@@ -31,68 +31,68 @@ public static class AppLayoutStateManager
                     var versioned = JsonSerializer.Deserialize<PersistentData>(json);
                     if (versioned?.Version == _currentVersion)
                     {
-                        var parsed = JsonSerializer.Deserialize<PersistentData<AppLayoutDataV1>>(json);
+                        var parsed = JsonSerializer.Deserialize<PersistentData<AppStateDataV1>>(json);
                         if (parsed?.Data is not null)
-                            _lastSavedLayout = parsed.Data;
+                            _lastSavedState = parsed.Data;
                     }
                 }
             }
             catch (Exception e) when (!Debugger.IsAttached)
             {
-                Debug.WriteLine($"Failed to restore app layout: {e.Message}");
+                Debug.WriteLine($"Failed to restore app state: {e.Message}");
             }
 
-            return _lastSavedLayout ??= Default;
+            return _lastSavedState ??= Default;
         }
     }
 
-    public static AppLayoutDataV1 GetLayout()
+    public static AppStateDataV1 GetAppState()
     {
         lock (_lock)
         {
-            return _lastSavedLayout ?? RestoreAppLayoutFromDisk();
+            return _lastSavedState ?? RestoreAppStateFromDisk();
         }
     }
 
-    public static AppLayoutDataV1 SaveActionContextWidth(double width)
+    public static AppStateDataV1 SaveActionContextWidth(double width)
     {
         lock (_lock)
         {
-            var current = _lastSavedLayout ?? RestoreAppLayoutFromDisk();
+            var current = _lastSavedState ?? RestoreAppStateFromDisk();
             var updated = current with { ActionContextWidth = Math.Max(200, width) };
             return SaveIfChanged(current, updated);
         }
     }
 
-    public static AppLayoutDataV1 SaveTabPaletteWidth(double width)
+    public static AppStateDataV1 SaveTabPaletteWidth(double width)
     {
         lock (_lock)
         {
-            var current = _lastSavedLayout ?? RestoreAppLayoutFromDisk();
+            var current = _lastSavedState ?? RestoreAppStateFromDisk();
             var updated = current with { TabPaletteWidth = Math.Max(200, width) };
             return SaveIfChanged(current, updated);
         }
     }
 
-    private static AppLayoutDataV1 SaveIfChanged(AppLayoutDataV1 current, AppLayoutDataV1 updated)
+    private static AppStateDataV1 SaveIfChanged(AppStateDataV1 current, AppStateDataV1 updated)
     {
         if (current == updated)
             return current;
 
         try
         {
-            var versioned = new PersistentData<AppLayoutDataV1>
+            var versioned = new PersistentData<AppStateDataV1>
             {
                 Version = _currentVersion,
                 Data = updated
             };
             File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versioned, _jsonSerializerOptions));
-            _lastSavedLayout = updated;
+            _lastSavedState = updated;
         }
         catch (Exception e) when (!Debugger.IsAttached)
         {
-            Debug.WriteLine($"Failed to save app layout: {e.Message}");
+            Debug.WriteLine($"Failed to save app state: {e.Message}");
         }
-        return _lastSavedLayout ?? updated;
+        return _lastSavedState ?? updated;
     }
 }

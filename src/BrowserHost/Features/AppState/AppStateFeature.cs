@@ -1,9 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
 
-namespace BrowserHost.Features.AppLayout;
+namespace BrowserHost.Features.AppState;
 
-public class AppLayoutFeature(MainWindow window) : Feature(window)
+public class AppStateFeature(MainWindow window) : Feature(window)
 {
     private ColumnDefinition? _actionContextColumn;
 
@@ -18,7 +18,7 @@ public class AppLayoutFeature(MainWindow window) : Feature(window)
             if (_actionContextColumn != null)
             {
                 var width = _actionContextColumn.ActualWidth;
-                AppLayoutStateManager.SaveActionContextWidth(width);
+                AppStateStateManager.SaveActionContextWidth(width);
             }
         };
 
@@ -27,14 +27,14 @@ public class AppLayoutFeature(MainWindow window) : Feature(window)
             var tabPaletteCol = Window.TabPaletteColumn;
             if (tabPaletteCol.ActualWidth > 0)
             {
-                AppLayoutStateManager.SaveTabPaletteWidth(tabPaletteCol.ActualWidth);
+                AppStateStateManager.SaveTabPaletteWidth(tabPaletteCol.ActualWidth);
             }
         };
     }
 
     private void ApplyInitialLayout()
     {
-        var layout = AppLayoutStateManager.RestoreAppLayoutFromDisk();
+        var layout = AppStateStateManager.RestoreAppStateFromDisk();
 
         if (_actionContextColumn != null && layout.ActionContextWidth > 0)
             _actionContextColumn.Width = new GridLength(layout.ActionContextWidth);
