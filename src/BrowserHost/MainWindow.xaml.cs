@@ -5,6 +5,7 @@ using BrowserHost.Features.ActionContext.PinnedTabs;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.AppLayout;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
@@ -78,6 +79,7 @@ public partial class MainWindow : Window
             new FindTextFeature(this),
             new TabCustomizationFeature(this),
             new DomainCustomizationFeature(this),
+            new AppLayoutFeature(this),
         ];
         _features.ForEach(f =>
         {
@@ -271,7 +273,8 @@ public partial class MainWindow : Window
         if (TabPaletteBrowserControl.Visibility == Visibility.Visible)
             return;
 
-        TabPaletteColumn.Width = new GridLength(350);
+        var savedWidth = AppLayoutStateManager.GetLayout().TabPaletteWidth;
+        TabPaletteColumn.Width = new GridLength(savedWidth > 0 ? savedWidth : 350);
 
         if (!_tabPaletteHasBeenShown)
         {
