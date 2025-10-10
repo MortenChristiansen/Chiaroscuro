@@ -70,7 +70,6 @@ import { TabCustomizationApi } from './tabCustomizationApi';
             class="appearance-none w-4 h-4 rounded border-gray-600 border-1 bg-gray-900 checked:bg-gray-500 checked:border-0"
             [checked]="disableFixedAddress()"
             (change)="onToggleDisableFixed($any($event.target).checked)"
-            spellcheck="false"
           />
           <span class="text-sm text-gray-500">Disabled</span>
         </label>

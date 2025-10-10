@@ -61,7 +61,6 @@ import { settingsSchema } from './settings-schema';
                   class="w-4 h-4 rounded border-white/10 bg-gray-800"
                   [ngModel]="asBoolean(getValue('autoAddSsoDomains'))"
                   (ngModelChange)="onBooleanChange('autoAddSsoDomains', $event)"
-                  spellcheck="false"
                 />
                 <span class="text-sm text-gray-300">Enabled</span>
               </label>
@@ -144,7 +143,6 @@ import { settingsSchema } from './settings-schema';
                   class="w-4 h-4 rounded border-white/10 bg-gray-800"
                   [ngModel]="asBoolean(getValue(field.key))"
                   (ngModelChange)="onBooleanChange(field.key, $event)"
-                  spellcheck="false"
                 />
                 <span class="text-sm text-gray-300">Enabled</span>
               </label>
