@@ -40,9 +40,9 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
 
     private void HandleCommandExecuted(CommandExecutedEvent e)
     {
-        if (TryGetSearchProvider(e.Command, out var searchProvider))
+        if (TryGetSearchProvider(e.Command, out var searchProvider, out var remainderQuery))
         {
-            ExecuteProviderQuery(e, e.Command, searchProvider);
+            ExecuteProviderQuery(e, remainderQuery, searchProvider);
             return;
         }
 
@@ -68,18 +68,31 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
         PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
     }
 
-    private static bool TryGetSearchProvider(string command, [NotNullWhen(true)] out SearchProvider? provider)
+    private static bool TryGetSearchProvider(string command, [NotNullWhen(true)] out SearchProvider? provider, out string remainderQuery)
     {
         var result = SearchProviderRegex().Match(command);
         if (result.Success)
         {
-            var key = result.Groups[1].Value;
-            if (string.IsNullOrEmpty(key))
+            string key;
+            if (result.Groups[1].Success)
+            {
+                // Search provider found at start of query
+                key = result.Groups[1].Value;
+                remainderQuery = command[result.Length..].Trim();
+            }
+            else
+            {
+                // Search provider found at end of query
                 key = result.Groups[2].Value;
+                remainderQuery = command[..result.Index].Trim();
+            }
+
             provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
             return provider != null;
         }
+
         provider = null;
+        remainderQuery = string.Empty;
         return false;
     }
 
