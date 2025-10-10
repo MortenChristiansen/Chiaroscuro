@@ -95,6 +95,7 @@ import {
           "
           (keydown.escape)="isEditing.set(false)"
           class="flex-1 bg-transparent border-b border-gray-400 focus:border-white outline-none text-white"
+          spellcheck="false"
         />
         } @else {
         <span

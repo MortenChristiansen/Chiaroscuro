@@ -61,6 +61,7 @@ import { settingsSchema } from './settings-schema';
                   class="w-4 h-4 rounded border-white/10 bg-gray-800"
                   [ngModel]="asBoolean(getValue('autoAddSsoDomains'))"
                   (ngModelChange)="onBooleanChange('autoAddSsoDomains', $event)"
+                  spellcheck="false"
                 />
                 <span class="text-sm text-gray-300">Enabled</span>
               </label>
@@ -85,6 +86,7 @@ import { settingsSchema } from './settings-schema';
                 [ngModel]="asString(getValue(field.key))"
                 (ngModelChange)="onStringChange(field.key, $event)"
                 [placeholder]="field.placeholder ?? ''"
+                spellcheck="false"
               />
               } @else if (field.type === 'string[]') {
               <div class="flex flex-col gap-2">
@@ -102,6 +104,7 @@ import { settingsSchema } from './settings-schema';
                         onStringArrayItemChange(field.key, i, $event)
                       "
                       [placeholder]="field.placeholder ?? ''"
+                      spellcheck="false"
                     />
                     <button
                       type="button"
@@ -132,6 +135,7 @@ import { settingsSchema } from './settings-schema';
                 [ngModel]="asNumber(getValue(field.key))"
                 (ngModelChange)="onIntegerChange(field.key, $event)"
                 step="1"
+                spellcheck="false"
               />
               } @else if (field.type === 'boolean') {
               <label class="inline-flex items-center gap-2 select-none w-auto">
@@ -140,6 +144,7 @@ import { settingsSchema } from './settings-schema';
                   class="w-4 h-4 rounded border-white/10 bg-gray-800"
                   [ngModel]="asBoolean(getValue(field.key))"
                   (ngModelChange)="onBooleanChange(field.key, $event)"
+                  spellcheck="false"
                 />
                 <span class="text-sm text-gray-300">Enabled</span>
               </label>
