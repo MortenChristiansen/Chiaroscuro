@@ -7,7 +7,6 @@ A simple web browser built on the CefSharp library. It runs on Windows only and 
 In browser:
 
 - **Ctrl-T**: Show action dialog.
-- **Ctrl-X**: Close current tab.
 - **Ctrl-B**: Toggle tab as bookmark.
 - **Ctrl-G**: Toggle whether a bookmarked tab is placed in a folder or not.
 - **Ctrl-P**: Toggle whether the current tab is pinned or not.

@@ -179,7 +179,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         }
     }
 
-    private static readonly HashSet<Key> _allowedCtrlEditingKeys = [Key.C, Key.V, Key.X, Key.A, Key.Z, Key.Y, Key.Delete, Key.Left, Key.Right, Key.Back];
+    private static readonly HashSet<Key> _allowedCtrlEditingKeys = [Key.C, Key.V, Key.X, Key.A, Key.Z, Key.Y, Key.Delete, Key.Left, Key.Right, Key.Back, Key.X];
     private void Controller_AcceleratorKeyPressed(object? sender, CoreWebView2AcceleratorKeyPressedEventArgs e)
     {
         if (e.KeyEventKind is not (CoreWebView2KeyEventKind.KeyDown or CoreWebView2KeyEventKind.SystemKeyDown)) return;
