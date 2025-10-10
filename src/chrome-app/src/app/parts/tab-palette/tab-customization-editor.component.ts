@@ -26,6 +26,7 @@ import { TabCustomizationApi } from './tabCustomizationApi';
           placeholder="Enter a custom title (optional)"
           [(value)]="title"
           (keydown.enter)="save(titleInput.value)"
+          spellcheck="false"
         />
         <icon-button title="Save custom title" (click)="save(titleInput.value)">
           <svg

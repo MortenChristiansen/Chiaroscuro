@@ -30,6 +30,7 @@ import { FaviconComponent } from '../../shared/favicon.component';
         type="text"
         (keydown)="onKeyDown($event)"
         (input)="onInputChange($event)"
+        spellcheck="false"
         #dialog
       />
       @if (suggestions().length > 0) {

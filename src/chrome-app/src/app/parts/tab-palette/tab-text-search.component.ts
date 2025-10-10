@@ -25,6 +25,7 @@ import { TabPaletteApi } from './tabPaletteApi';
           placeholder="Search..."
           [(value)]="searchTerm"
           (keydown.enter)="onSearchTermChange(input.value)"
+          spellcheck="false"
         />
         <icon-button
           [disabled]="!hasMatches()"
