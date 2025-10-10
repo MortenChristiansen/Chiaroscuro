@@ -39,7 +39,7 @@ public class FindTextFeature(MainWindow window) : Feature(window)
             return true;
         }
 
-        if (_findingTextTerm == null && e.Key == Key.F3)
+        if (_findingTextTerm == null && (e.Key == Key.F3 || (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)))
         {
             PubSub.Publish(new TabPaletteRequestedEvent());
             Window.TabPaletteBrowserControl.Focus();
