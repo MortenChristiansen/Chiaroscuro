@@ -7,11 +7,11 @@ A simple web browser built on the CefSharp library. It runs on Windows only and 
 In browser:
 
 - **Ctrl-T**: Show action dialog.
-- **Ctrl-X**: Close current tab.
 - **Ctrl-B**: Toggle tab as bookmark.
 - **Ctrl-G**: Toggle whether a bookmarked tab is placed in a folder or not.
 - **Ctrl-P**: Toggle whether the current tab is pinned or not.
 - **Ctrl-R**: Restore a bookmarked or pinned tab to its original address.
+- **Ctrl-F**: Open tab palette and focus the Find in Page input.
 - **Ctrl-MouseWheel**: Change zoom level.
 - **Ctrl-Delete**: Reset zoom level.
 - **Ctrl-1, Ctrl-2, Ctrl-3, etc.**: Switch to workspace 1, 2, 3, etc.

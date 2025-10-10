@@ -46,6 +46,7 @@ interface WorkspaceFormData {
               required
               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Workspace name"
+              spellcheck="false"
             />
           </div>
           <div class="mb-4">

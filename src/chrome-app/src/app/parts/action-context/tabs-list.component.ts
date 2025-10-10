@@ -33,16 +33,9 @@ interface FolderDto {
     SortablejsModule,
   ],
   template: `
-    <span
-      class="bookmark-label text-gray-500 text-xs px-4"
-      style="pointer-events: none;"
-    >
-      Bookmarks
-    </span>
-
     <div
       id="persistent-tabs"
-      class="flex flex-col gap-1"
+      class="flex flex-col gap-1 mt-2"
       [nxtSortablejs]="sortablePersistedTabs"
       [config]="sortableOptions"
     >

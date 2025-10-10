@@ -35,7 +35,7 @@
                         ResizeBehavior="PreviousAndNext"
                         ResizeDirection="Columns"
                         ShowsPreview="False"/>
-                    <Border x:Name="WebContentBorder" Grid.Column="2" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#02FFFFFF">
+                    <Border x:Name="WebContentBorder" Grid.Column="2" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#04FFFFFF">
                         <Border.Clip>
                             <MultiBinding Converter="{StaticResource BorderClipConverter}">
                                 <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>

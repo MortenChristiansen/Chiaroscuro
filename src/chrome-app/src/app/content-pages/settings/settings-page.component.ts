@@ -44,9 +44,7 @@ import { settingsSchema } from './settings-schema';
         @for (field of schema; track field.key) { @if (field.key ===
         'ssoEnabledDomains') {
         <div class="setting-row">
-          <div
-            class="flex items-start gap-6 p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-          >
+          <div class="flex items-start gap-6 p-4 rounded-lg bg-white/5">
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium">
                 {{ getField('autoAddSsoDomains')?.name }}
@@ -71,9 +69,7 @@ import { settingsSchema } from './settings-schema';
         </div>
         } @if (field.key !== 'autoAddSsoDomains') {
         <div class="setting-row">
-          <div
-            class="flex items-start gap-6 p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-          >
+          <div class="flex items-start gap-6 p-4 rounded-lg bg-white/5">
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium">{{ field.name }}</div>
               <div class="text-xs text-gray-400 mt-1">
@@ -89,6 +85,7 @@ import { settingsSchema } from './settings-schema';
                 [ngModel]="asString(getValue(field.key))"
                 (ngModelChange)="onStringChange(field.key, $event)"
                 [placeholder]="field.placeholder ?? ''"
+                spellcheck="false"
               />
               } @else if (field.type === 'string[]') {
               <div class="flex flex-col gap-2">
@@ -106,6 +103,7 @@ import { settingsSchema } from './settings-schema';
                         onStringArrayItemChange(field.key, i, $event)
                       "
                       [placeholder]="field.placeholder ?? ''"
+                      spellcheck="false"
                     />
                     <button
                       type="button"
@@ -136,6 +134,7 @@ import { settingsSchema } from './settings-schema';
                 [ngModel]="asNumber(getValue(field.key))"
                 (ngModelChange)="onIntegerChange(field.key, $event)"
                 step="1"
+                spellcheck="false"
               />
               } @else if (field.type === 'boolean') {
               <label class="inline-flex items-center gap-2 select-none w-auto">

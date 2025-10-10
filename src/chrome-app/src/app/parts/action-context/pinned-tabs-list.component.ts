@@ -13,7 +13,7 @@ import { CommonModule } from '@angular/common';
       <div class="pinned-tabs-list flex flex-row gap-2 w-full">
         @for (tab of pinnedTabs(); track tab.id) {
         <div
-          class="pinned-tab flex items-center justify-center h-8 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 bg-white/5 hover:bg-white/10 relative flex-1 min-w-0"
+          class="pinned-tab flex items-center justify-center h-10 rounded-lg select-none text-white font-sans text-base transition-colors duration-200 bg-white/5 hover:bg-white/10 relative flex-1 min-w-0"
           [ngClass]="{
             'bg-white/15 hover:bg-white/30': activeTabId() == tab.id,
           }"
