@@ -64,7 +64,7 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
     }
 
     private static bool HandleUsingDefaultSearchProvider(CommandExecutedEvent e) =>
-        !e.Command.Contains('!') && !e.Command.Contains('.');
+        !e.Command.Contains('!') && (e.Command.Trim().Contains(' ') || !e.Command.Contains('.'));
 
     private static void HandleSearchProviderCommand(CommandExecutedEvent e)
     {
