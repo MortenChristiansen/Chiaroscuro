@@ -1,8 +1,10 @@
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -13,8 +15,11 @@ namespace BrowserHost.Features.ActionDialog;
 public record SearchProvider(string Name, string Key, string Pattern);
 public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory);
 
-public class ActionDialogFeature(MainWindow window) : Feature(window)
+public partial class ActionDialogFeature(MainWindow window) : Feature(window)
 {
+    [GeneratedRegex(@"^!(\w+)|\s+!(\w+)$")]
+    private static partial Regex SearchProviderRegex();
+
     public override void Configure()
     {
         PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
@@ -35,9 +40,9 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
 
     private void HandleCommandExecuted(CommandExecutedEvent e)
     {
-        if (e.Command.StartsWith('!'))
+        if (TryGetSearchProvider(e.Command, out var searchProvider))
         {
-            HandleSearchProviderCommand(e);
+            ExecuteProviderQuery(e, e.Command, searchProvider);
             return;
         }
 
@@ -63,24 +68,23 @@ public class ActionDialogFeature(MainWindow window) : Feature(window)
         PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
     }
 
-    private static bool HandleUsingDefaultSearchProvider(CommandExecutedEvent e) =>
-        !e.Command.Contains('!') && (e.Command.Trim().Contains(' ') || !e.Command.Contains('.'));
-
-    private static void HandleSearchProviderCommand(CommandExecutedEvent e)
+    private static bool TryGetSearchProvider(string command, [NotNullWhen(true)] out SearchProvider? provider)
     {
-        var pair = e.Command.Substring(1).Split(' ', 2);
-        if (pair.Length < 2)
-            return;
-
-        var key = pair[0];
-        var query = pair[1];
-
-        var provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
-        if (provider == null)
-            return;
-
-        ExecuteProviderQuery(e, query, provider);
+        var result = SearchProviderRegex().Match(command);
+        if (result.Success)
+        {
+            var key = result.Groups[1].Value;
+            if (string.IsNullOrEmpty(key))
+                key = result.Groups[2].Value;
+            provider = _searchProviders.FirstOrDefault(x => string.Equals(x.Key, key, StringComparison.OrdinalIgnoreCase));
+            return provider != null;
+        }
+        provider = null;
+        return false;
     }
+
+    private static bool HandleUsingDefaultSearchProvider(CommandExecutedEvent e) =>
+        e.Command.Trim().Contains(' ') || !e.Command.Contains('.');
 
     private static void ExecuteProviderQuery(CommandExecutedEvent e, string query, SearchProvider provider)
     {
