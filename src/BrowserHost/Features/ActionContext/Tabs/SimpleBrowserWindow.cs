@@ -1,4 +1,5 @@
 using CefSharp.Wpf;
+using BrowserHost.Interop;
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -14,6 +15,7 @@ public class SimpleBrowserWindow : Window
     private double _offsetXPx;
     private double _offsetYPx;
     private bool _suppressOffsetUpdate;
+    private const int CornerRadiusDip = 8;
 
     public SimpleBrowserWindow(string address)
     {
@@ -35,8 +37,15 @@ public class SimpleBrowserWindow : Window
         Content = grid;
 
         Loaded += OnLoadedAttachToOwner;
+        Loaded += (_, __) =>
+        {
+            TryHookDpiAndApplyRoundedCorners();
+            ApplyRoundedWindowRegion();
+        };
         LocationChanged += (_, __) => UpdateOffsets();
         Closed += (_, __) => DetachOwnerHandlers();
+        SizeChanged += (_, __) => ApplyRoundedWindowRegion();
+        StateChanged += (_, __) => ApplyRoundedWindowRegion();
     }
 
     private void OnLoadedAttachToOwner(object? sender, RoutedEventArgs e)
@@ -119,5 +128,51 @@ public class SimpleBrowserWindow : Window
         var scaleX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
         var scaleY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
         return (scaleX, scaleY);
+    }
+
+    // Hook into DPI changes and apply rounded corner window region
+    private void TryHookDpiAndApplyRoundedCorners()
+    {
+        var src = (HwndSource?)PresentationSource.FromVisual(this);
+        src?.AddHook(WndProc);
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        const int WM_DPICHANGED = 0x02E0;
+        if (msg == WM_DPICHANGED)
+        {
+            Dispatcher.BeginInvoke(ApplyRoundedWindowRegion);
+        }
+        return IntPtr.Zero;
+    }
+
+    private void ApplyRoundedWindowRegion()
+    {
+        try
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero) return;
+
+            var src = (HwndSource?)PresentationSource.FromVisual(this);
+            double scaleX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+            double scaleY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+
+            int w = (int)Math.Max(1, Math.Round(ActualWidth * scaleX));
+            int h = (int)Math.Max(1, Math.Round(ActualHeight * scaleY));
+            int r = (int)Math.Round(CornerRadiusDip * (scaleX + scaleY) / 2.0);
+            r = Math.Max(1, r);
+
+            nint rgn = WindowInterop.CreateRoundRectRgn(0, 0, w + 1, h + 1, r * 2, r * 2);
+            if (rgn != nint.Zero)
+            {
+                var ok = WindowInterop.SetWindowRgn(hwnd, rgn, true);
+                if (ok == 0)
+                {
+                    WindowInterop.DeleteObject(rgn);
+                }
+            }
+        }
+        catch { }
     }
 }
