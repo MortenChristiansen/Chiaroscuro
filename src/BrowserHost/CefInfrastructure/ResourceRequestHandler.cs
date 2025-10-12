@@ -4,12 +4,12 @@ using CefSharp;
 
 namespace BrowserHost.CefInfrastructure;
 
-public class ResourceRequestHandler(string tabId) : CefSharp.Handler.ResourceRequestHandler
+public class ResourceRequestHandler(string tabId, bool isChildBrowser) : CefSharp.Handler.ResourceRequestHandler
 {
     protected override void OnResourceLoadComplete(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, IResponse response, UrlRequestStatus status, long receivedContentLength)
     {
         var pageIsSuccessfullyLoaded = frame.IsMain && request.ResourceType == ResourceType.MainFrame && response.StatusCode == 200;
-        if (pageIsSuccessfullyLoaded)
+        if (pageIsSuccessfullyLoaded && !isChildBrowser)
             PubSub.Publish(new TabUrlLoadedSuccessfullyEvent(tabId));
 
         base.OnResourceLoadComplete(chromiumWebBrowser, browser, frame, request, response, status, receivedContentLength);

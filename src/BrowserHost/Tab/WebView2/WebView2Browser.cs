@@ -24,6 +24,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private readonly string _id;
     private readonly string? _initialManualAddress;
     private readonly string? _initialFavicon;
+    private readonly bool _isChildBrowser; // TODO: Use this to disable problematic events
     private string? _manualAddress;
     private string? _favicon;
     private string _title = string.Empty;
@@ -52,12 +53,14 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         nameof(Address), typeof(string), typeof(WebView2Browser), new PropertyMetadata(string.Empty));
 
     public event DependencyPropertyChangedEventHandler? AddressChanged;
+    public event EventHandler? PageLoadEnded;
 
-    public WebView2Browser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon)
+    public WebView2Browser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
         _id = id;
         _initialManualAddress = setManualAddress ? address : null;
         _initialFavicon = favicon;
+        _isChildBrowser = isChildBrowser;
         _manualAddress = _initialManualAddress;
         _pendingNavigateTo = NormalizeAddress(address);
 
@@ -145,9 +148,13 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
                 _lastAddressSnapshot = newAddress;
                 AddressChanged?.Invoke(this, new DependencyPropertyChangedEventArgs(AddressProperty, previous, newAddress));
             }
+            PageLoadEnded?.Invoke(this, EventArgs.Empty);
         };
-        _core.DocumentTitleChanged += (_, __) => { _title = _core.DocumentTitle; actionContextBrowser.UpdateTabTitle(_id, _title); };
-        _core.FaviconChanged += (_, __) => { _favicon = _core.FaviconUri; actionContextBrowser.UpdateTabFavicon(_id, _favicon); };
+        if (!_isChildBrowser)
+        {
+            _core.DocumentTitleChanged += (_, __) => { _title = _core.DocumentTitle; actionContextBrowser.UpdateTabTitle(_id, _title); };
+            _core.FaviconChanged += (_, __) => { _favicon = _core.FaviconUri; actionContextBrowser.UpdateTabFavicon(_id, _favicon); };
+        }
         // Mimic CefSharp RequestHandler: open new window requests as background tabs instead of OS windows
         _core.NewWindowRequested += Core_NewWindowRequested;
         _controller!.AcceleratorKeyPressed += Controller_AcceleratorKeyPressed;

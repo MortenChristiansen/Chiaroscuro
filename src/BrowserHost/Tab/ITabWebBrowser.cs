@@ -21,6 +21,7 @@ public interface ITabWebBrowser : IDisposable
     event DependencyPropertyChangedEventHandler? AddressChanged;
 
     void SetAddress(string address, bool setManualAddress);
+    event EventHandler PageLoadEnded;
     void RegisterContentPageApi(BrowserApi api, string name);
     void Reload(bool ignoreCache = false);
     void Back();

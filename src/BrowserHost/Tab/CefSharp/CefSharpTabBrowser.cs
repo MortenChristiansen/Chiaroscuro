@@ -18,15 +18,17 @@ namespace BrowserHost.Tab.CefSharp;
 public class CefSharpTabBrowser : Browser
 {
     private readonly ActionContextBrowser _actionContextBrowser;
+    private readonly bool _isChildBrowser;
 
     public string Id { get; }
     public string? Favicon { get; private set; }
     public string? ManualAddress { get; private set; }
 
-    public CefSharpTabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon)
+    public CefSharpTabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
         Id = id;
         Favicon = favicon;
+        _isChildBrowser = isChildBrowser;
         SetAddress(address, setManualAddress);
 
         TitleChanged += OnTitleChanged;
@@ -37,7 +39,7 @@ public class CefSharpTabBrowser : Browser
 
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
-        RequestHandler = new RequestHandler(Id);
+        RequestHandler = new RequestHandler(Id, isChildBrowser);
         LifeSpanHandler = new PopupLifeSpanHandler(Id);
         FindHandler = new FindHandler();
         PermissionHandler = new CefSharpPermissionHandler();
@@ -47,14 +49,18 @@ public class CefSharpTabBrowser : Browser
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        _actionContextBrowser.UpdateTabTitle(Id, (string)e.NewValue);
+        if (!_isChildBrowser)
+            _actionContextBrowser.UpdateTabTitle(Id, (string)e.NewValue);
     }
 
     private void OnFaviconAddressesChanged(IList<string> addresses)
     {
         Favicon = addresses.FirstOrDefault();
-        PubSub.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
-        Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
+        if (!_isChildBrowser)
+        {
+            PubSub.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
+            Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
+        }
     }
 
     private void OnLoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)

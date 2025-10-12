@@ -1,6 +1,5 @@
 using BrowserHost.Interop;
-using CefSharp;
-using CefSharp.Wpf;
+using BrowserHost.Tab;
 using System;
 using System.ComponentModel;
 using System.Windows;
@@ -14,7 +13,7 @@ namespace BrowserHost.Features.ActionContext.Tabs;
 
 public class SimpleBrowserWindow : Window
 {
-    private readonly ChromiumWebBrowser _browser;
+    private readonly TabBrowser _browser;
     private Window? _ownerWindow;
     private FrameworkElement? _targetElement; // MainWindow.WebContentBorder
     private const int _cornerRadiusDip = 8;
@@ -32,8 +31,8 @@ public class SimpleBrowserWindow : Window
         AllowsTransparency = true;
         WindowStyle = WindowStyle.None;
 
-        _browser = new ChromiumWebBrowser { Address = address };
-        _browser.FrameLoadEnd += Browser_FrameLoadEnd;
+        _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.ActionContext, setManualAddress: false, favicon: null, isChildBrowser: true);
+        _browser.PageLoadEnded += Browser_PageLoadEnded;
 
         // Root overlay with semi-transparent outer area (animate opacity on load)
         _overlayBrush = new SolidColorBrush(Color.FromArgb(128, 180, 180, 200)) { Opacity = 0.0 };
@@ -92,9 +91,8 @@ public class SimpleBrowserWindow : Window
         UpdateContentCornerClip();
     }
 
-    private void Browser_FrameLoadEnd(object? sender, FrameLoadEndEventArgs e)
+    private void Browser_PageLoadEnded(object? sender, EventArgs e)
     {
-        if (!e.Frame.IsMain) return;
         // Run on UI thread and only once
         Dispatcher.BeginInvoke(() =>
         {
@@ -102,7 +100,7 @@ public class SimpleBrowserWindow : Window
             _contentAnimationStarted = true;
             AnimateContentIn();
             // Unsubscribe after first main frame load
-            try { _browser.FrameLoadEnd -= Browser_FrameLoadEnd; } catch { }
+            try { _browser.PageLoadEnded -= Browser_PageLoadEnded; } catch { }
         });
     }
 
@@ -165,7 +163,7 @@ public class SimpleBrowserWindow : Window
             _targetElement.LayoutUpdated -= TargetElement_SizeOrLayoutChanged;
             _targetElement = null;
         }
-        try { _browser.FrameLoadEnd -= Browser_FrameLoadEnd; } catch { }
+        try { _browser.PageLoadEnded -= Browser_PageLoadEnded; } catch { }
         if (_ownerWindow != null)
         {
             _ownerWindow.LocationChanged -= OwnerWindow_LocationOrSizeChanged;
