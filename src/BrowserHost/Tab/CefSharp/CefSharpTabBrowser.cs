@@ -38,6 +38,7 @@ public class CefSharpTabBrowser : Browser
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
         RequestHandler = new RequestHandler(Id);
+        LifeSpanHandler = new PopupLifeSpanHandler(Id);
         FindHandler = new FindHandler();
         PermissionHandler = new CefSharpPermissionHandler();
 
