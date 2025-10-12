@@ -1,10 +1,11 @@
-using CefSharp.Wpf;
 using BrowserHost.Interop;
+using CefSharp.Wpf;
 using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
 
@@ -12,29 +13,37 @@ public class SimpleBrowserWindow : Window
 {
     private readonly ChromiumWebBrowser _browser;
     private Window? _ownerWindow;
-    private double _offsetXPx;
-    private double _offsetYPx;
-    private bool _suppressOffsetUpdate;
+    private FrameworkElement? _targetElement; // MainWindow.WebContentBorder
     private const int CornerRadiusDip = 8;
+    private readonly Border _contentHost;
+    private readonly SolidColorBrush _overlayBrush;
 
     public SimpleBrowserWindow(string address)
     {
-        Title = "New Window";
-        Width = 1200;
-        Height = 800;
         WindowStartupLocation = WindowStartupLocation.Manual;
         Background = Brushes.Transparent;
         AllowsTransparency = true;
         WindowStyle = WindowStyle.None;
 
-        _browser = new ChromiumWebBrowser
+        _browser = new ChromiumWebBrowser { Address = address };
+
+        // Root overlay with semi-transparent outer area (animate opacity on load)
+        _overlayBrush = new SolidColorBrush(Color.FromArgb(128, 180, 180, 200)) { Opacity = 0.0 };
+        var root = new Grid { Background = _overlayBrush };
+
+        // Centered content host – we size it relative to window size
+        _contentHost = new Border
         {
-            Address = address,
+            Background = Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            CornerRadius = new CornerRadius(8),
+            SnapsToDevicePixels = true,
+            Child = _browser
         };
 
-        var grid = new Grid();
-        grid.Children.Add(_browser);
-        Content = grid;
+        root.Children.Add(_contentHost);
+        Content = root;
 
         Loaded += OnLoadedAttachToOwner;
         Loaded += (_, __) =>
@@ -42,10 +51,10 @@ public class SimpleBrowserWindow : Window
             TryHookDpiAndApplyRoundedCorners();
             ApplyRoundedWindowRegion();
         };
-        LocationChanged += (_, __) => UpdateOffsets();
         Closed += (_, __) => DetachOwnerHandlers();
         SizeChanged += (_, __) => ApplyRoundedWindowRegion();
         StateChanged += (_, __) => ApplyRoundedWindowRegion();
+        SizeChanged += (_, __) => UpdateContentHostSize();
     }
 
     private void OnLoadedAttachToOwner(object? sender, RoutedEventArgs e)
@@ -53,25 +62,23 @@ public class SimpleBrowserWindow : Window
         _ownerWindow = Owner ?? Window.GetWindow(MainWindow.Instance);
         if (_ownerWindow == null) return;
 
-        // Initial position relative to owner, small offset
-        var (ownerScaleX, ownerScaleY) = GetWindowScale(_ownerWindow);
-        var (childScaleX, childScaleY) = GetWindowScale(this);
-
-        if (double.IsNaN(Left) || double.IsNaN(Top) || (Left == 0 && Top == 0))
-        {
-            Left = _ownerWindow.Left + 40;
-            Top = _ownerWindow.Top + 40;
-        }
-        var childLeftPx = Left * childScaleX;
-        var childTopPx = Top * childScaleY;
-        var ownerLeftPx = _ownerWindow.Left * ownerScaleX;
-        var ownerTopPx = _ownerWindow.Top * ownerScaleY;
-        _offsetXPx = childLeftPx - ownerLeftPx;
-        _offsetYPx = childTopPx - ownerTopPx;
+        _targetElement = MainWindow.Instance.WebContentBorder;
+        UpdateOverlayBounds();
+        _contentHost.SizeChanged += (_, __) => UpdateContentCornerClip();
+        UpdateContentHostSize();
 
         _ownerWindow.LocationChanged += OwnerWindow_LocationOrSizeChanged;
         _ownerWindow.SizeChanged += OwnerWindow_LocationOrSizeChanged;
         _ownerWindow.StateChanged += OwnerWindow_StateChanged;
+        if (_targetElement != null)
+        {
+            _targetElement.SizeChanged += TargetElement_SizeOrLayoutChanged;
+            _targetElement.LayoutUpdated += TargetElement_SizeOrLayoutChanged;
+        }
+
+        // Start overlay fade-in once sized and positioned
+        AnimateOverlayIn();
+        UpdateContentCornerClip();
     }
 
     private void OwnerWindow_StateChanged(object? sender, EventArgs e)
@@ -91,43 +98,43 @@ public class SimpleBrowserWindow : Window
     private void OwnerWindow_LocationOrSizeChanged(object? sender, EventArgs e)
     {
         if (_ownerWindow == null) return;
-        var (ownerScaleX, ownerScaleY) = GetWindowScale(_ownerWindow);
-        var (childScaleX, childScaleY) = GetWindowScale(this);
-        var ownerLeftPx = _ownerWindow.Left * ownerScaleX;
-        var ownerTopPx = _ownerWindow.Top * ownerScaleY;
-        _suppressOffsetUpdate = true;
-        try
-        {
-            Left = (ownerLeftPx + _offsetXPx) / childScaleX;
-            Top = (ownerTopPx + _offsetYPx) / childScaleY;
-        }
-        finally { _suppressOffsetUpdate = false; }
+        UpdateOverlayBounds();
     }
 
-    private void UpdateOffsets()
+    private void TargetElement_SizeOrLayoutChanged(object? sender, EventArgs e) => UpdateOverlayBounds();
+
+    private void UpdateOverlayBounds()
     {
-        if (_ownerWindow == null || _suppressOffsetUpdate) return;
-        var (ownerScaleX, ownerScaleY) = GetWindowScale(_ownerWindow);
-        var (childScaleX, childScaleY) = GetWindowScale(this);
-        _offsetXPx = Left * childScaleX - _ownerWindow.Left * ownerScaleX;
-        _offsetYPx = Top * childScaleY - _ownerWindow.Top * ownerScaleY;
+        if (_ownerWindow == null || _targetElement == null) return;
+        if (!IsLoaded) return;
+
+        // Get position of WebContentBorder relative to owner window (DIPs)
+        var tl = _targetElement.TranslatePoint(new Point(0, 0), _ownerWindow);
+        var w = _targetElement.ActualWidth;
+        var h = _targetElement.ActualHeight;
+        if (w <= 0 || h <= 0) return;
+
+        Left = _ownerWindow.Left + tl.X;
+        Top = _ownerWindow.Top + tl.Y;
+        Width = w;
+        Height = h;
     }
 
     private void DetachOwnerHandlers()
     {
-        if (_ownerWindow == null) return;
-        _ownerWindow.LocationChanged -= OwnerWindow_LocationOrSizeChanged;
-        _ownerWindow.SizeChanged -= OwnerWindow_LocationOrSizeChanged;
-        _ownerWindow.StateChanged -= OwnerWindow_StateChanged;
-        _ownerWindow = null;
-    }
-
-    private static (double scaleX, double scaleY) GetWindowScale(Window w)
-    {
-        var src = (HwndSource?)PresentationSource.FromVisual(w);
-        var scaleX = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
-        var scaleY = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
-        return (scaleX, scaleY);
+        if (_targetElement != null)
+        {
+            _targetElement.SizeChanged -= TargetElement_SizeOrLayoutChanged;
+            _targetElement.LayoutUpdated -= TargetElement_SizeOrLayoutChanged;
+            _targetElement = null;
+        }
+        if (_ownerWindow != null)
+        {
+            _ownerWindow.LocationChanged -= OwnerWindow_LocationOrSizeChanged;
+            _ownerWindow.SizeChanged -= OwnerWindow_LocationOrSizeChanged;
+            _ownerWindow.StateChanged -= OwnerWindow_StateChanged;
+            _ownerWindow = null;
+        }
     }
 
     // Hook into DPI changes and apply rounded corner window region
@@ -174,5 +181,39 @@ public class SimpleBrowserWindow : Window
             }
         }
         catch { }
+    }
+
+    private void UpdateContentHostSize()
+    {
+        // Scale down inner browser to, e.g., 85% of container size, keep minimums
+        var targetW = Math.Max(400, ActualWidth * 0.85);
+        var targetH = Math.Max(300, ActualHeight * 0.85);
+        _contentHost.Width = targetW;
+        _contentHost.Height = targetH;
+    }
+
+    private void AnimateOverlayIn()
+    {
+        var fade = new DoubleAnimation
+        {
+            From = 0.0,
+            To = 1.0,
+            Duration = TimeSpan.FromMilliseconds(300),
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+        };
+        _overlayBrush.BeginAnimation(Brush.OpacityProperty, fade);
+    }
+
+    private void UpdateContentCornerClip()
+    {
+        var w = _contentHost.ActualWidth;
+        var h = _contentHost.ActualHeight;
+        if (w <= 0 || h <= 0)
+        {
+            _contentHost.Clip = null;
+            return;
+        }
+        var radius = 8.0; // match CornerRadius
+        _contentHost.Clip = new RectangleGeometry(new Rect(0, 0, w, h), radius, radius);
     }
 }
