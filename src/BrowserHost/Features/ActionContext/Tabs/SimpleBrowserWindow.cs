@@ -1,8 +1,10 @@
 using BrowserHost.Interop;
 using CefSharp.Wpf;
 using System;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -14,9 +16,12 @@ public class SimpleBrowserWindow : Window
     private readonly ChromiumWebBrowser _browser;
     private Window? _ownerWindow;
     private FrameworkElement? _targetElement; // MainWindow.WebContentBorder
-    private const int CornerRadiusDip = 8;
+    private const int _cornerRadiusDip = 8;
+    private const int _overlayFadeDuration = 300;
     private readonly Border _contentHost;
     private readonly SolidColorBrush _overlayBrush;
+    private readonly Grid _rootGrid;
+    private bool _isClosing;
 
     public SimpleBrowserWindow(string address)
     {
@@ -29,9 +34,9 @@ public class SimpleBrowserWindow : Window
 
         // Root overlay with semi-transparent outer area (animate opacity on load)
         _overlayBrush = new SolidColorBrush(Color.FromArgb(128, 180, 180, 200)) { Opacity = 0.0 };
-        var root = new Grid { Background = _overlayBrush };
+        _rootGrid = new Grid { Background = _overlayBrush };
 
-        // Centered content host – we size it relative to window size
+        // Centered content host ï¿½ we size it relative to window size
         _contentHost = new Border
         {
             Background = Brushes.Transparent,
@@ -42,8 +47,8 @@ public class SimpleBrowserWindow : Window
             Child = _browser
         };
 
-        root.Children.Add(_contentHost);
-        Content = root;
+        _rootGrid.Children.Add(_contentHost);
+        Content = _rootGrid;
 
         Loaded += OnLoadedAttachToOwner;
         Loaded += (_, __) =>
@@ -55,6 +60,7 @@ public class SimpleBrowserWindow : Window
         SizeChanged += (_, __) => ApplyRoundedWindowRegion();
         StateChanged += (_, __) => ApplyRoundedWindowRegion();
         SizeChanged += (_, __) => UpdateContentHostSize();
+        _rootGrid.PreviewMouseDown += RootGrid_PreviewMouseDown;
     }
 
     private void OnLoadedAttachToOwner(object? sender, RoutedEventArgs e)
@@ -79,6 +85,17 @@ public class SimpleBrowserWindow : Window
         // Start overlay fade-in once sized and positioned
         AnimateOverlayIn();
         UpdateContentCornerClip();
+    }
+
+    private void RootGrid_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // Close only when clicking outside the centered content host
+        var pos = e.GetPosition(_contentHost);
+        if (pos.X < 0 || pos.Y < 0 || pos.X > _contentHost.ActualWidth || pos.Y > _contentHost.ActualHeight)
+        {
+            e.Handled = true;
+            BeginCloseWithFade();
+        }
     }
 
     private void OwnerWindow_StateChanged(object? sender, EventArgs e)
@@ -167,7 +184,7 @@ public class SimpleBrowserWindow : Window
 
             int w = (int)Math.Max(1, Math.Round(ActualWidth * scaleX));
             int h = (int)Math.Max(1, Math.Round(ActualHeight * scaleY));
-            int r = (int)Math.Round(CornerRadiusDip * (scaleX + scaleY) / 2.0);
+            int r = (int)Math.Round(_cornerRadiusDip * (scaleX + scaleY) / 2.0);
             r = Math.Max(1, r);
 
             nint rgn = WindowInterop.CreateRoundRectRgn(0, 0, w + 1, h + 1, r * 2, r * 2);
@@ -198,7 +215,7 @@ public class SimpleBrowserWindow : Window
         {
             From = 0.0,
             To = 1.0,
-            Duration = TimeSpan.FromMilliseconds(300),
+            Duration = TimeSpan.FromMilliseconds(_overlayFadeDuration),
             EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
         };
         _overlayBrush.BeginAnimation(Brush.OpacityProperty, fade);
@@ -215,5 +232,36 @@ public class SimpleBrowserWindow : Window
         }
         var radius = 8.0; // match CornerRadius
         _contentHost.Clip = new RectangleGeometry(new Rect(0, 0, w, h), radius, radius);
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (!_isClosing)
+        {
+            e.Cancel = true;
+            BeginCloseWithFade();
+            return;
+        }
+        base.OnClosing(e);
+    }
+
+    private void BeginCloseWithFade()
+    {
+        if (_isClosing) return;
+        _isClosing = true;
+
+        var fade = new DoubleAnimation
+        {
+            To = 0.0,
+            Duration = TimeSpan.FromMilliseconds(_overlayFadeDuration),
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+        };
+        fade.Completed += (_, __) =>
+        {
+            // Stop animation and close
+            _overlayBrush.BeginAnimation(Brush.OpacityProperty, null);
+            try { base.Close(); } catch { }
+        };
+        _overlayBrush.BeginAnimation(Brush.OpacityProperty, fade);
     }
 }
