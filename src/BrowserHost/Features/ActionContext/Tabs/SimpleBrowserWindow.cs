@@ -1,4 +1,5 @@
 using BrowserHost.Interop;
+using CefSharp;
 using CefSharp.Wpf;
 using System;
 using System.ComponentModel;
@@ -22,6 +23,7 @@ public class SimpleBrowserWindow : Window
     private readonly SolidColorBrush _overlayBrush;
     private readonly Grid _rootGrid;
     private bool _isClosing;
+    private bool _contentAnimationStarted;
 
     public SimpleBrowserWindow(string address)
     {
@@ -31,12 +33,13 @@ public class SimpleBrowserWindow : Window
         WindowStyle = WindowStyle.None;
 
         _browser = new ChromiumWebBrowser { Address = address };
+        _browser.FrameLoadEnd += Browser_FrameLoadEnd;
 
         // Root overlay with semi-transparent outer area (animate opacity on load)
         _overlayBrush = new SolidColorBrush(Color.FromArgb(128, 180, 180, 200)) { Opacity = 0.0 };
         _rootGrid = new Grid { Background = _overlayBrush };
 
-        // Centered content host ï¿½ we size it relative to window size
+        // Centered content host – we size it relative to window size
         _contentHost = new Border
         {
             Background = Brushes.Transparent,
@@ -44,7 +47,9 @@ public class SimpleBrowserWindow : Window
             VerticalAlignment = VerticalAlignment.Center,
             CornerRadius = new CornerRadius(8),
             SnapsToDevicePixels = true,
-            Child = _browser
+            Child = _browser,
+            Opacity = 0,
+            LayoutTransform = new ScaleTransform(0.5, 0.5)
         };
 
         _rootGrid.Children.Add(_contentHost);
@@ -87,6 +92,20 @@ public class SimpleBrowserWindow : Window
         UpdateContentCornerClip();
     }
 
+    private void Browser_FrameLoadEnd(object? sender, FrameLoadEndEventArgs e)
+    {
+        if (!e.Frame.IsMain) return;
+        // Run on UI thread and only once
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (_contentAnimationStarted) return;
+            _contentAnimationStarted = true;
+            AnimateContentIn();
+            // Unsubscribe after first main frame load
+            try { _browser.FrameLoadEnd -= Browser_FrameLoadEnd; } catch { }
+        });
+    }
+
     private void RootGrid_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         // Close only when clicking outside the centered content host
@@ -95,6 +114,7 @@ public class SimpleBrowserWindow : Window
         {
             e.Handled = true;
             BeginCloseWithFade();
+            AnimateContentOut();
         }
     }
 
@@ -145,6 +165,7 @@ public class SimpleBrowserWindow : Window
             _targetElement.LayoutUpdated -= TargetElement_SizeOrLayoutChanged;
             _targetElement = null;
         }
+        try { _browser.FrameLoadEnd -= Browser_FrameLoadEnd; } catch { }
         if (_ownerWindow != null)
         {
             _ownerWindow.LocationChanged -= OwnerWindow_LocationOrSizeChanged;
@@ -221,6 +242,63 @@ public class SimpleBrowserWindow : Window
         _overlayBrush.BeginAnimation(Brush.OpacityProperty, fade);
     }
 
+    private void AnimateContentIn()
+    {
+        // Ensure we have a ScaleTransform as LayoutTransform
+        if (_contentHost.LayoutTransform is not ScaleTransform scale)
+        {
+            scale = new ScaleTransform(0.5, 0.5);
+            _contentHost.LayoutTransform = scale;
+        }
+
+        // Opacity: 0 -> 1
+        var opacityAnim = new DoubleAnimation
+        {
+            From = 0.0,
+            To = 1.0,
+            Duration = TimeSpan.FromMilliseconds(200),
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+        };
+        _contentHost.BeginAnimation(UIElement.OpacityProperty, opacityAnim);
+
+        // Scale: 0.5 -> 1.0 (both axes)
+        var scaleAnim = new DoubleAnimation
+        {
+            From = 0.5,
+            To = 1.0,
+            Duration = TimeSpan.FromMilliseconds(200),
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+        };
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+    }
+
+    private void AnimateContentOut()
+    {
+        // Ensure we have a ScaleTransform as LayoutTransform
+        var scale = new ScaleTransform(1.0, 1.0);
+        _contentHost.LayoutTransform = scale;
+        // Opacity: 1 -> 0
+        var opacityAnim = new DoubleAnimation
+        {
+            From = 1.0,
+            To = 0.0,
+            Duration = TimeSpan.FromMilliseconds(200),
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+        };
+        _contentHost.BeginAnimation(UIElement.OpacityProperty, opacityAnim);
+        // Scale: 1.0 -> 0.5 (both axes)
+        var scaleAnim = new DoubleAnimation
+        {
+            From = 1.0,
+            To = 0.5,
+            Duration = TimeSpan.FromMilliseconds(200),
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+        };
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+    }
+
     private void UpdateContentCornerClip()
     {
         var w = _contentHost.ActualWidth;
@@ -240,6 +318,7 @@ public class SimpleBrowserWindow : Window
         {
             e.Cancel = true;
             BeginCloseWithFade();
+            AnimateContentOut();
             return;
         }
         base.OnClosing(e);
