@@ -529,6 +529,7 @@ public class ChildBrowserWindow : Window
         {
             // Stop animation and close
             _overlayBrush.BeginAnimation(Brush.OpacityProperty, null);
+            try { _browser.Dispose(); } catch { }
             try { Close(); } catch { }
         };
         _overlayBrush.BeginAnimation(Brush.OpacityProperty, fade);
