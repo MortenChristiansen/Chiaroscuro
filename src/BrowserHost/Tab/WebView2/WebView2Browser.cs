@@ -24,7 +24,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private readonly string _id;
     private readonly string? _initialManualAddress;
     private readonly string? _initialFavicon;
-    private readonly bool _isChildBrowser; // TODO: Use this to disable problematic events
+    private readonly bool _isChildBrowser;
     private string? _manualAddress;
     private string? _favicon;
     private string _title = string.Empty;
