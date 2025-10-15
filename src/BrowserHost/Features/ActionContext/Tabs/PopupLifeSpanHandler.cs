@@ -48,7 +48,7 @@ public sealed class PopupLifeSpanHandler(string tabId) : ILifeSpanHandler
                 Application.Current?.Dispatcher.BeginInvoke(() =>
                 {
                     var owner = MainWindow.Instance;
-                    var win = new ChildBrowserWindow(targetUrl)
+                    var win = new ChildBrowserWindow(targetUrl, tabId)
                     {
                         Owner = owner
                     };

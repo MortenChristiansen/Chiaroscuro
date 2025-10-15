@@ -37,7 +37,7 @@ public class ChildBrowserWindow : Window
     private static bool _subscriptionsInitialized;
     private static readonly Lock _lock = new();
 
-    public ChildBrowserWindow(string address)
+    public ChildBrowserWindow(string address, string parentTabId)
     {
         WindowStartupLocation = WindowStartupLocation.Manual;
         Background = Brushes.Transparent;
@@ -50,7 +50,7 @@ public class ChildBrowserWindow : Window
         _overlayBrush = new SolidColorBrush(Color.FromArgb(128, 180, 180, 200)) { Opacity = 0.0 };
 
         // Capture parent tab id and register this window
-        _parentTabId = MainWindow.Instance.CurrentTab?.Id ?? "";
+        _parentTabId = parentTabId;
         RegisterWindowForTab(_parentTabId, this);
         EnsureSubscriptions();
         _rootGrid = new Grid { Background = _overlayBrush };
