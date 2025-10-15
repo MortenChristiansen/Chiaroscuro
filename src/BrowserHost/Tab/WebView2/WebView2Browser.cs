@@ -165,10 +165,28 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private void Core_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
         var uri = e.Uri;
-        if (!string.IsNullOrEmpty(uri))
+        if (string.IsNullOrEmpty(uri)) return;
+
+        var isCtrlPressed = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+        var isMiddleClick = Mouse.MiddleButton == MouseButtonState.Pressed; // This does not seem to work reliably if at all
+        if (isCtrlPressed || isMiddleClick)
         {
+            // Ctrl+click or middle-click -> open in background tab
+            e.Handled = true;
             PubSub.Publish(new NavigationStartedEvent(uri, UseCurrentTab: false, SaveInHistory: true));
-            e.Handled = true; // Prevent external window
+            return;
+        }
+        else
+        {
+            e.Handled = true;
+            Application.Current?.Dispatcher.BeginInvoke(() =>
+            {
+                var owner = MainWindow.Instance;
+                var parentTabId = !_isChildBrowser ? _id : (MainWindow.Instance.CurrentTab?.Id ?? _id);
+                var win = new ChildBrowserWindow(uri, parentTabId) { Owner = owner };
+                win.Show();
+            });
+            return;
         }
     }
 
