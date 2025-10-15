@@ -3,6 +3,7 @@ using BrowserHost.Interop;
 using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -17,6 +18,7 @@ namespace BrowserHost.Features.ActionContext.Tabs;
 public class SimpleBrowserWindow : Window
 {
     private readonly TabBrowser _browser;
+    private readonly string _parentTabId;
     private Window? _ownerWindow;
     private FrameworkElement? _targetElement; // MainWindow.WebContentBorder
     private const int _cornerRadiusDip = 8;
@@ -29,6 +31,11 @@ public class SimpleBrowserWindow : Window
     private bool _isClosing;
     private bool _contentAnimationStarted;
 
+    // --- Static management of child windows per parent tab ---
+    private static readonly Dictionary<string, List<SimpleBrowserWindow>> _windowsByTab = new();
+    private static bool _subscriptionsInitialized;
+    private static readonly object _lock = new();
+
     public SimpleBrowserWindow(string address)
     {
         WindowStartupLocation = WindowStartupLocation.Manual;
@@ -39,8 +46,12 @@ public class SimpleBrowserWindow : Window
         _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.ActionContext, setManualAddress: false, favicon: null, isChildBrowser: true);
         _browser.PageLoadEnded += Browser_PageLoadEnded;
 
-        // Root overlay with semi-transparent outer area (animate opacity on load)
         _overlayBrush = new SolidColorBrush(Color.FromArgb(128, 180, 180, 200)) { Opacity = 0.0 };
+
+        // Capture parent tab id and register this window
+        _parentTabId = MainWindow.Instance.CurrentTab?.Id ?? string.Empty;
+        RegisterWindowForTab(_parentTabId, this);
+        EnsureSubscriptions();
         _rootGrid = new Grid { Background = _overlayBrush };
 
         // Centered content host – we size it relative to window size
@@ -111,11 +122,98 @@ public class SimpleBrowserWindow : Window
             TryHookDpiAndApplyRoundedCorners();
             ApplyRoundedWindowRegion();
         };
-        Closed += (_, __) => DetachOwnerHandlers();
+        Closed += (_, __) => { DetachOwnerHandlers(); UnregisterWindowForTab(_parentTabId, this); };
         SizeChanged += (_, __) => ApplyRoundedWindowRegion();
         StateChanged += (_, __) => ApplyRoundedWindowRegion();
         SizeChanged += (_, __) => UpdateContentHostSize();
         _rootGrid.PreviewMouseDown += RootGrid_PreviewMouseDown;
+    }
+
+    private static void EnsureSubscriptions()
+    {
+        if (_subscriptionsInitialized) return;
+        _subscriptionsInitialized = true;
+        PubSub.Subscribe<TabActivatedEvent>(e =>
+        {
+            if (!string.IsNullOrEmpty(e.TabId)) ShowWindowsForTab(e.TabId);
+            if (e.PreviousTab != null) HideWindowsForTab(e.PreviousTab.Id);
+        });
+        PubSub.Subscribe<TabDeactivatedEvent>(e =>
+        {
+            if (!string.IsNullOrEmpty(e.TabId)) HideWindowsForTab(e.TabId);
+        });
+        PubSub.Subscribe<TabClosedEvent>(e =>
+        {
+            if (!string.IsNullOrEmpty(e.Tab.Id)) CloseWindowsForTab(e.Tab.Id);
+        });
+    }
+
+    private static void RegisterWindowForTab(string tabId, SimpleBrowserWindow window)
+    {
+        lock (_lock)
+        {
+            if (!_windowsByTab.TryGetValue(tabId, out var list))
+            {
+                list = [];
+                _windowsByTab[tabId] = list;
+            }
+            if (!list.Contains(window)) list.Add(window);
+        }
+    }
+
+    private static void UnregisterWindowForTab(string tabId, SimpleBrowserWindow window)
+    {
+        lock (_lock)
+        {
+            if (_windowsByTab.TryGetValue(tabId, out var list))
+            {
+                list.Remove(window);
+                if (list.Count == 0) _windowsByTab.Remove(tabId);
+            }
+        }
+    }
+
+    private static void ShowWindowsForTab(string tabId)
+    {
+        List<SimpleBrowserWindow>? list;
+        lock (_lock) _windowsByTab.TryGetValue(tabId, out list);
+        if (list == null) return;
+        foreach (var w in list.ToArray())
+        {
+            try
+            {
+                w.Dispatcher.Invoke(() =>
+                {
+                    w.UpdateOverlayBounds();
+                    w.ApplyRoundedWindowRegion();
+                    w.UpdateContentHostSize();
+                    w.Show();
+                });
+            }
+            catch { }
+        }
+    }
+
+    private static void HideWindowsForTab(string tabId)
+    {
+        List<SimpleBrowserWindow>? list;
+        lock (_lock) _windowsByTab.TryGetValue(tabId, out list);
+        if (list == null) return;
+        foreach (var w in list.ToArray())
+        {
+            try { w.Dispatcher.Invoke(w.Hide); } catch { }
+        }
+    }
+
+    private static void CloseWindowsForTab(string tabId)
+    {
+        List<SimpleBrowserWindow>? list;
+        lock (_lock) _windowsByTab.TryGetValue(tabId, out list);
+        if (list == null) return;
+        foreach (var w in list.ToArray())
+        {
+            try { w.Dispatcher.Invoke(w.Close); } catch { }
+        }
     }
 
     private void OnLoadedAttachToOwner(object? sender, RoutedEventArgs e)
