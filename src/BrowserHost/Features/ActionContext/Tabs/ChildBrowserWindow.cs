@@ -343,7 +343,13 @@ public class ChildBrowserWindow : Window
         const int WM_DPICHANGED = 0x02E0;
         if (msg == WM_DPICHANGED)
         {
-            Dispatcher.BeginInvoke(ApplyRoundedWindowRegion);
+            // On DPI change, recompute bounds and visuals to stay aligned with owner content
+            Dispatcher.BeginInvoke(() =>
+            {
+                UpdateOverlayBounds();
+                UpdateContentHostSize();
+                ApplyRoundedWindowRegion();
+            });
         }
         return IntPtr.Zero;
     }
