@@ -5,6 +5,7 @@ using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -15,7 +16,7 @@ using System.Windows.Shapes;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
 
-public class SimpleBrowserWindow : Window
+public class ChildBrowserWindow : Window
 {
     private readonly TabBrowser _browser;
     private readonly string _parentTabId;
@@ -32,11 +33,11 @@ public class SimpleBrowserWindow : Window
     private bool _contentAnimationStarted;
 
     // --- Static management of child windows per parent tab ---
-    private static readonly Dictionary<string, List<SimpleBrowserWindow>> _windowsByTab = new();
+    private static readonly Dictionary<string, List<ChildBrowserWindow>> _windowsByTab = [];
     private static bool _subscriptionsInitialized;
-    private static readonly object _lock = new();
+    private static readonly Lock _lock = new();
 
-    public SimpleBrowserWindow(string address)
+    public ChildBrowserWindow(string address)
     {
         WindowStartupLocation = WindowStartupLocation.Manual;
         Background = Brushes.Transparent;
@@ -49,7 +50,7 @@ public class SimpleBrowserWindow : Window
         _overlayBrush = new SolidColorBrush(Color.FromArgb(128, 180, 180, 200)) { Opacity = 0.0 };
 
         // Capture parent tab id and register this window
-        _parentTabId = MainWindow.Instance.CurrentTab?.Id ?? string.Empty;
+        _parentTabId = MainWindow.Instance.CurrentTab?.Id ?? "";
         RegisterWindowForTab(_parentTabId, this);
         EnsureSubscriptions();
         _rootGrid = new Grid { Background = _overlayBrush };
@@ -78,15 +79,15 @@ public class SimpleBrowserWindow : Window
         _contentContainer.Children.Add(_contentHost);
 
         // Floating action buttons positioned to the right of the content (moved via transform)
-        _buttonsPanel = new StackPanel
+        _buttonsPanel = new()
         {
             Orientation = Orientation.Vertical,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Top,
             Opacity = 0,
-            Visibility = Visibility.Collapsed
+            Visibility = Visibility.Collapsed,
+            RenderTransform = new TranslateTransform()
         };
-        _buttonsPanel.RenderTransform = new TranslateTransform();
         Panel.SetZIndex(_buttonsPanel, 2);
         _contentContainer.Children.Add(_buttonsPanel);
 
@@ -148,7 +149,7 @@ public class SimpleBrowserWindow : Window
         });
     }
 
-    private static void RegisterWindowForTab(string tabId, SimpleBrowserWindow window)
+    private static void RegisterWindowForTab(string tabId, ChildBrowserWindow window)
     {
         lock (_lock)
         {
@@ -161,7 +162,7 @@ public class SimpleBrowserWindow : Window
         }
     }
 
-    private static void UnregisterWindowForTab(string tabId, SimpleBrowserWindow window)
+    private static void UnregisterWindowForTab(string tabId, ChildBrowserWindow window)
     {
         lock (_lock)
         {
@@ -175,7 +176,7 @@ public class SimpleBrowserWindow : Window
 
     private static void ShowWindowsForTab(string tabId)
     {
-        List<SimpleBrowserWindow>? list;
+        List<ChildBrowserWindow>? list;
         lock (_lock) _windowsByTab.TryGetValue(tabId, out list);
         if (list == null) return;
         foreach (var w in list.ToArray())
@@ -196,7 +197,7 @@ public class SimpleBrowserWindow : Window
 
     private static void HideWindowsForTab(string tabId)
     {
-        List<SimpleBrowserWindow>? list;
+        List<ChildBrowserWindow>? list;
         lock (_lock) _windowsByTab.TryGetValue(tabId, out list);
         if (list == null) return;
         foreach (var w in list.ToArray())
@@ -207,7 +208,7 @@ public class SimpleBrowserWindow : Window
 
     private static void CloseWindowsForTab(string tabId)
     {
-        List<SimpleBrowserWindow>? list;
+        List<ChildBrowserWindow>? list;
         lock (_lock) _windowsByTab.TryGetValue(tabId, out list);
         if (list == null) return;
         foreach (var w in list.ToArray())
@@ -528,7 +529,7 @@ public class SimpleBrowserWindow : Window
         {
             // Stop animation and close
             _overlayBrush.BeginAnimation(Brush.OpacityProperty, null);
-            try { base.Close(); } catch { }
+            try { Close(); } catch { }
         };
         _overlayBrush.BeginAnimation(Brush.OpacityProperty, fade);
     }
