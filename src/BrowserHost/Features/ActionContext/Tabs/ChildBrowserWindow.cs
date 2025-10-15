@@ -43,6 +43,7 @@ public class ChildBrowserWindow : Window
         Background = Brushes.Transparent;
         AllowsTransparency = true;
         WindowStyle = WindowStyle.None;
+        Owner = MainWindow.Instance;
 
         _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.ActionContext, setManualAddress: false, favicon: null, isChildBrowser: true);
         _browser.PageLoadEnded += Browser_PageLoadEnded;
