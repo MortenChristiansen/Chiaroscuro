@@ -97,7 +97,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
     private TabBrowser AddNewTab(string address, bool saveInHistory)
     {
-        var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null);
+        var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null, isChildBrowser: false);
         _tabBrowsers.Add(browser);
 
         var tab = new TabDto(browser.Id, browser.Title, browser.Favicon, DateTimeOffset.UtcNow);
@@ -110,7 +110,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
     private TabBrowser AddExistingTab(string id, string address, string? title, string? favicon)
     {
-        var browser = new TabBrowser(id, address, Window.ActionContext, setManualAddress: false, favicon);
+        var browser = new TabBrowser(id, address, Window.ActionContext, setManualAddress: false, favicon, isChildBrowser: false);
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
 
@@ -118,15 +118,6 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
         PubSub.Publish(new TabBrowserCreatedEvent(browser));
         return browser;
-    }
-
-    private void CloseCurrentTab()
-    {
-        var tab = Window.CurrentTab;
-        if (tab == null) return;
-
-        Window.ActionContext.CloseTab(tab.Id);
-        PubSub.Publish(new TabClosedEvent(tab));
     }
 
     private void ToggleCurrentTabBookmark()

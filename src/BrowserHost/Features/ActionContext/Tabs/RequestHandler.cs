@@ -5,11 +5,11 @@ using CefSharp;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
 
-public class RequestHandler(string tabId) : CefSharp.Handler.RequestHandler
+public class RequestHandler(string tabId, bool isChildBrowser) : CefSharp.Handler.RequestHandler
 {
     protected override IResourceRequestHandler GetResourceRequestHandler(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, bool isNavigation, bool isDownload, string requestInitiator, ref bool disableDefaultHandling)
     {
-        return new ResourceRequestHandler(tabId);
+        return new ResourceRequestHandler(tabId, isChildBrowser);
     }
 
     protected override bool OnOpenUrlFromTab(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, string targetUrl, WindowOpenDisposition targetDisposition, bool userGesture)
