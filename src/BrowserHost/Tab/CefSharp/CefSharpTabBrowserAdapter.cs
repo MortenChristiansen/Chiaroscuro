@@ -14,11 +14,13 @@ public class CefSharpTabBrowserAdapter : ITabWebBrowser
     public CefSharpTabBrowserAdapter(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
         _cefBrowser = new(id, address, actionContextBrowser, setManualAddress, favicon, isChildBrowser);
-        _cefBrowser.LoadingStateChanged += (_, e) =>
-        {
-            if (!e.IsLoading)
-                _cefBrowser.Dispatcher.InvokeAsync(() => PageLoadEnded?.Invoke(this, EventArgs.Empty));
-        };
+        _cefBrowser.LoadingStateChanged += OnPageLoadEnded;
+    }
+
+    private void OnPageLoadEnded(object? sender, LoadingStateChangedEventArgs e)
+    {
+        if (!e.IsLoading)
+            _cefBrowser.Dispatcher.InvokeAsync(() => PageLoadEnded?.Invoke(this, EventArgs.Empty));
     }
 
     public string Id => _cefBrowser.Id;
@@ -53,7 +55,11 @@ public class CefSharpTabBrowserAdapter : ITabWebBrowser
     public void SetAddress(string address, bool setManualAddress) => _cefBrowser.SetAddress(address, setManualAddress);
     public void RegisterContentPageApi(BrowserApi api, string name) => _cefBrowser.RegisterContentPageApi(api, name);
     public void Reload(bool ignoreCache = false) => _cefBrowser.Reload(ignoreCache);
-    public void Dispose() => _cefBrowser.Dispose();
+    public void Dispose()
+    {
+        _cefBrowser.LoadingStateChanged -= OnPageLoadEnded;
+        _cefBrowser.Dispose();
+    }
     public void Back() => _cefBrowser.Back();
     public void Forward() => _cefBrowser.Forward();
     public Task CallClientApi(string api, string? arguments = null) { _cefBrowser.CallClientApi(api, arguments); return Task.CompletedTask; }

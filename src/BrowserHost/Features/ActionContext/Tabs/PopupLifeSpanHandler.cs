@@ -37,6 +37,7 @@ public sealed class PopupLifeSpanHandler(string tabId) : ILifeSpanHandler
         // Do not create a native popup. We handle navigation ourselves.
         newBrowser = null;
 
+        if (string.IsNullOrWhiteSpace(targetUrl)) return true; // cancel silently
         switch (targetDisposition)
         {
             case WindowOpenDisposition.NewBackgroundTab:

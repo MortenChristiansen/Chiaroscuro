@@ -33,6 +33,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private CoreWebView2? _core;
 
     private const int CornerRadiusPx = 8; // Match CefSharp visual
+    private readonly ActionContextBrowser _actionContextBrowser;
     private readonly Border _hostSurface = new()
     {
         Background = Brushes.Transparent,
@@ -63,10 +64,11 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _isChildBrowser = isChildBrowser;
         _manualAddress = _initialManualAddress;
         _pendingNavigateTo = NormalizeAddress(address);
+        _actionContextBrowser = actionContextBrowser;
 
         _hostSurface.Child = _snapshotOverlay.Visual;
 
-        _hostSurface.Loaded += async (_, _) => { await EnsureControllerAsync(actionContextBrowser); SyncControllerVisibility(); };
+        _hostSurface.Loaded += async (_, _) => { await EnsureControllerAsync(); SyncControllerVisibility(); };
         _hostSurface.Unloaded += (_, _) => SyncControllerVisibility();
         _hostSurface.IsVisibleChanged += (_, _) => SyncControllerVisibility();
         _hostSurface.SizeChanged += (_, _) => { UpdateControllerBounds(); };
@@ -110,7 +112,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         return await CoreWebView2Environment.CreateAsync(userDataFolder: userDataFolder, options: options);
     }
 
-    private async Task EnsureControllerAsync(ActionContextBrowser actionContextBrowser)
+    private async Task EnsureControllerAsync()
     {
         if (_controller != null) return;
         var parentWindow = Window.GetWindow(_hostSurface);
@@ -122,44 +124,62 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _core = _controller.CoreWebView2;
         _findManager.Initialize(_core);
         UpdateControllerBounds();
-        WireCoreEvents(actionContextBrowser);
+        WireCoreEvents();
         ApplySettings();
         if (_pendingNavigateTo != null) { _core.Navigate(_pendingNavigateTo); _pendingNavigateTo = null; }
         _roundedCornerManager.EnsureChildWindowAsync(Dispatcher, () => _controller?.Bounds.Width ?? 0, () => _controller?.Bounds.Height ?? 0);
     }
 
     private readonly List<IDisposable> _handlers = [];
-    private void WireCoreEvents(ActionContextBrowser actionContextBrowser)
+    private void WireCoreEvents()
     {
         if (_core == null) return;
-        _core.NavigationStarting += (_, __) =>
-        {
-            _isLoading = true;
-            PubSub.Publish(new TabLoadingStateChangedEvent(_id, true));
-        };
-        _core.NavigationCompleted += (_, args) =>
-        {
-            _isLoading = false;
-            PubSub.Publish(new TabLoadingStateChangedEvent(_id, false));
-            var newAddress = _core.Source;
-            if (_lastAddressSnapshot != newAddress)
-            {
-                var previous = _lastAddressSnapshot;
-                _lastAddressSnapshot = newAddress;
-                AddressChanged?.Invoke(this, new DependencyPropertyChangedEventArgs(AddressProperty, previous, newAddress));
-            }
-            PageLoadEnded?.Invoke(this, EventArgs.Empty);
-        };
+        _core.NavigationStarting += Core_NavigationStarting;
+        _core.NavigationCompleted += Core_NavigationCompleted;
         if (!_isChildBrowser)
         {
-            _core.DocumentTitleChanged += (_, __) => { _title = _core.DocumentTitle; actionContextBrowser.UpdateTabTitle(_id, _title); };
-            _core.FaviconChanged += (_, __) => { _favicon = _core.FaviconUri; actionContextBrowser.UpdateTabFavicon(_id, _favicon); };
+            _core.DocumentTitleChanged += Core_DocumentTitleChanged;
+            _core.FaviconChanged += Core_FaviconChanged;
         }
         // Mimic CefSharp RequestHandler: open new window requests as background tabs instead of OS windows
         _core.NewWindowRequested += Core_NewWindowRequested;
         _controller!.AcceleratorKeyPressed += Controller_AcceleratorKeyPressed;
 
         _handlers.Add(WebViewPermissionHandler.Register(_core));
+    }
+
+    private void Core_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
+    {
+        _isLoading = true;
+        PubSub.Publish(new TabLoadingStateChangedEvent(_id, true));
+    }
+
+    private void Core_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+    {
+        _isLoading = false;
+        PubSub.Publish(new TabLoadingStateChangedEvent(_id, false));
+        var newAddress = _core?.Source;
+        if (_lastAddressSnapshot != newAddress)
+        {
+            var previous = _lastAddressSnapshot;
+            _lastAddressSnapshot = newAddress;
+            AddressChanged?.Invoke(this, new DependencyPropertyChangedEventArgs(AddressProperty, previous, newAddress));
+        }
+        PageLoadEnded?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void Core_DocumentTitleChanged(object? sender, object e)
+    {
+        if (_core == null) return;
+        _title = _core.DocumentTitle;
+        _actionContextBrowser.UpdateTabTitle(_id, _title);
+    }
+
+    private void Core_FaviconChanged(object? sender, object e)
+    {
+        if (_core == null) return;
+        _favicon = _core.FaviconUri;
+        _actionContextBrowser.UpdateTabFavicon(_id, _favicon);
     }
 
     private void Core_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
@@ -331,6 +351,13 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
                 _handlers.ForEach(h => h.Dispose());
                 _handlers.Clear();
 
+                _core.NavigationStarting -= Core_NavigationStarting;
+                _core.NavigationCompleted -= Core_NavigationCompleted;
+                if (!_isChildBrowser)
+                {
+                    _core.DocumentTitleChanged -= Core_DocumentTitleChanged;
+                    _core.FaviconChanged -= Core_FaviconChanged;
+                }
                 _core.NewWindowRequested -= Core_NewWindowRequested;
                 _core = null;
             }

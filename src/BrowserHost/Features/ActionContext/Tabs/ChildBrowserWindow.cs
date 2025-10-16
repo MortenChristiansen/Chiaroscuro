@@ -34,8 +34,24 @@ public class ChildBrowserWindow : Window
 
     // --- Static management of child windows per parent tab ---
     private static readonly Dictionary<string, List<ChildBrowserWindow>> _windowsByTab = [];
-    private static bool _subscriptionsInitialized;
     private static readonly Lock _lock = new();
+
+    static ChildBrowserWindow()
+    {
+        PubSub.Subscribe<TabActivatedEvent>(e =>
+        {
+            if (!string.IsNullOrEmpty(e.TabId)) ShowWindowsForTab(e.TabId);
+            if (e.PreviousTab != null) HideWindowsForTab(e.PreviousTab.Id);
+        });
+        PubSub.Subscribe<TabDeactivatedEvent>(e =>
+        {
+            if (!string.IsNullOrEmpty(e.TabId)) HideWindowsForTab(e.TabId);
+        });
+        PubSub.Subscribe<TabClosedEvent>(e =>
+        {
+            if (!string.IsNullOrEmpty(e.Tab.Id)) CloseWindowsForTab(e.Tab.Id);
+        });
+    }
 
     public ChildBrowserWindow(string address, string parentTabId)
     {
@@ -53,10 +69,9 @@ public class ChildBrowserWindow : Window
         // Capture parent tab id and register this window
         _parentTabId = parentTabId;
         RegisterWindowForTab(_parentTabId, this);
-        EnsureSubscriptions();
         _rootGrid = new Grid { Background = _overlayBrush };
 
-        // Centered content host – we size it relative to window size
+        // Centered content host - we size it relative to window size
         _contentHost = new Border
         {
             Background = Brushes.Transparent,
@@ -131,24 +146,7 @@ public class ChildBrowserWindow : Window
         _rootGrid.PreviewMouseDown += RootGrid_PreviewMouseDown;
     }
 
-    private static void EnsureSubscriptions()
-    {
-        if (_subscriptionsInitialized) return;
-        _subscriptionsInitialized = true;
-        PubSub.Subscribe<TabActivatedEvent>(e =>
-        {
-            if (!string.IsNullOrEmpty(e.TabId)) ShowWindowsForTab(e.TabId);
-            if (e.PreviousTab != null) HideWindowsForTab(e.PreviousTab.Id);
-        });
-        PubSub.Subscribe<TabDeactivatedEvent>(e =>
-        {
-            if (!string.IsNullOrEmpty(e.TabId)) HideWindowsForTab(e.TabId);
-        });
-        PubSub.Subscribe<TabClosedEvent>(e =>
-        {
-            if (!string.IsNullOrEmpty(e.Tab.Id)) CloseWindowsForTab(e.Tab.Id);
-        });
-    }
+
 
     private static void RegisterWindowForTab(string tabId, ChildBrowserWindow window)
     {
