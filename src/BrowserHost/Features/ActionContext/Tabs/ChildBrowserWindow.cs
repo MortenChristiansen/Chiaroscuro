@@ -532,6 +532,7 @@ public class ChildBrowserWindow : Window
         };
         fade.Completed += (_, __) =>
         {
+            if (_browser == null) return;
             // Stop animation and close
             _overlayBrush.BeginAnimation(Brush.OpacityProperty, null);
             try { _browser.Dispose(); } catch { }
