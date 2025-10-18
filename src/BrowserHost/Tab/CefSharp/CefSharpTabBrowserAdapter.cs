@@ -7,9 +7,21 @@ using System.Windows;
 
 namespace BrowserHost.Tab.CefSharp;
 
-public class CefSharpTabBrowserAdapter(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon) : ITabWebBrowser
+public class CefSharpTabBrowserAdapter : ITabWebBrowser
 {
-    private readonly CefSharpTabBrowser _cefBrowser = new(id, address, actionContextBrowser, setManualAddress, favicon);
+    private readonly CefSharpTabBrowser _cefBrowser;
+
+    public CefSharpTabBrowserAdapter(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, bool isChildBrowser)
+    {
+        _cefBrowser = new(id, address, actionContextBrowser, setManualAddress, favicon, isChildBrowser);
+        _cefBrowser.LoadingStateChanged += OnPageLoadEnded;
+    }
+
+    private void OnPageLoadEnded(object? sender, LoadingStateChangedEventArgs e)
+    {
+        if (!e.IsLoading)
+            _cefBrowser.Dispatcher.InvokeAsync(() => PageLoadEnded?.Invoke(this, EventArgs.Empty));
+    }
 
     public string Id => _cefBrowser.Id;
     public string? Favicon => RunOnUi(() => _cefBrowser.Favicon);
@@ -26,17 +38,12 @@ public class CefSharpTabBrowserAdapter(string id, string address, ActionContextB
     public double DefaultZoomLevel => 0.0;
 
     public bool HasDevTools => RunOnUi(() => _cefBrowser.GetBrowserHost().HasDevTools);
+    public event EventHandler? PageLoadEnded;
 
     public event DependencyPropertyChangedEventHandler? AddressChanged
     {
         add => _cefBrowser.AddressChanged += value;
         remove => _cefBrowser.AddressChanged -= value;
-    }
-
-    private void RunOnUi(Action action)
-    {
-        if (_cefBrowser.Dispatcher.CheckAccess()) action();
-        else _cefBrowser.Dispatcher.Invoke(action);
     }
 
     private T RunOnUi<T>(Func<T> action)
@@ -48,7 +55,11 @@ public class CefSharpTabBrowserAdapter(string id, string address, ActionContextB
     public void SetAddress(string address, bool setManualAddress) => _cefBrowser.SetAddress(address, setManualAddress);
     public void RegisterContentPageApi(BrowserApi api, string name) => _cefBrowser.RegisterContentPageApi(api, name);
     public void Reload(bool ignoreCache = false) => _cefBrowser.Reload(ignoreCache);
-    public void Dispose() => _cefBrowser.Dispose();
+    public void Dispose()
+    {
+        _cefBrowser.LoadingStateChanged -= OnPageLoadEnded;
+        _cefBrowser.Dispose();
+    }
     public void Back() => _cefBrowser.Back();
     public void Forward() => _cefBrowser.Forward();
     public Task CallClientApi(string api, string? arguments = null) { _cefBrowser.CallClientApi(api, arguments); return Task.CompletedTask; }

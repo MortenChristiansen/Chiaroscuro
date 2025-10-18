@@ -20,6 +20,7 @@ public class TabBrowser : UserControl
 
     private ITabWebBrowser _browser;
     private readonly ActionContextBrowser _actionContextBrowser;
+    private readonly bool _isChildBrowser;
     private PersistableState? _persistableState;
 
     private event DependencyPropertyChangedEventHandler? _addressChanged;
@@ -39,25 +40,28 @@ public class TabBrowser : UserControl
         set => _browser.Title = value;
     }
     public bool IsLoading => _browser.IsLoading;
+
+    public event EventHandler? PageLoadEnded;
     public bool CanGoBack => _browser.CanGoBack;
     public bool CanGoForward => _browser.CanGoForward;
     public bool HasDevTools => _browser.HasDevTools;
 
-    public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon)
+    public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
         _actionContextBrowser = actionContextBrowser;
+        _isChildBrowser = isChildBrowser;
         favicon ??= FileFaviconProvider.TryGetFaviconForAddress(address);
-        _browser = CreateBrowser(id, address, setManualAddress, favicon);
+        _browser = CreateBrowser(id, address, setManualAddress, favicon, isChildBrowser);
         Content = _browser.AsUIElement();
         AttachBrowserEvents();
     }
 
-    private ITabWebBrowser CreateBrowser(string id, string address, bool setManualAddress, string? favicon)
+    private ITabWebBrowser CreateBrowser(string id, string address, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
         var isSsoDomain = ShouldUseWebView2(address);
         if (isSsoDomain)
-            return new WebView2Browser(id, address, _actionContextBrowser, setManualAddress, favicon);
-        return new CefSharpTabBrowserAdapter(id, address, _actionContextBrowser, setManualAddress, favicon);
+            return new WebView2Browser(id, address, _actionContextBrowser, setManualAddress, favicon, isChildBrowser);
+        return new CefSharpTabBrowserAdapter(id, address, _actionContextBrowser, setManualAddress, favicon, isChildBrowser);
     }
 
     public void SavePersistableState()
@@ -74,7 +78,7 @@ public class TabBrowser : UserControl
     public string? GetFaviconToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
         isBookmarkedOrPinned && tabCustomizations.DisableFixedAddress != true ? _persistableState?.Favicon ?? _browser.Favicon : _browser.Favicon;
 
-    private bool ShouldUseWebView2(string address)
+    private static bool ShouldUseWebView2(string address)
     {
         if (ContentServer.IsContentServerUrl(address)) return false;
         return SettingsFeature.ExecutionSettings.SsoEnabledDomains?.Any(domain => HasDomain(address, domain)) == true;
@@ -95,12 +99,19 @@ public class TabBrowser : UserControl
     private void AttachBrowserEvents()
     {
         _browser.AddressChanged += OnBrowserAddressChanged;
+        _browser.PageLoadEnded += OnBrowserPageLoadEnded;
     }
 
     private void DetachBrowserEvents()
     {
         _browser.AddressChanged -= OnBrowserAddressChanged;
+        _browser.PageLoadEnded -= OnBrowserPageLoadEnded;
 
+    }
+
+    private void OnBrowserPageLoadEnded(object? sender, EventArgs e)
+    {
+        PageLoadEnded?.Invoke(this, e);
     }
 
     private void OnBrowserAddressChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -128,7 +139,7 @@ public class TabBrowser : UserControl
         }
 
         // If navigating to a file address, set a file-type favicon immediately if available
-        if (e.NewValue is string newAddr)
+        if (!_isChildBrowser && e.NewValue is string newAddr)
         {
             var fileFav = FileFaviconProvider.TryGetFaviconForAddress(newAddr);
             if (!string.IsNullOrEmpty(fileFav))
@@ -150,7 +161,7 @@ public class TabBrowser : UserControl
 
         DetachBrowserEvents();
         var old = _browser;
-        _browser = new WebView2Browser(id, targetAddress, _actionContextBrowser, setManualAddress: setManual, favicon);
+        _browser = new WebView2Browser(id, targetAddress, _actionContextBrowser, setManualAddress: setManual, favicon, _isChildBrowser);
         Content = _browser.AsUIElement();
         AttachBrowserEvents();
         old.Dispose();
