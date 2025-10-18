@@ -10,11 +10,13 @@ import {
 import { IconButtonComponent } from '../../shared/icon-button.component';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { TabCustomizationApi } from './tabCustomizationApi';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { faCheck, faXmark } from '@fortawesome/free-solid-svg-icons';
 
 @Component({
   selector: 'tab-customization-editor',
   standalone: true,
-  imports: [CommonModule, IconButtonComponent],
+  imports: [CommonModule, IconButtonComponent, FaIconComponent],
   template: `
     <div class="flex flex-col gap-2 w-full">
       <div class="text-xs text-gray-400">Custom tab title</div>
@@ -29,34 +31,10 @@ import { TabCustomizationApi } from './tabCustomizationApi';
           spellcheck="false"
         />
         <icon-button title="Save custom title" (click)="save(titleInput.value)">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            width="20"
-            height="20"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-7.5 7.5a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414L8.5 12.086l6.793-6.793a1 1 0 011.414 0z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <fa-icon [icon]="saveTitleIcon" />
         </icon-button>
         <icon-button title="Clear custom title" (click)="clear(titleInput)">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            width="20"
-            height="20"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 8.586l4.95-4.95a1 1 0 111.414 1.414L11.414 10l4.95 4.95a1 1 0 01-1.414 1.414L10 11.414l-4.95 4.95a1 1 0 01-1.414-1.414L8.586 10l-4.95-4.95A1 1 0 115.05 3.636L10 8.586z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <fa-icon [icon]="clearTitleIcon" />
         </icon-button>
       </div>
       <div class="text-xs text-gray-500">
@@ -81,6 +59,9 @@ export class TabCustomizationEditorComponent implements OnInit {
   title = signal('');
   initialTitle = signal<string | null>(null);
   disableFixedAddress = signal<boolean>(false);
+
+  protected readonly saveTitleIcon = faCheck;
+  protected readonly clearTitleIcon = faXmark;
 
   titleInput = viewChild.required<ElementRef<HTMLInputElement>>('titleInput');
   private api!: TabCustomizationApi;

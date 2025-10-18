@@ -10,10 +10,16 @@ import {
 } from '@angular/core';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { TabPaletteApi } from './tabPaletteApi';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import {
+  faChevronDown,
+  faChevronUp,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons';
 
 @Component({
   selector: 'tab-text-search',
-  imports: [CommonModule, IconButtonComponent],
+  imports: [CommonModule, IconButtonComponent, FaIconComponent],
   template: `
     <div class="flex flex-col gap-2 w-full">
       <div class="text-xs text-gray-400">Find in page</div>
@@ -32,57 +38,21 @@ import { TabPaletteApi } from './tabPaletteApi';
           (click)="goToPrev()"
           title="Previous match"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            width="20"
-            height="20"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 5a1 1 0 01.7.3l5 5a1 1 0 01-1.4 1.4L11 8.42V15a1 1 0 11-2 0V8.42l-3.3 3.3a1 1 0 01-1.4-1.42l5-5A1 1 0 0110 5z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <fa-icon [icon]="previousMatchIcon" />
         </icon-button>
         <icon-button
           [disabled]="!hasMatches()"
           (click)="goToNext()"
           title="Next match"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            width="20"
-            height="20"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 15a1 1 0 01-.7-.3l-5-5a1 1 0 011.4-1.4L9 11.58V5a1 1 0 112 0v6.58l3.3-3.3a1 1 0 111.4 1.42l-5 5A1 1 0 0110 15z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <fa-icon [icon]="nextMatchIcon" />
         </icon-button>
         <icon-button
           (click)="cancelSearch(); input.focus()"
           [disabled]="totalMatches() === null"
           title="Cancel search"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            width="20"
-            height="20"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 8.586l4.95-4.95a1 1 0 111.414 1.414L11.414 10l4.95 4.95a1 1 0 01-1.414 1.414L10 11.414l-4.95 4.95a1 1 0 01-1.414-1.414L8.586 10l-4.95-4.95A1 1 0 115.05 3.636L10 8.586z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <fa-icon [icon]="cancelSearchIcon" />
         </icon-button>
       </div>
       @if(totalMatches() !== null) {
@@ -102,6 +72,10 @@ export class TabTextSearchComponent implements OnInit {
   hasMatches = computed(
     () => this.totalMatches() != null && this.totalMatches()! > 0
   );
+
+  protected readonly previousMatchIcon = faChevronUp;
+  protected readonly nextMatchIcon = faChevronDown;
+  protected readonly cancelSearchIcon = faXmark;
 
   private searchInput =
     viewChild.required<ElementRef<HTMLInputElement>>('input');
