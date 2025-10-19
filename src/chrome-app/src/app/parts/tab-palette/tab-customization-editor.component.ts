@@ -37,7 +37,9 @@ export class TabCustomizationEditorComponent implements OnInit {
   disableFixedAddress = signal<boolean>(false);
   hasCustomTitle = computed(() => !!this.initialTitle());
 
-  private readonly titleEditor = viewChild(TabCustomTitleEditorComponent);
+  private readonly titleEditor = viewChild.required(
+    TabCustomTitleEditorComponent
+  );
   private api!: TabCustomizationApi;
 
   async ngOnInit() {
@@ -51,7 +53,7 @@ export class TabCustomizationEditorComponent implements OnInit {
         this.initialTitle.set(settings.customTitle);
         this.title.set(settings.customTitle ?? '');
         // I'm not sure why this is needed, but there are cases where the title signal does not update the input value.
-        this.titleEditor()?.setInputValue(settings.customTitle ?? '');
+        this.titleEditor().setInputValue(settings.customTitle ?? '');
 
         this.disableFixedAddress.set(settings.disableFixedAddress ?? false);
       },
@@ -69,8 +71,8 @@ export class TabCustomizationEditorComponent implements OnInit {
     this.title.set('');
     await this.api.setCustomTitle(null);
     this.initialTitle.set(undefined);
-    this.titleEditor()?.setInputValue('');
-    this.titleEditor()?.focusInput();
+    this.titleEditor().setInputValue('');
+    this.titleEditor().focusInput();
   }
 
   async onToggleDisableFixed(checked: boolean) {

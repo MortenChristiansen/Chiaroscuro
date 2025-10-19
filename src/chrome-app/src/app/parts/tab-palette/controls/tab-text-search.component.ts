@@ -14,7 +14,6 @@ import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import {
   faChevronDown,
   faChevronUp,
-  faMagnifyingGlass,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -104,7 +103,6 @@ export class TabTextSearchComponent implements OnInit {
   protected readonly previousMatchIcon = faChevronUp;
   protected readonly nextMatchIcon = faChevronDown;
   protected readonly cancelSearchIcon = faXmark;
-  protected readonly searchIcon = faMagnifyingGlass;
 
   private searchInput =
     viewChild.required<ElementRef<HTMLInputElement>>('input');
@@ -116,7 +114,6 @@ export class TabTextSearchComponent implements OnInit {
 
     exposeApiToBackend({
       findStatusChanged: (totalMatches?: number) => {
-        console.log('Search status changed:', totalMatches);
         this.totalMatches.set(totalMatches ?? null);
       },
       focusFindTextInput: () => {
@@ -130,7 +127,6 @@ export class TabTextSearchComponent implements OnInit {
 
   async onSearchTermChange(term: string) {
     this.searchTerm.set(term);
-    console.log('Searching for:', term);
     await this.api.find(term);
   }
 
