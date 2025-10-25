@@ -17,15 +17,15 @@ import { FaviconComponent } from '../../shared/favicon.component';
   imports: [CommonModule, FaviconComponent],
   template: `
     <div
-      class="fixed inset-0 bg-transparent z-[1000]"
+      class="fixed inset-0 bg-transparent z-1000"
       (click)="api.dismissActionDialog()"
     ></div>
     <div
-      class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1001] bg-white/95 rounded-2xl shadow-2xl p-8 min-w-[350px] flex flex-col items-center"
+      class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-1001 bg-white/95 rounded-2xl shadow-2xl p-8 min-w-[350px] flex flex-col items-center"
       (keydown.esc)="api.dismissActionDialog()"
     >
       <input
-        class="w-[30rem] text-lg px-4 py-3 rounded-lg border border-gray-300 outline-none shadow-sm bg-white/80 placeholder-gray-400"
+        class="w-30rem text-lg px-4 py-3 rounded-lg border border-gray-300 outline-none shadow-sm bg-white/80 placeholder-gray-400"
         placeholder="Where to?"
         type="text"
         (keydown)="onKeyDown($event)"
@@ -35,7 +35,7 @@ import { FaviconComponent } from '../../shared/favicon.component';
       />
       @if (suggestions().length > 0) {
       <div
-        class="w-[30rem] mt-2 bg-white rounded-lg border border-gray-200 shadow-lg max-h-64 overflow-y-auto"
+        class="w-30rem mt-2 bg-white rounded-lg border border-gray-200 shadow-lg max-h-64 overflow-y-auto"
       >
         @for (suggestion of suggestions(); track suggestion.address) {
         <div
@@ -43,10 +43,7 @@ import { FaviconComponent } from '../../shared/favicon.component';
           [class.bg-blue-50]="$index === activeSuggestionIndex()"
           (click)="selectSuggestion(suggestion)"
         >
-          <favicon
-            [src]="suggestion.favicon"
-            class="w-4 h-4 mr-3 flex-shrink-0"
-          />
+          <favicon [src]="suggestion.favicon" class="w-4 h-4 mr-3 shrink-0" />
           <div class="flex-1 min-w-0">
             <div class="font-medium text-gray-900 truncate">
               {{ suggestion.title }}

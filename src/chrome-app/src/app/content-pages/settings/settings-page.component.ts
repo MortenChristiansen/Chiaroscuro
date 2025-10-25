@@ -54,7 +54,7 @@ import { settingsSchema } from './settings-schema';
               </div>
             </div>
 
-            <div class="flex-shrink-0 basis-1/2">
+            <div class="shrink-0 basis-1/2">
               <label class="inline-flex items-center gap-2 select-none w-auto">
                 <input
                   type="checkbox"
@@ -77,7 +77,7 @@ import { settingsSchema } from './settings-schema';
               </div>
             </div>
 
-            <div class="flex-shrink-0 basis-1/2">
+            <div class="shrink-0 basis-1/2">
               @if (field.type === 'string') {
               <input
                 type="text"

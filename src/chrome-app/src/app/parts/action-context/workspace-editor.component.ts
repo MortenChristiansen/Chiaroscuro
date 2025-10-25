@@ -13,26 +13,26 @@ interface WorkspaceFormData {
   selector: 'workspace-editor',
   imports: [CommonModule, FormsModule],
   template: `
-    <div
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    >
-      <div class="bg-gray-800 rounded-lg p-6 w-96 max-w-full mx-4 relative">
+    <div class="fixed inset-0 flex items-center justify-center z-50">
+      <div
+        class="border rounded-xl border-slate-800/70 bg-slate-900/90 p-3 xxs:p-6 w-96 max-w-full mx-4 relative"
+      >
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-semibold text-white">
             {{ isEdit() ? 'Edit Workspace' : 'Create New Workspace' }}
           </h2>
-          <div *ngIf="isEdit()">
-            <a
-              href="#"
-              (click)="onDelete(); $event.preventDefault()"
-              [class.opacity-50]="!canDelete()"
-              [attr.aria-disabled]="!canDelete()"
-              class="text-red-400 hover:text-red-600 font-medium underline cursor-pointer transition-opacity duration-150"
-              [style.pointer-events]="canDelete() ? 'auto' : 'none'"
-            >
-              Delete
-            </a>
-          </div>
+          @if (isEdit()){
+          <a
+            href="#"
+            (click)="onDelete(); $event.preventDefault()"
+            [class.opacity-50]="!canDelete()"
+            [attr.aria-disabled]="!canDelete()"
+            class="text-red-400 hover:text-red-600 font-medium underline cursor-pointer transition-opacity duration-150"
+            [style.pointer-events]="canDelete() ? 'auto' : 'none'"
+          >
+            Delete
+          </a>
+          }
         </div>
         <form (ngSubmit)="onSubmit()" #form="ngForm">
           <div class="mb-4">
@@ -78,7 +78,7 @@ interface WorkspaceFormData {
               <button
                 type="button"
                 (click)="formData.color = color"
-                class="w-8 h-8 rounded border-2 {{
+                class="w-full aspect-square rounded border-2 {{
                   formData.color === color ? 'border-white' : 'border-gray-600'
                 }}"
                 [style.background-color]="color"
@@ -106,7 +106,6 @@ interface WorkspaceFormData {
       </div>
     </div>
   `,
-  styles: ``,
 })
 export default class WorkspaceEditorComponent {
   public static readonly defaultValues: WorkspaceFormData = {

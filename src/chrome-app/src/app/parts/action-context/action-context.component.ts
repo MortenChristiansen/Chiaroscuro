@@ -14,11 +14,11 @@ import { PinnedTabsListComponent } from './pinned-tabs-list.component';
   ],
   template: `
     <div class="flex flex-col h-full">
-      <pinned-tabs-list class="flex-shrink-0" />
-      <tabs-list class="flex-shrink-0" />
+      <pinned-tabs-list class="shrink-0" />
+      <tabs-list class="shrink-0" />
       <div class="flex-1 flex flex-col justify-end">
-        <downloads-list class="flex-shrink-0" />
-        <workspace-switcher class="flex-shrink-0" />
+        <downloads-list class="shrink-0" />
+        <workspace-switcher class="shrink-0" />
       </div>
     </div>
   `,
