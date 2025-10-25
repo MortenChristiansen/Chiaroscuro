@@ -91,8 +91,6 @@ import { Workspace, WorkspaceDescription } from './server-models';
     }
   `,
   styles: `
-  
-
       .dialog-enter {
         animation: scale-opacity-enter 220ms ease-in forwards;
       }
