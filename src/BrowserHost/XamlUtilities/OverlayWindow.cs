@@ -74,6 +74,9 @@ public abstract class OverlayWindow : Window
         Background = Brushes.Transparent;
         AllowsTransparency = true;
         WindowStyle = WindowStyle.None;
+        ShowInTaskbar = false;
+        ResizeMode = ResizeMode.NoResize;
+        SizeToContent = SizeToContent.Manual;
 
         Loaded += OnLoaded;
         Closed += OnClosed;
