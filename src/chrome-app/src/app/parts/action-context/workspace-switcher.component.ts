@@ -13,7 +13,7 @@ import { Workspace, WorkspaceDescription } from './server-models';
       <!-- Edit button -->
       <button
         (click)="openEditDialog()"
-        class="p-2 rounded-full hover:bg-white/10 transition-colors duration-200 text-gray-400 hover:text-white flex-shrink-0"
+        class="p-2 rounded-full hover:bg-white/10 transition-colors duration-200 text-gray-400 hover:text-white shrink-0"
         title="Edit current workspace"
       >
         <svg
@@ -85,10 +85,22 @@ import { Workspace, WorkspaceDescription } from './server-models';
       (save)="onSaveWorkspace($event)"
       (delete)="onDeleteWorkspace()"
       (cancel)="closeEditor()"
+      animate.enter="dialog-enter"
+      animate.leave="dialog-leave"
     />
     }
   `,
-  styles: ``,
+  styles: `
+  
+
+      .dialog-enter {
+        animation: scale-opacity-enter 220ms ease-in forwards;
+      }
+
+      .dialog-leave {
+        animation: scale-opacity-leave 220ms ease-out forwards;
+      }
+  `,
 })
 export default class WorkspaceSwitcherComponent implements OnInit {
   workspaces = signal<Workspace[]>([]);
