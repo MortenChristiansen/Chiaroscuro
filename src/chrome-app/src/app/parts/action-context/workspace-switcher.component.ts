@@ -58,7 +58,7 @@ import { Workspace, WorkspaceDescription } from './server-models';
       <!-- Add workspace button -->
       <button
         (click)="openCreateDialog()"
-        class="p-2 rounded-full hover:bg-white/10 transition-colors duration-200 text-gray-400 hover:text-white flex-shrink-0"
+        class="p-2 rounded-full hover:bg-white/10 transition-colors duration-200 text-gray-400 hover:text-white shrink-0"
         title="Create new workspace"
       >
         <svg
