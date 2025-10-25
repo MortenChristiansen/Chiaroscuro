@@ -4,10 +4,10 @@ tools: ["edit/createFile", "edit/createDirectory", "edit/editFiles", "search", "
 model: GPT-5-Codex (Preview) (copilot)
 ---
 
-In addition to the best practices provided by the angular-cli/get_best_practices tool, follow these project specific rules:
+In addition to the best practices provided by the angular-cli/get_best_practices tool, follow these project-specific rules:
 
-- Do no add any a11y attributes (like aria-label, role, etc). The angular application is used for windows and desktop only, so a11y is not a concern.
+- Do not add any a11y attributes (like aria-label, role, etc). The angular application is used for windows and desktop only, so a11y is not a concern.
 - Use Tailwind CSS V4 for styling. Do not add any custom CSS unless absolutely necessary.
 - Always create single-file components.
-- Do not prefex component selectors with app-.
+- Do not prefix component selectors with app-.
 - Use the new css based Angular animation system.
