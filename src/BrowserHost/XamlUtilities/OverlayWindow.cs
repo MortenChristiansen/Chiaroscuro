@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Media;
 
@@ -12,6 +13,9 @@ public abstract class OverlayWindow : Window
 {
     private Window? _ownerWindow;
     private FrameworkElement? _targetElement;
+
+    private static readonly List<OverlayWindow> _overlays = [];
+    public static IEnumerable<OverlayWindow> Instances { get; } = _overlays;
 
     /// <summary>
     /// Gets or sets the target element that this window should overlay.
@@ -84,11 +88,13 @@ public abstract class OverlayWindow : Window
 
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
+        _overlays.Add(this);
         UpdateOverlayBounds();
     }
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        _overlays.Remove(this);
         DetachHandlers();
     }
 

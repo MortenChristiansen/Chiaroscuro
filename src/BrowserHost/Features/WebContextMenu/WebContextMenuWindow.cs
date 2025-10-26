@@ -18,6 +18,9 @@ public class WebContextMenuWindow : OverlayWindow
         OwnerWindow = owner;
         Left = x;
         Top = y;
+        // TODO: Fixes dismiss logic activating other applications, though we need it to be activated eventually
+        ShowActivated = false; // Do not activate/focus this overlay window
+        Focusable = false; // Prevent keyboard focus
 
         // Create the menu UI
         _menuContainer = new Border

@@ -1,13 +1,18 @@
 ﻿using BrowserHost.Interop;
+using BrowserHost.XamlUtilities;
 using CefSharp;
 using CefSharp.Handler;
+using System.Linq;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace BrowserHost.Features.WebContextMenu;
+
 public partial class WebContentContextMenuHandler : ContextMenuHandler
 {
     private WebContextMenuWindow? _contextWindow;
+    private Window? _ownerHookedWindow;
 
     protected override void OnBeforeContextMenu(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IContextMenuParams parameters, IMenuModel model)
     {
@@ -27,12 +32,17 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
             var offset = GetDpiAwareOffset(owner, 12, 12); // 12px right and down, scaled for DPI
             _contextWindow = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
             _contextWindow.Show();
+
+            AttachOutsideClickHandlers(owner);
+            foreach (var window in OverlayWindow.Instances.Where(i => i != _contextWindow))
+                AttachOutsideClickHandlers(window);
         });
     }
 
     // TODO: We may eventually want to reuse the existing context menu window instead of closing and reopening it.
     private void CloseExistingInstance()
     {
+        DetachOutsideClickHandlers();
         if (_contextWindow != null)
         {
             try { _contextWindow.Close(); } catch { }
@@ -65,6 +75,61 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
         return new Vector(dip.X, dip.Y);
     }
 
+    private void AttachOutsideClickHandlers(Window owner)
+    {
+        if (_ownerHookedWindow != owner)
+        {
+            DetachOutsideClickHandlers();
+            _ownerHookedWindow = owner;
+            _ownerHookedWindow.PreviewMouseDown += OtherWindow_PreviewMouseDown;
+            _ownerHookedWindow.Deactivated += OtherWindow_Deactivated;
+
+            foreach (var window in OverlayWindow.Instances.Where(i => i != _contextWindow))
+            {
+                window.PreviewMouseDown += OtherWindow_PreviewMouseDown;
+                window.Deactivated += OtherWindow_Deactivated;
+            }
+        }
+
+        if (_contextWindow != null)
+        {
+            _contextWindow.Deactivated += ContextWindow_Deactivated;
+        }
+    }
+
+    private void DetachOutsideClickHandlers()
+    {
+        if (_ownerHookedWindow != null)
+        {
+            _ownerHookedWindow.PreviewMouseDown -= OtherWindow_PreviewMouseDown;
+            _ownerHookedWindow.Deactivated -= OtherWindow_Deactivated;
+            _ownerHookedWindow = null;
+
+            foreach (var window in OverlayWindow.Instances.Where(i => i != _contextWindow))
+            {
+                window.PreviewMouseDown -= OtherWindow_PreviewMouseDown;
+                window.Deactivated -= OtherWindow_Deactivated;
+            }
+        }
+
+        if (_contextWindow != null)
+        {
+            _contextWindow.Deactivated -= ContextWindow_Deactivated;
+        }
+    }
+
+    // Click occurred on another window; since the context menu is a separate overlay window,
+    // any click on another window is outside the menu, so close it.
+    private void OtherWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e) =>
+        CloseExistingInstance();
+
+    // If the overlay window loses activation (e.g., click on another app), close it.
+    private void ContextWindow_Deactivated(object? sender, System.EventArgs e) =>
+        CloseExistingInstance();
+
+    // If the owner or other window deactivates (switching apps), close the menu without activating anything.
+    private void OtherWindow_Deactivated(object? sender, System.EventArgs e) =>
+        CloseExistingInstance();
 
     protected override bool RunContextMenu(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IContextMenuParams parameters, IMenuModel model, IRunContextMenuCallback callback)
     {
