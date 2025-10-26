@@ -1,11 +1,9 @@
-﻿using BrowserHost.Interop;
-using BrowserHost.XamlUtilities;
+﻿using BrowserHost.XamlUtilities;
 using CefSharp;
 using CefSharp.Handler;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 
 namespace BrowserHost.Features.WebContextMenu;
 
@@ -29,8 +27,8 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
 
             var owner = MainWindow.Instance;
 
-            var cursorPos = GetCursorPositionInDips(owner);
-            var offset = GetDpiAwareOffset(owner, 12, 12); // 12px right and down, scaled for DPI
+            var cursorPos = VisualDpiUtil.GetCursorPositionInDips(owner);
+            var offset = VisualDpiUtil.GetDpiAwareOffset(owner, 12, 12); // 12px right and down, scaled for DPI
             _contextWindow = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
             _contextWindow.Prepare(mappedParameters);
             _contextWindow.Show();
@@ -44,7 +42,6 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
     private static ContextMenuParameters Map(IContextMenuParams parameters) =>
         new(parameters.LinkUrl);
 
-    // TODO: We may eventually want to reuse the existing context menu window instead of closing and reopening it.
     private void CloseExistingInstance()
     {
         DetachOutsideClickHandlers();
@@ -55,30 +52,6 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
         }
     }
 
-    private static Point GetCursorPositionInDips(Visual referenceVisual)
-    {
-        if (!MonitorInterop.GetCursorPos(out var pt))
-            return new Point(0, 0);
-
-        var pixelPoint = new Point(pt.X, pt.Y);
-        var source = PresentationSource.FromVisual(referenceVisual);
-        if (source?.CompositionTarget is null)
-            return pixelPoint; // Fallback; may be off on high-DPI
-
-        var transformFromDevice = source.CompositionTarget.TransformFromDevice;
-        return transformFromDevice.Transform(pixelPoint);
-    }
-
-    private static Vector GetDpiAwareOffset(Visual referenceVisual, double pixelX, double pixelY)
-    {
-        var source = PresentationSource.FromVisual(referenceVisual);
-        if (source?.CompositionTarget is null)
-            return new Vector(pixelX, pixelY); // Fallback; may be off on high-DPI
-
-        var transformFromDevice = source.CompositionTarget.TransformFromDevice;
-        var dip = transformFromDevice.Transform(new Point(pixelX, pixelY));
-        return new Vector(dip.X, dip.Y);
-    }
 
     private void AttachOutsideClickHandlers(Window owner)
     {
