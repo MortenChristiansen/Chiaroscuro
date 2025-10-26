@@ -37,23 +37,39 @@ public class WebContextMenuWindow : OverlayWindow
             Opacity = 1
         };
 
-        var contentStack = new StackPanel();
-
-        var noContentText = new TextBlock
-        {
-            Text = "No content",
-            Foreground = Brushes.White,
-            Margin = new Thickness(4)
-        };
-        contentStack.Children.Add(noContentText);
-
-        _menuContainer.Child = contentStack;
-
         var rootGrid = new Grid
         {
             Background = Brushes.Transparent
         };
         rootGrid.Children.Add(_menuContainer);
         Content = rootGrid;
+    }
+
+    public void Prepare(ContextMenuParameters parameters)
+    {
+        var contentStack = new StackPanel();
+
+        if (!string.IsNullOrWhiteSpace(parameters.LinkUrl))
+        {
+            var linkText = new TextBlock
+            {
+                Text = parameters.LinkUrl,
+                Foreground = Brushes.LightBlue,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(4)
+            };
+            contentStack.Children.Add(linkText);
+        }
+        else
+        {
+            var noContentText = new TextBlock
+            {
+                Text = "No content",
+                Foreground = Brushes.White,
+                Margin = new Thickness(4)
+            };
+            contentStack.Children.Add(noContentText);
+        }
+        _menuContainer.Child = contentStack;
     }
 }

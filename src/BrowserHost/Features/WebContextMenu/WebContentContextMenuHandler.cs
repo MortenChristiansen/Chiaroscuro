@@ -9,6 +9,8 @@ using System.Windows.Media;
 
 namespace BrowserHost.Features.WebContextMenu;
 
+public record ContextMenuParameters(string LinkUrl);
+
 public partial class WebContentContextMenuHandler : ContextMenuHandler
 {
     private WebContextMenuWindow? _contextWindow;
@@ -21,6 +23,7 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
 
         var relativeX = parameters.XCoord;
         var relativeY = parameters.YCoord;
+        var mappedParameters = Map(parameters);
 
         Application.Current?.Dispatcher.BeginInvoke(() =>
         {
@@ -31,6 +34,7 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
             var cursorPos = GetCursorPositionInDips(owner);
             var offset = GetDpiAwareOffset(owner, 12, 12); // 12px right and down, scaled for DPI
             _contextWindow = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
+            _contextWindow.Prepare(mappedParameters);
             _contextWindow.Show();
 
             AttachOutsideClickHandlers(owner);
@@ -38,6 +42,9 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
                 AttachOutsideClickHandlers(window);
         });
     }
+
+    private static ContextMenuParameters Map(IContextMenuParams parameters) =>
+        new(parameters.LinkUrl);
 
     // TODO: We may eventually want to reuse the existing context menu window instead of closing and reopening it.
     private void CloseExistingInstance()
