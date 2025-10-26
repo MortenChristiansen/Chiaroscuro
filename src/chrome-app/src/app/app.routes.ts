@@ -25,6 +25,11 @@ export const routes: Routes = [
     title: 'ChromeApp',
   },
   {
+    path: 'context-menu',
+    loadComponent: () => import('./parts/context-menu/context-menu.component'),
+    title: 'ChromeApp',
+  },
+  {
     path: 'settings',
     loadComponent: () =>
       import('./content-pages/settings/settings-page.component'),

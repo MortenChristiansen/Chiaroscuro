@@ -3,6 +3,7 @@ using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.CustomWindowChrome;
+using BrowserHost.Features.WebContextMenu;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Permissions;
 using BrowserHost.Features.TabPalette.FindText;
@@ -43,6 +44,7 @@ public class CefSharpTabBrowser : Browser
         LifeSpanHandler = new PopupLifeSpanHandler(Id);
         FindHandler = new FindHandler();
         PermissionHandler = new CefSharpPermissionHandler();
+        MenuHandler = new WebContentContextMenuHandler();
 
         BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
     }
