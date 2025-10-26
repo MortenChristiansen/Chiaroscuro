@@ -100,6 +100,7 @@ public class WebContextMenuWindow : OverlayWindow
         base.OnClosed(e);
         _timer?.Dispose();
         _timer = null;
+        try { _browser.Dispose(); } catch { /* best-effort */ }
     }
 
     private void PlayShowAnimation()
