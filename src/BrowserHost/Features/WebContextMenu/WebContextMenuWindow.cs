@@ -26,10 +26,6 @@ public class WebContextMenuWindow : OverlayWindow
         Left = x;
         Top = y;
 
-        // TODO: Fixes dismiss logic activating other applications, though we need it to be activated eventually
-        ShowActivated = false; // Do not activate/focus this overlay window
-        Focusable = false; // Prevent keyboard focus
-
         _browser.BeginInit();
         _browser.EndInit();
 
