@@ -61,6 +61,9 @@ public class WebContextMenuWindow : OverlayWindow
 
                 _browser.GetContentSizeAsync().ContinueWith(t =>
                 {
+                    if (t.IsFaulted || t.IsCanceled)
+                        return;
+
                     var size = t.Result;
                     Dispatcher.BeginInvoke(() =>
                     {
