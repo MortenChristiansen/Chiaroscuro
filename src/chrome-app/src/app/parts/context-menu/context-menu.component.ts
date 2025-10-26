@@ -15,7 +15,7 @@ import { ContextMenuParameters } from './server-models';
 export default class ContextMenuComponent implements OnInit {
   protected parameters = signal<ContextMenuParameters>({});
 
-  async ngOnInit() {
+  ngOnInit() {
     exposeApiToBackend({
       setParameters: (parameters: ContextMenuParameters) => {
         this.parameters.set(parameters);

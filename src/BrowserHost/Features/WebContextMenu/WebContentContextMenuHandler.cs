@@ -17,8 +17,6 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
         // Clear all menu items to disable the default context menu
         model.Clear();
 
-        var relativeX = parameters.XCoord;
-        var relativeY = parameters.YCoord;
         var mappedParameters = Map(parameters);
 
         Application.Current?.Dispatcher.BeginInvoke(() =>
