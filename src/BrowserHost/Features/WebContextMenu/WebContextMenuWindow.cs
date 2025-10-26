@@ -1,13 +1,16 @@
 ﻿using BrowserHost.XamlUtilities;
+using System;
+using System.ComponentModel;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Animation;
 
 namespace BrowserHost.Features.WebContextMenu;
 
 public class WebContextMenuWindow : OverlayWindow
 {
-    //private readonly Border _menuContainer;
+    private readonly Border _container;
     private readonly WebContextMenuBrowser _browser = new()
     {
         // Ensure a non-zero initial size so CefSharp can initialize
@@ -22,6 +25,7 @@ public class WebContextMenuWindow : OverlayWindow
         OwnerWindow = owner;
         Left = x;
         Top = y;
+
         // TODO: Fixes dismiss logic activating other applications, though we need it to be activated eventually
         ShowActivated = false; // Do not activate/focus this overlay window
         Focusable = false; // Prevent keyboard focus
@@ -30,22 +34,23 @@ public class WebContextMenuWindow : OverlayWindow
         _browser.EndInit();
 
         // Build a visible shell for the menu so something is shown regardless of browser content
-        var container = new Border
+        _container = new Border
         {
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
-            Opacity = 1 // TODO: Animate
+            Opacity = 0.01
         };
 
         // Ensure the browser fills the container
         _browser.HorizontalAlignment = HorizontalAlignment.Stretch;
         _browser.VerticalAlignment = VerticalAlignment.Stretch;
 
-        container.Child = _browser;
-        Content = container;
+        _container.Child = _browser;
+        Content = _container;
     }
 
     private Timer? _timer;
+    private bool _allowCloseAfterAnimation;
 
     public void Prepare(ContextMenuParameters parameters)
     {
@@ -67,6 +72,7 @@ public class WebContextMenuWindow : OverlayWindow
                         {
                             _timer?.Dispose();
                             _timer = null;
+                            PlayShowAnimation();
                         }
 
                         // 2 pixels prevent scrollbars from appearing for some reason
@@ -76,5 +82,54 @@ public class WebContextMenuWindow : OverlayWindow
                 });
             });
         }, null, 0, 50);
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (!_allowCloseAfterAnimation)
+        {
+            e.Cancel = true;
+            PlayHideAnimation();
+            return;
+        }
+
+        base.OnClosing(e);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    private void PlayShowAnimation()
+    {
+        var fadeIn = new DoubleAnimation
+        {
+            From = 0,
+            To = 1,
+            Duration = TimeSpan.FromMilliseconds(200),
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+
+        _container.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+    }
+
+    private void PlayHideAnimation()
+    {
+        var fadeOut = new DoubleAnimation
+        {
+            To = 0,
+            Duration = TimeSpan.FromMilliseconds(200),
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+        };
+
+        fadeOut.Completed += (_, __) =>
+        {
+            _allowCloseAfterAnimation = true;
+            Close();
+        };
+        _container.BeginAnimation(UIElement.OpacityProperty, fadeOut);
     }
 }
