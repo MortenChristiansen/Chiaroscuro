@@ -34,8 +34,6 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
             _contextWindow.Show();
 
             AttachOutsideClickHandlers(owner);
-            foreach (var window in OverlayWindow.Instances.Where(i => i != _contextWindow))
-                AttachOutsideClickHandlers(window);
         });
     }
 
@@ -62,9 +60,7 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
             _ownerHookedWindow.PreviewMouseDown += OtherWindow_PreviewMouseDown;
 
             foreach (var window in OverlayWindow.Instances.Where(i => i != _contextWindow))
-            {
                 window.PreviewMouseDown += OtherWindow_PreviewMouseDown;
-            }
         }
 
         if (_contextWindow != null)
@@ -81,9 +77,7 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
             _ownerHookedWindow = null;
 
             foreach (var window in OverlayWindow.Instances.Where(i => i != _contextWindow))
-            {
                 window.PreviewMouseDown -= OtherWindow_PreviewMouseDown;
-            }
         }
 
         if (_contextWindow != null)

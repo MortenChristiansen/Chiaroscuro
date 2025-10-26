@@ -425,8 +425,6 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             _contextMenuWindow.Show();
 
             AttachOutsideClickHandlers(owner);
-            foreach (var window in OverlayWindow.Instances.Where(i => i != _contextMenuWindow))
-                AttachOutsideClickHandlers(window);
         });
     }
 
@@ -449,9 +447,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             _contextMenuOwnerHookedWindow.PreviewMouseDown += OtherWindow_PreviewMouseDown;
 
             foreach (var window in OverlayWindow.Instances.Where(i => i != _contextMenuWindow))
-            {
                 window.PreviewMouseDown += OtherWindow_PreviewMouseDown;
-            }
         }
 
         if (_contextMenuWindow != null)
@@ -468,9 +464,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             _contextMenuOwnerHookedWindow = null;
 
             foreach (var window in OverlayWindow.Instances.Where(i => i != _contextMenuWindow))
-            {
                 window.PreviewMouseDown -= OtherWindow_PreviewMouseDown;
-            }
         }
 
         if (_contextMenuWindow != null)
