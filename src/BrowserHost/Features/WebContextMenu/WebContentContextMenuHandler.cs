@@ -9,8 +9,6 @@ using System.Windows.Media;
 
 namespace BrowserHost.Features.WebContextMenu;
 
-public record ContextMenuParameters(string LinkUrl);
-
 public partial class WebContentContextMenuHandler : ContextMenuHandler
 {
     private WebContextMenuWindow? _contextWindow;
