@@ -2,6 +2,7 @@ using BrowserHost.Features.ActionDialog;
 using BrowserHost.Interop;
 using BrowserHost.Tab;
 using BrowserHost.Utilities;
+using BrowserHost.XamlUtilities;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -16,12 +17,10 @@ using System.Windows.Shapes;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
 
-public class ChildBrowserWindow : Window
+public class ChildBrowserWindow : OverlayWindow
 {
     private readonly TabBrowser _browser;
     private readonly string _parentTabId;
-    private Window? _ownerWindow;
-    private FrameworkElement? _targetElement; // MainWindow.WebContentBorder
     private const int _cornerRadiusDip = 8;
     private const int _overlayFadeDuration = 300;
     private readonly Border _contentHost;
@@ -55,10 +54,6 @@ public class ChildBrowserWindow : Window
 
     public ChildBrowserWindow(string address, string parentTabId)
     {
-        WindowStartupLocation = WindowStartupLocation.Manual;
-        Background = Brushes.Transparent;
-        AllowsTransparency = true;
-        WindowStyle = WindowStyle.None;
         Owner = MainWindow.Instance;
 
         _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.ActionContext, setManualAddress: false, favicon: null, isChildBrowser: true);
@@ -139,7 +134,7 @@ public class ChildBrowserWindow : Window
             TryHookDpiAndApplyRoundedCorners();
             ApplyRoundedWindowRegion();
         };
-        Closed += (_, __) => { DetachOwnerHandlers(); UnregisterWindowForTab(_parentTabId, this); };
+        Closed += (_, __) => { try { _browser.PageLoadEnded -= Browser_PageLoadEnded; } catch { } DetachHandlers(); UnregisterWindowForTab(_parentTabId, this); };
         SizeChanged += (_, __) => ApplyRoundedWindowRegion();
         StateChanged += (_, __) => ApplyRoundedWindowRegion();
         SizeChanged += (_, __) => UpdateContentHostSize();
@@ -218,23 +213,12 @@ public class ChildBrowserWindow : Window
 
     private void OnLoadedAttachToOwner(object? sender, RoutedEventArgs e)
     {
-        _ownerWindow = Owner ?? Window.GetWindow(MainWindow.Instance);
-        if (_ownerWindow == null) return;
+        OwnerWindow = Owner ?? Window.GetWindow(MainWindow.Instance);
+        TargetElement = MainWindow.Instance.WebContentBorder;
 
-        _targetElement = MainWindow.Instance.WebContentBorder;
-        UpdateOverlayBounds();
         _contentHost.SizeChanged += (_, __) => { UpdateContentCornerClip(); UpdateButtonsPanelPosition(); };
         _buttonsPanel.SizeChanged += (_, __) => UpdateButtonsPanelPosition();
         UpdateContentHostSize();
-
-        _ownerWindow.LocationChanged += OwnerWindow_LocationOrSizeChanged;
-        _ownerWindow.SizeChanged += OwnerWindow_LocationOrSizeChanged;
-        _ownerWindow.StateChanged += OwnerWindow_StateChanged;
-        if (_targetElement != null)
-        {
-            _targetElement.SizeChanged += TargetElement_SizeOrLayoutChanged;
-            _targetElement.LayoutUpdated += TargetElement_SizeOrLayoutChanged;
-        }
 
         // Start overlay fade-in once sized and positioned
         AnimateOverlayIn();
@@ -272,61 +256,11 @@ public class ChildBrowserWindow : Window
         }
     }
 
-    private void OwnerWindow_StateChanged(object? sender, EventArgs e)
+    protected override void UpdateOverlayBounds()
     {
-        if (_ownerWindow == null) return;
-        if (_ownerWindow.WindowState == WindowState.Minimized)
-        {
-            WindowState = WindowState.Minimized;
-        }
-        else if (WindowState == WindowState.Minimized)
-        {
-            WindowState = WindowState.Normal;
-        }
-        OwnerWindow_LocationOrSizeChanged(sender!, e);
-    }
-
-    private void OwnerWindow_LocationOrSizeChanged(object? sender, EventArgs e)
-    {
-        if (_ownerWindow == null) return;
-        UpdateOverlayBounds();
-    }
-
-    private void TargetElement_SizeOrLayoutChanged(object? sender, EventArgs e) => UpdateOverlayBounds();
-
-    private void UpdateOverlayBounds()
-    {
-        if (_ownerWindow == null || _targetElement == null) return;
-        if (!IsLoaded) return;
-
-        // Get position of WebContentBorder relative to owner window (DIPs)
-        var tl = _targetElement.TranslatePoint(new Point(0, 0), _ownerWindow);
-        var w = _targetElement.ActualWidth;
-        var h = _targetElement.ActualHeight;
-        if (w <= 0 || h <= 0) return;
-
-        Left = _ownerWindow.Left + tl.X;
-        Top = _ownerWindow.Top + tl.Y;
-        Width = w;
-        Height = h;
-    }
-
-    private void DetachOwnerHandlers()
-    {
-        if (_targetElement != null)
-        {
-            _targetElement.SizeChanged -= TargetElement_SizeOrLayoutChanged;
-            _targetElement.LayoutUpdated -= TargetElement_SizeOrLayoutChanged;
-            _targetElement = null;
-        }
-        try { _browser.PageLoadEnded -= Browser_PageLoadEnded; } catch { }
-        if (_ownerWindow != null)
-        {
-            _ownerWindow.LocationChanged -= OwnerWindow_LocationOrSizeChanged;
-            _ownerWindow.SizeChanged -= OwnerWindow_LocationOrSizeChanged;
-            _ownerWindow.StateChanged -= OwnerWindow_StateChanged;
-            _ownerWindow = null;
-        }
+        base.UpdateOverlayBounds();
+        ApplyRoundedWindowRegion();
+        UpdateContentHostSize();
     }
 
     // Hook into DPI changes and apply rounded corner window region
@@ -345,8 +279,6 @@ public class ChildBrowserWindow : Window
             Dispatcher.BeginInvoke(() =>
             {
                 UpdateOverlayBounds();
-                UpdateContentHostSize();
-                ApplyRoundedWindowRegion();
             });
         }
         return IntPtr.Zero;
