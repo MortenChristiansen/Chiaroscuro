@@ -67,7 +67,8 @@ public class WebContextMenuWindow : OverlayWindow
                     var size = t.Result;
                     Dispatcher.BeginInvoke(() =>
                     {
-                        if (_browser.Width == size.Width && _browser.Height == size.Height)
+                        // We need to wait until the size stabilizes before showing the menu
+                        if (_browser.Width == size.Width && _browser.Height == size.Height && size.Height > 5 && size.Width > 5)
                         {
                             _timer?.Dispose();
                             _timer = null;
