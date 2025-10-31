@@ -24,6 +24,10 @@ import {
       transition('open <=> closed', [
         animate('200ms cubic-bezier(0.4,0,0.2,1)'),
       ]),
+      transition('void => open', [
+        style({ height: '0px', opacity: 0, overflow: 'hidden' }),
+        animate('200ms cubic-bezier(0.4,0,0.2,1)'),
+      ]),
     ]),
   ],
   template: `
@@ -34,7 +38,6 @@ import {
     >
       <div class="group flex items-center px-2 py-1">
         <button
-          (click)="toggleOpen.emit()"
           class="mr-2 text-gray-400 hover:text-gray-300 transition-colors drag-handle"
         >
           @if (isOpen()) {
@@ -100,7 +103,7 @@ import {
         } @else {
         <span
           class="flex-1 truncate cursor-pointer"
-          (click)="toggleOpen.emit()"
+          (mousedown)="toggleOpen.emit()"
         >
           {{ name() }}
         </span>
@@ -126,10 +129,12 @@ import {
         }
       </div>
       <div
+        #contentWrapper
         [@expandCollapse]="isOpen() ? 'open' : 'closed'"
-        class="flex flex-col mt-2 ml-6 transition-all duration-200"
+        class="folder-content flex flex-col mt-2 ml-6 transition-all duration-200"
         (@expandCollapse.start)="onAnimationStart()"
         (@expandCollapse.done)="onAnimationDone()"
+        [style.display]="contentVisible() ? '' : 'none'"
         style="will-change: height, opacity;"
       >
         <ng-content />
@@ -146,10 +151,12 @@ export class TabsListFolderComponent {
   folderRenamed = output<string>();
 
   isEditing = signal(false);
-  animating = false;
+  contentVisible = signal(false);
+  animating = signal(false);
   hasStartedEditingDueToNewState = false;
 
   folderNameInput = viewChild<ElementRef<HTMLInputElement>>('folderNameInput');
+  contentWrapper = viewChild<ElementRef<HTMLDivElement>>('contentWrapper');
 
   constructor() {
     effect(() => {
@@ -166,12 +173,35 @@ export class TabsListFolderComponent {
         this.folderNameInput()!.nativeElement.focus();
       }
     });
+
+    effect(() => {
+      if (this.isOpen()) this.contentVisible.set(true);
+    });
+
+    effect(() => {
+      const wrapperRef = this.contentWrapper();
+      if (!wrapperRef) return;
+
+      const element = wrapperRef.nativeElement;
+      const open = this.isOpen();
+      const animating = this.animating();
+
+      if (open && this.contentVisible() && !animating) {
+        element.style.removeProperty('height');
+        element.style.removeProperty('overflow');
+      } else if (!open && !animating) {
+        element.style.height = '0px';
+        element.style.overflow = 'hidden';
+      }
+    });
   }
 
   onAnimationStart() {
-    this.animating = true;
+    this.animating.set(true);
+    if (!this.contentVisible()) this.contentVisible.set(true);
   }
   onAnimationDone() {
-    this.animating = false;
+    this.animating.set(false);
+    if (!this.isOpen()) this.contentVisible.set(false);
   }
 }
