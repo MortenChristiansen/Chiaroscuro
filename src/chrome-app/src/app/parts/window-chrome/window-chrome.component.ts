@@ -116,6 +116,19 @@ import { CommonModule } from '@angular/common';
           </svg>
         </icon-button>
         <icon-button (onClick)="max()">
+          @if (isMaximized()) {
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="w-4 h-4"
+          >
+            <rect x="8" y="5" width="11" height="11" rx="2" />
+            <rect x="5" y="8" width="11" height="11" rx="2" />
+          </svg>
+          } @else {
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -126,6 +139,7 @@ import { CommonModule } from '@angular/common';
           >
             <rect x="6" y="6" width="12" height="12" rx="2" />
           </svg>
+          }
         </icon-button>
         <icon-button (onClick)="close()">
           <svg
@@ -151,6 +165,8 @@ export default class WindowChromeComponent implements OnInit {
   async ngOnInit() {
     this.api = await loadBackendApi<WindowsChromeApi>();
 
+    this.isMaximized.set(false);
+
     exposeApiToBackend({
       changeAddress: async (url: string | null) => {
         this.address.set(url);
@@ -169,6 +185,7 @@ export default class WindowChromeComponent implements OnInit {
   canGoForward = signal(false);
   address = signal<string | null>(null);
   isLoading = signal(false);
+  isMaximized = signal(false);
 
   api!: WindowsChromeApi;
 
@@ -188,8 +205,9 @@ export default class WindowChromeComponent implements OnInit {
     this.api.minimize();
   }
 
-  max() {
-    this.api.maximize();
+  async max() {
+    await this.api.maximize();
+    this.isMaximized.update((value) => !value);
   }
 
   close() {
