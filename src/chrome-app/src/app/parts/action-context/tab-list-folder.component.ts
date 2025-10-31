@@ -14,6 +14,7 @@ import {
   transition,
   animate,
 } from '@angular/animations';
+import { FolderIconComponent } from './folder-icon.component';
 
 @Component({
   selector: 'tabs-list-folder',
@@ -38,51 +39,10 @@ import {
     >
       <div class="group flex items-center px-2 py-1">
         <button
-          class="mr-2 text-gray-400 hover:text-gray-300 transition-colors drag-handle"
+          class="folder-toggle-button mr-2 text-gray-400 hover:text-gray-300 transition-colors drag-handle"
+          [class.open]="isOpen()"
         >
-          @if (isOpen()) {
-          <!-- Open folder icon -->
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="w-6 h-6"
-          >
-            <!-- Flap -->
-            <path
-              d="M3.5 9.5L5 6.5C5.2 6.1 5.6 5.9 6 5.9h4c.3 0 .6.1.8.3l1.2 1.3c.2.2.5.3.8.3h4.2c.4 0 .8.2 1 .6l1.2 2.1"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              fill="none"
-            />
-            <!-- Open base -->
-            <path
-              d="M3.5 9.5h17c.4 0 .7.3.7.7v.2l-1.1 6.6c-.1.7-.7 1.2-1.4 1.2H5.3c-.7 0-1.3-.5-1.4-1.2l-1.1-6.6v-.2c0-.4.3-.7.7-.7Z"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              fill="none"
-            />
-          </svg>
-          } @else {
-          <!-- Closed folder icon -->
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="w-6 h-6"
-          >
-            <path
-              d="M4 7.5C4 6.7 4.7 6 5.5 6h4c.3 0 .6.1.8.3l1.2 1.3c.2.2.5.3.8.3h5.2c.8 0 1.5.7 1.5 1.5v7.1c0 .8-.7 1.5-1.5 1.5h-13C4.7 18 4 17.3 4 16.5v-9Z"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              fill="none"
-            />
-          </svg>
-          }
+          <folder-icon [isOpen]="isOpen()" />
         </button>
 
         @if (isEditing()) {
@@ -141,6 +101,7 @@ import {
       </div>
     </div>
   `,
+  imports: [FolderIconComponent],
 })
 export class TabsListFolderComponent {
   name = input.required<string>();
