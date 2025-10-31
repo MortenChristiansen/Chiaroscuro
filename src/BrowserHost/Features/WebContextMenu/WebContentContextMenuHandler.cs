@@ -7,8 +7,6 @@ namespace BrowserHost.Features.WebContextMenu;
 
 public partial class WebContentContextMenuHandler : ContextMenuHandler
 {
-    private WebContextMenuWindow? _contextWindow;
-
     protected override void OnBeforeContextMenu(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IContextMenuParams parameters, IMenuModel model)
     {
         // Clear all menu items to disable the default context menu
@@ -18,37 +16,26 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
 
         Application.Current?.Dispatcher.BeginInvoke(() =>
         {
-            CloseExistingInstance();
-
             var owner = MainWindow.Instance;
 
             var cursorPos = VisualDpiUtil.GetCursorPositionInDips(owner);
             var offset = VisualDpiUtil.GetDpiAwareOffset(owner, 12, 12); // 12px right and down, scaled for DPI
-            _contextWindow = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
-            _contextWindow.Prepare(mappedParameters);
-            _contextWindow.Show();
-            _contextWindow.Activate(); // Ensure the menu gets focus so Deactivated will fire on outside click
+            var window = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
+            window.Prepare(mappedParameters);
+            window.Show();
+            window.Activate(); // Ensure the menu gets focus so Deactivated will fire on outside click
 
-            _contextWindow.Deactivated += ContextWindow_Deactivated;
+            window.Deactivated += ContextWindow_Deactivated;
             void ContextWindow_Deactivated(object? s, System.EventArgs e)
             {
-                _contextWindow!.Deactivated -= ContextWindow_Deactivated;
-                CloseExistingInstance();
+                window!.Deactivated -= ContextWindow_Deactivated;
+                window.Close();
             }
         });
     }
 
     private static ContextMenuParameters Map(IContextMenuParams parameters) =>
         new(parameters.LinkUrl);
-
-    private void CloseExistingInstance()
-    {
-        if (_contextWindow != null)
-        {
-            _contextWindow.Close();
-            _contextWindow = null;
-        }
-    }
 
     protected override bool RunContextMenu(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IContextMenuParams parameters, IMenuModel model, IRunContextMenuCallback callback)
     {

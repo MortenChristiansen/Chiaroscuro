@@ -348,7 +348,6 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     {
         try
         {
-            CloseContextMenuWindow();
             PubSub.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
             PubSub.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
             if (_core != null)
@@ -386,8 +385,6 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 
     #region Context Menu Handling
 
-    private WebContextMenuWindow? _contextMenuWindow;
-
     private void Core_ContextMenuRequested(object? sender, CoreWebView2ContextMenuRequestedEventArgs e)
     {
         // Always handle to suppress any default menu
@@ -412,37 +409,25 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 
         Dispatcher.BeginInvoke(() =>
         {
-            CloseContextMenuWindow();
-
             var owner = MainWindow.Instance;
 
             var cursorPos = VisualDpiUtil.GetCursorPositionInDips(owner);
             var offset = VisualDpiUtil.GetDpiAwareOffset(owner, 12, 12); // 12px right and down, scaled for DPI
-            _contextMenuWindow = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
+            var window = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
             var parameters = new ContextMenuParameters(linkUrlSnapshot);
-            _contextMenuWindow.Prepare(parameters);
-            _contextMenuWindow.Show();
-            _contextMenuWindow.Activate(); // Ensure focus so Deactivated fires on outside click
+            window.Prepare(parameters);
+            window.Show();
+            window.Activate(); // Ensure focus so Deactivated fires on outside click
 
             // Hide menu on losing activation and return focus to the owner window
-            _contextMenuWindow.Deactivated += ContextMenuWindow_Deactivated;
+            window.Deactivated += ContextMenuWindow_Deactivated;
 
             void ContextMenuWindow_Deactivated(object? s, EventArgs args)
             {
-                if (_contextMenuWindow == null) return;
-                _contextMenuWindow.Deactivated -= ContextMenuWindow_Deactivated;
-                CloseContextMenuWindow();
+                window.Deactivated -= ContextMenuWindow_Deactivated;
+                window.Close();
             }
         });
-    }
-
-    private void CloseContextMenuWindow()
-    {
-        if (_contextMenuWindow != null)
-        {
-            _contextMenuWindow.Close();
-            _contextMenuWindow = null;
-        }
     }
 
     #endregion
