@@ -14,7 +14,7 @@ import { debounce } from '../../shared/utils';
 import { Stack } from '../../shared/stack';
 import { TabsListFolderComponent } from './tab-list-folder.component';
 import { SortablejsModule } from 'nxt-sortablejs';
-import { Options } from 'sortablejs';
+import { Options, SortableEvent } from 'sortablejs';
 
 interface FolderDto {
   id: string;
@@ -55,7 +55,8 @@ interface FolderDto {
         [isOpen]="folder.isOpen"
         [isNew]="folder.isNew"
         [containsActiveTab]="containsActiveTab(folder)"
-        (toggleOpen)="toggleFolder(folder.id)"
+        [attr.data-folder-id]="folder.id"
+        (toggleOpen)="toggleFolderIfNotDragging(folder.id)"
         (folderRenamed)="renameFolder(folder.id, $event)"
       >
         <div
@@ -78,7 +79,7 @@ interface FolderDto {
     </div>
 
     <div
-      class="w-full h-0.25 mt-2 pt-2 border-t border-white/10"
+      class="w-full h-px mt-2 pt-2 border-t border-white/10"
       style="pointer-events: none;"
     ></div>
 
@@ -99,7 +100,13 @@ interface FolderDto {
       }
     </div>
   `,
-  styles: ``,
+  styles: `
+    .dragging-item .tab-folder,
+    .sortable-drag .tab-folder,
+    .sortable-fallback .tab-folder {
+      display: none !important;
+    }
+  `,
 })
 export class TabsListComponent implements OnInit {
   sortablePersistedTabs: (Tab | FolderDto)[] = [];
@@ -115,11 +122,15 @@ export class TabsListComponent implements OnInit {
   private saveTabsDebounceDelay = 1000;
   private tabActivationOrderStack = new Stack<TabId>();
   private folderOpenState: Record<string, boolean> = {};
+  private isDragging = false;
+  private dragCooldownMs = 250;
+  private lastDragEndedAt = 0;
 
   api!: TabListApi;
 
   sortableOptions: Options = {
     handle: '.drag-handle',
+    dragClass: 'dragging-item',
     animation: 150,
     forceFallback: true,
     group: {
@@ -173,6 +184,14 @@ export class TabsListComponent implements OnInit {
       if (e.from.id === 'ephemeral-tabs') {
         this.ephemeralTabs.set([...this.sortableEphemeralTabs]);
       }
+    },
+    onStart: (evt: SortableEvent) => {
+      this.isDragging = true;
+      this.closeFolderIfNeeded(evt);
+    },
+    onEnd: () => {
+      this.isDragging = false;
+      this.lastDragEndedAt = Date.now();
     },
   };
 
@@ -428,6 +447,15 @@ export class TabsListComponent implements OnInit {
     }
   }
 
+  toggleFolderIfNotDragging(folderId: FolderId): void {
+    const justDragged =
+      this.lastDragEndedAt !== 0 &&
+      Date.now() - this.lastDragEndedAt < this.dragCooldownMs;
+    if (this.isDragging || justDragged) return;
+
+    this.toggleFolder(folderId);
+  }
+
   toggleFolder(folderId: FolderId): void {
     this.persistedTabs.update((current) => {
       return current.map((x) => {
@@ -460,5 +488,15 @@ export class TabsListComponent implements OnInit {
     // Combined with direct DOM mutation from SortableJS this could desync Angular's
     // internal view ordering and cause 'insertBefore' NotFoundError during reconciliation.
     return tabOrFolder.id;
+  }
+
+  private closeFolderIfNeeded(evt: SortableEvent) {
+    const item = evt.item as HTMLElement | undefined;
+    if (!item || item.tagName !== 'TABS-LIST-FOLDER') return;
+
+    const folderId = item.getAttribute('data-folder-id') as FolderId | null;
+    if (!folderId) return;
+
+    if (this.folderOpenState[folderId]) this.toggleFolder(folderId);
   }
 }
