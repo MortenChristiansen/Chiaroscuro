@@ -99,6 +99,9 @@ export default class WindowChromeComponent implements OnInit {
       updateLoadingState: (isLoading: boolean) => {
         this.isLoading.set(isLoading);
       },
+      updateWindowState: (isMaximized: boolean) => {
+        this.isMaximized.set(isMaximized);
+      },
     });
 
     this.api.onLoaded();
