@@ -1,14 +1,19 @@
 import { Component, input, signal, effect } from '@angular/core';
+import { faCog } from '@fortawesome/free-solid-svg-icons';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 
 @Component({
   selector: 'favicon',
   template: `
-    @if (showFallback()) {
+    @let icon = tryGetPageFavicon(src() ?? ''); @if(icon.success) {
+    <fa-icon [icon]="icon.icon" />
+    } @else if (showFallback()) {
     <img [src]="fallbackFavicon" alt="Default favicon" />
     } @else {
     <img [src]="src()" (error)="onLoadError()" alt="Favicon" />
     }
   `,
+  imports: [FaIconComponent],
 })
 export class FaviconComponent {
   src = input<string | null>(null);
@@ -28,5 +33,13 @@ export class FaviconComponent {
 
   onLoadError() {
     this.showFallback.set(true);
+  }
+
+  tryGetPageFavicon(icon: string) {
+    if (icon.toLowerCase() === 'fa:settings') {
+      return { success: true, icon: faCog };
+    }
+
+    return { success: false };
   }
 }
