@@ -18,4 +18,7 @@ public class CustomWindowChromeBrowser : Browser<CustomWindowChromeBrowserApi>
 
     public void UpdateLoadingState(bool isLoading) =>
         CallClientApi("updateLoadingState", isLoading.ToJsonBoolean());
+
+    public void UpdateWindowState(bool isMaximized) =>
+        CallClientApi("updateWindowState", isMaximized.ToJsonBoolean());
 }

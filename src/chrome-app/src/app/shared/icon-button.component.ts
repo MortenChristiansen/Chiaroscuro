@@ -26,7 +26,7 @@ import { Component, input, output } from '@angular/core';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 0.25rem .5rem;
+      padding: 0.15rem 0.35rem;
       cursor: pointer;
       transition: background 0.15s, color 0.15s;
     }

@@ -12,4 +12,5 @@ export interface WindowsChromeApi extends Api {
   copyAddress: () => Promise<void>;
   isLoading: () => Promise<boolean>;
   onLoaded: () => Promise<void>;
+  getIsMaximized: () => Promise<boolean>;
 }
