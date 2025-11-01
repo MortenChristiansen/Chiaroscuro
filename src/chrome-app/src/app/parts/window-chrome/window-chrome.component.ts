@@ -132,7 +132,6 @@ export default class WindowChromeComponent implements OnInit {
 
   async max() {
     await this.api.maximize();
-    this.isMaximized.update((value) => !value);
   }
 
   close() {
