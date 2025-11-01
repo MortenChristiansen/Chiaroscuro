@@ -15,6 +15,7 @@ import { Stack } from '../../shared/stack';
 import { TabsListFolderComponent } from './tab-list-folder.component';
 import { SortablejsModule } from 'nxt-sortablejs';
 import { Options, SortableEvent } from 'sortablejs';
+import { animate, style, transition, trigger } from '@angular/animations';
 
 interface FolderDto {
   id: string;
@@ -24,6 +25,16 @@ interface FolderDto {
   tabs: Tab[];
 }
 
+const TAB_ANIMATION = trigger('tabMotion', [
+  transition(':enter', [
+    style({ opacity: 0, transform: 'scale(0.95)' }),
+    animate('200ms ease-out', style({ opacity: 1, transform: 'scale(1)' })),
+  ]),
+  transition(':leave', [
+    animate('200ms ease-in', style({ opacity: 0, transform: 'scale(0.95)' })),
+  ]),
+]);
+
 @Component({
   selector: 'tabs-list',
   imports: [
@@ -32,12 +43,14 @@ interface FolderDto {
     TabsListFolderComponent,
     SortablejsModule,
   ],
+  animations: [TAB_ANIMATION],
   template: `
     <div
       id="persistent-tabs"
       class="flex flex-col gap-1 mt-2"
       [nxtSortablejs]="sortablePersistedTabs"
       [config]="sortableOptions"
+      [@.disabled]="animationsSuspended()"
     >
       @for (tabOrFolder of sortablePersistedTabs; track
       getTrackingKey(tabOrFolder, $index)) { @if (!isFolder(tabOrFolder)) { @let
@@ -48,6 +61,7 @@ interface FolderDto {
         [customization]="getTabCustomization(tab)"
         (selectTab)="activeTabId.set(tab.id)"
         (closeTab)="closeTab(tab.id, true)"
+        [@tabMotion]="'in'"
       />
       } @else { @let folder = tabOrFolder;
       <tabs-list-folder
@@ -63,6 +77,7 @@ interface FolderDto {
           class="flex flex-col gap-2 tab-folder"
           [nxtSortablejs]="folder.tabs"
           [config]="sortableOptions"
+          [@.disabled]="animationsSuspended()"
         >
           @for (tab of folder.tabs; track tab.id) {
           <tabs-list-tab
@@ -71,6 +86,7 @@ interface FolderDto {
             [customization]="getTabCustomization(tab)"
             (selectTab)="activeTabId.set(tab.id)"
             (closeTab)="closeTab(tab.id, true)"
+            [@tabMotion]="'in'"
           />
           }
         </div>
@@ -88,6 +104,7 @@ interface FolderDto {
       class="flex flex-col gap-2"
       [nxtSortablejs]="sortableEphemeralTabs"
       [config]="sortableOptions"
+      [@.disabled]="animationsSuspended()"
     >
       @for (tab of sortableEphemeralTabs; track getTrackingKey(tab, $index)) {
       <tabs-list-tab
@@ -96,6 +113,7 @@ interface FolderDto {
         [customization]="getTabCustomization(tab)"
         (selectTab)="activeTabId.set(tab.id)"
         (closeTab)="closeTab(tab.id, true)"
+        [@tabMotion]="'in'"
       />
       }
     </div>
@@ -122,9 +140,11 @@ export class TabsListComponent implements OnInit {
   private saveTabsDebounceDelay = 1000;
   private tabActivationOrderStack = new Stack<TabId>();
   private folderOpenState: Record<string, boolean> = {};
-  private isDragging = false;
+  readonly isDragging = signal(false);
+  readonly animationsSuspended = signal(false);
   private dragCooldownMs = 250;
   private lastDragEndedAt = 0;
+  private dragAnimationReleaseTimer: number | undefined;
 
   api!: TabListApi;
 
@@ -186,12 +206,14 @@ export class TabsListComponent implements OnInit {
       }
     },
     onStart: (evt: SortableEvent) => {
-      this.isDragging = true;
+      this.isDragging.set(true);
+      this.suspendAnimations();
       this.closeFolderIfNeeded(evt);
     },
     onEnd: () => {
-      this.isDragging = false;
+      this.isDragging.set(false);
       this.lastDragEndedAt = Date.now();
+      this.releaseAnimationsSoon();
     },
   };
 
@@ -451,7 +473,7 @@ export class TabsListComponent implements OnInit {
     const justDragged =
       this.lastDragEndedAt !== 0 &&
       Date.now() - this.lastDragEndedAt < this.dragCooldownMs;
-    if (this.isDragging || justDragged) return;
+    if (this.isDragging() || justDragged) return;
 
     this.toggleFolder(folderId);
   }
@@ -498,5 +520,24 @@ export class TabsListComponent implements OnInit {
     if (!folderId) return;
 
     if (this.folderOpenState[folderId]) this.toggleFolder(folderId);
+  }
+
+  private suspendAnimations() {
+    this.animationsSuspended.set(true);
+    if (this.dragAnimationReleaseTimer !== undefined) {
+      clearTimeout(this.dragAnimationReleaseTimer);
+      this.dragAnimationReleaseTimer = undefined;
+    }
+  }
+
+  private releaseAnimationsSoon() {
+    if (this.dragAnimationReleaseTimer !== undefined) {
+      clearTimeout(this.dragAnimationReleaseTimer);
+    }
+    // Hold animations disabled briefly so SortableJS DOM swaps don't trigger fades.
+    this.dragAnimationReleaseTimer = window.setTimeout(() => {
+      this.animationsSuspended.set(false);
+      this.dragAnimationReleaseTimer = undefined;
+    }, 50);
   }
 }
