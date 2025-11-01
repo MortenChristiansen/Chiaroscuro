@@ -1,6 +1,7 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Logging;
 using BrowserHost.Utilities;
+using System.Windows;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
@@ -43,4 +44,7 @@ public class CustomWindowChromeBrowserApi : BrowserApi
 
     public void OnLoaded() =>
         Measure.Event("Window chrome frontend loaded");
+
+    public bool GetIsMaximized() =>
+        MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.WindowState == WindowState.Maximized);
 }

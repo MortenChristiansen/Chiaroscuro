@@ -23,27 +23,6 @@ import { CommonModule } from '@angular/common';
           "
         >
           <favicon [src]="tab.favicon" class="w-5 h-5" />
-          <button
-            class="close-button absolute top-0 right-0 opacity-0 hover:opacity-100 transition-opacity duration-150 text-gray-400 hover:text-gray-300 p-0.5 rounded bg-gray-900/80"
-            (click)="$event.stopPropagation(); api.unpinTab(tab.id)"
-            aria-label="Unpin tab"
-            tabindex="-1"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 20 20"
-              stroke-width="2"
-              stroke="currentColor"
-              class="w-3 h-3"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M6 6l8 8M6 14L14 6"
-              />
-            </svg>
-          </button>
         </div>
         }
       </div>

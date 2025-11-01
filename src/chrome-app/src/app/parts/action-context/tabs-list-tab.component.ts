@@ -14,7 +14,7 @@ import { FaviconComponent } from '../../shared/favicon.component';
       }"
       (click)="onSelectTab()"
     >
-      <favicon [src]="tab().favicon" class="drag-handle w-4 h-4 mr-2" />
+      <favicon [src]="tab().favicon" class="drag-handle w-4 h-4 mr-3" />
       <span class="truncate flex-1">{{
         customization()?.customTitle ?? tab().title ?? 'Loading...'
       }}</span>

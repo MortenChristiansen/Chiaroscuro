@@ -11,7 +11,6 @@ using Microsoft.Web.WebView2.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -54,7 +53,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private int _lastX = -1, _lastY = -1, _lastW = -1, _lastH = -1;
 
     private static readonly DependencyProperty AddressProperty = DependencyProperty.Register(
-        nameof(Address), typeof(string), typeof(WebView2Browser), new PropertyMetadata(string.Empty));
+        nameof(Address), typeof(string), typeof(WebView2Browser), new PropertyMetadata(string.Empty)
+    );
 
     public event DependencyPropertyChangedEventHandler? AddressChanged;
     public event EventHandler? PageLoadEnded;
@@ -348,7 +348,6 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     {
         try
         {
-            CloseContextMenuWindow();
             PubSub.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
             PubSub.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
             if (_core != null)
@@ -386,9 +385,6 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 
     #region Context Menu Handling
 
-    private WebContextMenuWindow? _contextMenuWindow;
-    private Window? _contextMenuOwnerHookedWindow;
-
     private void Core_ContextMenuRequested(object? sender, CoreWebView2ContextMenuRequestedEventArgs e)
     {
         // Always handle to suppress any default menu
@@ -413,71 +409,26 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 
         Dispatcher.BeginInvoke(() =>
         {
-            CloseContextMenuWindow();
-
             var owner = MainWindow.Instance;
 
             var cursorPos = VisualDpiUtil.GetCursorPositionInDips(owner);
             var offset = VisualDpiUtil.GetDpiAwareOffset(owner, 12, 12); // 12px right and down, scaled for DPI
-            _contextMenuWindow = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
+            var window = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
             var parameters = new ContextMenuParameters(linkUrlSnapshot);
-            _contextMenuWindow.Prepare(parameters);
-            _contextMenuWindow.Show();
+            window.Prepare(parameters);
+            window.Show();
+            window.Activate(); // Ensure focus so Deactivated fires on outside click
 
-            AttachOutsideClickHandlers(owner);
+            // Hide menu on losing activation and return focus to the owner window
+            window.Deactivated += ContextMenuWindow_Deactivated;
+
+            void ContextMenuWindow_Deactivated(object? s, EventArgs args)
+            {
+                window.Deactivated -= ContextMenuWindow_Deactivated;
+                window.Close();
+            }
         });
     }
-
-    private void CloseContextMenuWindow()
-    {
-        DetachOutsideClickHandlers();
-        if (_contextMenuWindow != null)
-        {
-            try { _contextMenuWindow.Close(); } catch { }
-            _contextMenuWindow = null;
-        }
-    }
-
-    private void AttachOutsideClickHandlers(Window owner)
-    {
-        if (_contextMenuOwnerHookedWindow != owner)
-        {
-            DetachOutsideClickHandlers();
-            _contextMenuOwnerHookedWindow = owner;
-            _contextMenuOwnerHookedWindow.PreviewMouseDown += OtherWindow_PreviewMouseDown;
-
-            foreach (var window in OverlayWindow.Instances.Where(i => i != _contextMenuWindow))
-                window.PreviewMouseDown += OtherWindow_PreviewMouseDown;
-        }
-
-        if (_contextMenuWindow != null)
-        {
-            _contextMenuWindow.Deactivated += ContextWindow_Deactivated;
-        }
-    }
-
-    private void DetachOutsideClickHandlers()
-    {
-        if (_contextMenuOwnerHookedWindow != null)
-        {
-            _contextMenuOwnerHookedWindow.PreviewMouseDown -= OtherWindow_PreviewMouseDown;
-            _contextMenuOwnerHookedWindow = null;
-
-            foreach (var window in OverlayWindow.Instances.Where(i => i != _contextMenuWindow))
-                window.PreviewMouseDown -= OtherWindow_PreviewMouseDown;
-        }
-
-        if (_contextMenuWindow != null)
-        {
-            _contextMenuWindow.Deactivated -= ContextWindow_Deactivated;
-        }
-    }
-
-    private void OtherWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e) =>
-        CloseContextMenuWindow();
-
-    private void ContextWindow_Deactivated(object? sender, EventArgs e) =>
-        CloseContextMenuWindow();
 
     #endregion
 }

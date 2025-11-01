@@ -1,14 +1,12 @@
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Interop;
 using BrowserHost.Utilities;
-using CefSharp;
 using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
@@ -27,7 +25,7 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
 
         Window.ResizeBorder.PreviewMouseMove += ResizeBorder_PreviewMouseMove;
         Window.ResizeBorder.PreviewMouseLeftButtonDown += ResizeBorder_PreviewMouseLeftButtonDown;
-        Window.StateChanged += Window_StateChangedCapture;
+        Window.StateChanged += Window_StateChanged;
         Window.LocationChanged += (_, __) => CaptureNormalBounds();
         Window.SizeChanged += (_, __) => CaptureNormalBounds();
 
@@ -54,10 +52,13 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         }
     }
 
-    private void Window_StateChangedCapture(object? sender, EventArgs e)
+    private void Window_StateChanged(object? sender, EventArgs e)
     {
+        var isMaximized = Window.WindowState == WindowState.Maximized;
+        Window.ChromeUI.UpdateWindowState(isMaximized);
+
         // When transitioning to maximized ensure we have latest normal bounds (already handled by capture logic, but explicit call is cheap)
-        if (Window.WindowState == WindowState.Maximized)
+        if (isMaximized)
             CaptureNormalBounds();
         // Do NOT manually set size/position here; rely on normal WPF + WM_GETMINMAXINFO for proper maximize.
     }
