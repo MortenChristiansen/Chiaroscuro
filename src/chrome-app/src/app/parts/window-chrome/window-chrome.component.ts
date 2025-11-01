@@ -87,7 +87,7 @@ export default class WindowChromeComponent implements OnInit {
   async ngOnInit() {
     this.api = await loadBackendApi<WindowsChromeApi>();
 
-    this.isMaximized.set(false);
+    this.isMaximized.set(await this.api.getIsMaximized());
 
     exposeApiToBackend({
       changeAddress: async (url: string | null) => {
