@@ -1,87 +1,41 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
-import { WindowsChromeApi } from './windowChromeApi';
-import { IconButtonComponent } from '../../shared/icon-button.component';
 import { CommonModule } from '@angular/common';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import {
+  faArrowLeft,
+  faArrowRight,
+  faArrowRotateRight,
+  faCopy,
+  faMinus,
+  faSpinner,
+  faWindowMaximize,
+  faWindowRestore,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons';
+import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
+import { IconButtonComponent } from '../../shared/icon-button.component';
+import { WindowsChromeApi } from './windowChromeApi';
 
 @Component({
   selector: 'window-chrome',
-  imports: [IconButtonComponent, CommonModule],
+  imports: [IconButtonComponent, CommonModule, FaIconComponent],
   template: `
-    <div class="flex items-center gap-4 align-middle select-none">
+    <div class="flex items-center gap-4 select-none">
       <div class="address-bar flex flex-1 items-center gap-1 justify-center">
         <icon-button [disabled]="!address() || !canGoBack()" (onClick)="back()">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="w-4 h-4 rotate-180"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M12.293 15.707a1 1 0 010-1.414L15.586 11H4a1 1 0 110-2h11.586l-3.293-3.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <fa-icon size="xs" [icon]="backIcon" />
         </icon-button>
         <icon-button
           [disabled]="!address() || !canGoForward()"
           (onClick)="forward()"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="w-4 h-4"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M12.293 15.707a1 1 0 010-1.414L15.586 11H4a1 1 0 110-2h11.586l-3.293-3.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <fa-icon size="xs" [icon]="forwardIcon" />
         </icon-button>
         <icon-button [disabled]="!address()" (onClick)="reload()">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            class="w-4 h-4"
-          >
-            <path
-              d="M4 10a6 6 0 1 1 2.2 4.6"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <polyline
-              points="5 17 5 13 9 13"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+          <fa-icon size="xs" [icon]="reloadIcon" />
         </icon-button>
         <icon-button [disabled]="!address()" (onClick)="copyAddress()">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 20 20"
-            stroke-width="2"
-            stroke="currentColor"
-            class="w-4 h-4"
-          >
-            <rect x="7" y="7" width="9" height="9" rx="2" />
-            <rect
-              x="4"
-              y="4"
-              width="9"
-              height="9"
-              rx="2"
-              fill="none"
-              stroke-dasharray="2 2"
-            />
-          </svg>
+          <fa-icon size="xs" [icon]="copyIcon" />
         </icon-button>
         <span
           class="address mx-4 font-sans text-sm text-gray-200 max-w-[400px] truncate"
@@ -92,76 +46,44 @@ import { CommonModule } from '@angular/common';
           <span>{{ url }}</span>
           }
         </span>
-        <div
-          class="loading-indicator w-2 h-2 rounded-full bg-gray-400 mr-2 transition-opacity duration-200"
+        <fa-icon
           aria-label="Loading page"
-          [ngClass]="isLoading() ? 'opacity-100' : 'opacity-0'"
-        ></div>
+          class="loading-indicator mr-2 text-white transition-opacity duration-200 animate-spin"
+          [class.opacity-100]="isLoading()"
+          [class.opacity-0]="!isLoading()"
+          size="xs"
+          [icon]="spinnerIcon"
+        />
       </div>
       <div class="window-controls flex gap-1 ml-auto">
         <icon-button (onClick)="min()">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="w-4 h-4"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M6 18L18 18"
-            />
-          </svg>
+          <fa-icon size="xs" [icon]="minimizeIcon" />
         </icon-button>
         <icon-button (onClick)="max()">
           @if (isMaximized()) {
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="w-4 h-4"
-          >
-            <rect x="8" y="5" width="11" height="11" rx="2" />
-            <rect x="5" y="8" width="11" height="11" rx="2" />
-          </svg>
+          <fa-icon size="xs" [icon]="restoreIcon" />
           } @else {
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="w-4 h-4"
-          >
-            <rect x="6" y="6" width="12" height="12" rx="2" />
-          </svg>
+          <fa-icon size="xs" [icon]="maximizeIcon" />
           }
         </icon-button>
         <icon-button (onClick)="close()">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="w-4 h-4"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M6 6l12 12M6 18L18 6"
-            />
-          </svg>
+          <fa-icon size="xs" [icon]="closeIcon" />
         </icon-button>
       </div>
     </div>
   `,
 })
 export default class WindowChromeComponent implements OnInit {
+  protected readonly backIcon = faArrowLeft;
+  protected readonly forwardIcon = faArrowRight;
+  protected readonly reloadIcon = faArrowRotateRight;
+  protected readonly copyIcon = faCopy;
+  protected readonly spinnerIcon = faSpinner;
+  protected readonly minimizeIcon = faMinus;
+  protected readonly restoreIcon = faWindowRestore;
+  protected readonly maximizeIcon = faWindowMaximize;
+  protected readonly closeIcon = faXmark;
+
   async ngOnInit() {
     this.api = await loadBackendApi<WindowsChromeApi>();
 
