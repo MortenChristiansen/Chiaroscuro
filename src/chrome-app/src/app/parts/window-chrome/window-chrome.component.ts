@@ -14,14 +14,22 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { IconButtonComponent } from '../../shared/icon-button.component';
+import UrlDisplayComponent from './url-display.component';
 import { WindowsChromeApi } from './windowChromeApi';
 
 @Component({
   selector: 'window-chrome',
-  imports: [IconButtonComponent, CommonModule, FaIconComponent],
+  imports: [
+    IconButtonComponent,
+    UrlDisplayComponent,
+    CommonModule,
+    FaIconComponent,
+  ],
   template: `
-    <div class="flex items-center gap-4 select-none">
-      <div class="address-bar flex flex-1 items-center gap-1 justify-center">
+    <div
+      class="grid w-full grid-cols-[auto_auto_auto] items-center gap-2 select-none"
+    >
+      <div class="flex items-center gap-1">
         <icon-button [disabled]="!address() || !canGoBack()" (onClick)="back()">
           <fa-icon size="xs" [icon]="backIcon" />
         </icon-button>
@@ -37,25 +45,19 @@ import { WindowsChromeApi } from './windowChromeApi';
         <icon-button [disabled]="!address()" (onClick)="copyAddress()">
           <fa-icon size="xs" [icon]="copyIcon" />
         </icon-button>
-        <span
-          class="address mx-4 font-sans text-sm text-gray-200 max-w-[400px] truncate"
-        >
-          @let url = address(); @if (url === null) {
-          <span class="italic text-gray-400">Press ctrl-t to start</span>
-          } @else {
-          <span>{{ url }}</span>
-          }
-        </span>
         <fa-icon
           aria-label="Loading page"
-          class="loading-indicator mr-2 text-white transition-opacity duration-200 animate-spin"
+          class="loading-indicator ml-2 text-white transition-opacity duration-200 animate-spin"
           [class.opacity-100]="isLoading()"
           [class.opacity-0]="!isLoading()"
           size="xs"
           [icon]="spinnerIcon"
         />
       </div>
-      <div class="window-controls flex gap-1 ml-auto">
+      <div class="min-w-0 justify-self-center max-w-[60%]">
+        <url-display class="block min-w-0" [url]="address()" />
+      </div>
+      <div class="window-controls flex gap-1 justify-self-end">
         <icon-button (onClick)="min()">
           <fa-icon size="xs" [icon]="minimizeIcon" />
         </icon-button>
