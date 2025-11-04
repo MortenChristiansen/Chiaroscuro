@@ -11,6 +11,7 @@ import {
   faGlobe,
   faLock,
   faLockOpen,
+  faSliders,
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -156,6 +157,15 @@ export default class UrlDisplayComponent {
         icon: faFile,
         display,
         iconTitle: 'Local file',
+      } satisfies UrlViewModel;
+    }
+
+    if (/^\/[a-z0-9-]+/i.test(trimmed)) {
+      return {
+        kind: 'other',
+        icon: faSliders,
+        display: trimmed,
+        iconTitle: 'System page',
       } satisfies UrlViewModel;
     }
 
