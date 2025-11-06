@@ -55,7 +55,7 @@ import { WindowsChromeApi } from './windowChromeApi';
         />
       </div>
       <div class="min-w-0 justify-self-center max-w-[60%]">
-        <url-display class="block min-w-0" [url]="address()" />
+        <url-display [url]="address()" />
       </div>
       <div class="window-controls flex gap-1 justify-self-end">
         <icon-button (onClick)="min()">

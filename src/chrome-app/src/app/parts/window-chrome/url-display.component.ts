@@ -108,50 +108,48 @@ export default class UrlDisplayComponent {
   readonly url = input<string | null>(null);
 
   readonly viewModel = computed<UrlViewModel | null>(() => {
-    const raw = this.url();
-    if (raw === null) {
+    const rawUrl = this.url();
+    if (rawUrl === null) {
       return null;
     }
 
-    const trimmed = raw.trim();
-    if (trimmed.length === 0) {
+    const normalizedUrl = rawUrl.trim().toLowerCase();
+    if (normalizedUrl.length === 0) {
       return null;
     }
-
-    const normalizedScheme = trimmed.toLowerCase();
 
     if (
-      normalizedScheme.startsWith('http://') ||
-      normalizedScheme.startsWith('https://')
+      normalizedUrl.startsWith('http://') ||
+      normalizedUrl.startsWith('https://')
     ) {
       try {
-        const parsed = new URL(trimmed);
-        const path = this.parsePath(parsed);
-        const pathTitle = this.parsePathWithParams(parsed);
-        const iconTitle = normalizedScheme.startsWith('https://')
+        const parsed = new URL(normalizedUrl);
+        const path = parsed.pathname === '/' ? null : parsed.pathname;
+        const isSecure = normalizedUrl.startsWith('https://');
+        const iconTitle = isSecure
           ? 'Secure connection (HTTPS)'
           : 'Insecure connection (HTTP)';
 
         return {
           kind: 'web',
-          icon: normalizedScheme.startsWith('https://') ? faLock : faLockOpen,
+          icon: isSecure ? faLock : faLockOpen,
           domain: parsed.host,
           path,
-          pathTitle,
+          pathTitle: rawUrl,
           iconTitle,
         } satisfies UrlViewModel;
       } catch {
         return {
           kind: 'other',
           icon: faGlobe,
-          display: trimmed,
+          display: normalizedUrl,
           iconTitle: 'Invalid web address',
         } satisfies UrlViewModel;
       }
     }
 
-    if (normalizedScheme.startsWith('file://')) {
-      const display = this.parseFileUrl(trimmed);
+    if (normalizedUrl.startsWith('file://')) {
+      const display = this.parseFileUrl(normalizedUrl);
       return {
         kind: 'file',
         icon: faFile,
@@ -160,11 +158,11 @@ export default class UrlDisplayComponent {
       } satisfies UrlViewModel;
     }
 
-    if (/^\/[a-z0-9-]+/i.test(trimmed)) {
+    if (/^\/[a-z0-9-]+/i.test(normalizedUrl)) {
       return {
         kind: 'other',
         icon: faSliders,
-        display: trimmed,
+        display: normalizedUrl,
         iconTitle: 'System page',
       } satisfies UrlViewModel;
     }
@@ -172,24 +170,10 @@ export default class UrlDisplayComponent {
     return {
       kind: 'other',
       icon: faGlobe,
-      display: trimmed,
+      display: normalizedUrl,
       iconTitle: 'Unknown protocol',
     } satisfies UrlViewModel;
   });
-
-  private parsePath(url: URL): string | null {
-    let displayPath = url.pathname === '/' ? '' : url.pathname;
-
-    if (displayPath.length === 0) {
-      return null;
-    }
-
-    return displayPath;
-  }
-
-  private parsePathWithParams(url: URL): string | null {
-    return url.toString();
-  }
 
   private parseFileUrl(value: string): string {
     try {
