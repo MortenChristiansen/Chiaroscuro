@@ -1,8 +1,9 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { faCopy } from '@fortawesome/free-solid-svg-icons';
-import { exposeApiToBackend } from '../interfaces/api';
+import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { ContextMenuParameters } from './server-models';
+import { ContextMenuApi } from './contextMenuApi';
 
 @Component({
   selector: 'context-menu',
@@ -38,7 +39,11 @@ export default class ContextMenuComponent implements OnInit {
   protected parameters = signal<ContextMenuParameters>({});
   protected readonly copyIcon = faCopy;
 
-  ngOnInit() {
+  private api!: ContextMenuApi;
+
+  async ngOnInit() {
+    this.api = await loadBackendApi<ContextMenuApi>('api');
+
     exposeApiToBackend({
       setParameters: (parameters: ContextMenuParameters) => {
         this.parameters.set(parameters);
@@ -52,5 +57,6 @@ export default class ContextMenuComponent implements OnInit {
     }
 
     await navigator.clipboard.writeText(link);
+    await this.api.dismissContextMenu();
   }
 }
