@@ -234,7 +234,6 @@ import {
             [class.border-blue-200]="activeSuggestionIndex() === index"
             [class.text-slate-900]="activeSuggestionIndex() === index"
             [class.shadow-sm]="activeSuggestionIndex() === index"
-            (mouseenter)="highlightSuggestion(index)"
             (click)="selectSuggestion(suggestion)"
             [@suggestionItem]="'active'"
           >
@@ -482,21 +481,6 @@ export default class ActionDialogComponent implements OnInit {
     this.suppressInitialSelection.set(false);
     this.activeSuggestionIndex.set(nextIndex);
     void this.evaluateActionType(suggestions[nextIndex].address);
-  }
-
-  highlightSuggestion(index: number) {
-    if (index < 0 || index >= this.suggestions().length) {
-      return;
-    }
-
-    this.hasManualNavigation.set(true);
-    this.suppressInitialSelection.set(false);
-    this.activeSuggestionIndex.set(index);
-    const items = this.suggestions();
-    const suggestion = items[index];
-    if (suggestion) {
-      void this.evaluateActionType(suggestion.address);
-    }
   }
 
   selectSuggestion(suggestion: NavigationSuggestion) {
