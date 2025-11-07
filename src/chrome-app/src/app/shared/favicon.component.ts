@@ -15,6 +15,16 @@ import { FaIconComponent } from '@fortawesome/angular-fontawesome';
   `,
   imports: [FaIconComponent],
   styles: `
+      :host {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      fa-icon {
+        display: block;
+      }
+
       img {
         height: 100%;
         width: 100%;

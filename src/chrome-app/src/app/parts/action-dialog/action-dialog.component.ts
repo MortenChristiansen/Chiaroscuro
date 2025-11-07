@@ -16,10 +16,17 @@ import { loadBackendApi, exposeApiToBackend } from '../interfaces/api';
 import { CommonModule } from '@angular/common';
 import { debounce } from '../../shared/utils';
 import { FaviconComponent } from '../../shared/favicon.component';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import {
+  faArrowRight,
+  faMagnifyingGlass,
+  faMapLocationDot,
+  faWindowRestore,
+} from '@fortawesome/free-solid-svg-icons';
 
 @Component({
   selector: 'action-dialog',
-  imports: [CommonModule, FaviconComponent],
+  imports: [CommonModule, FaviconComponent, FaIconComponent],
   template: `
     <div
       class="fixed inset-0 z-1000 bg-transparent"
@@ -72,7 +79,7 @@ import { FaviconComponent } from '../../shared/favicon.component';
         >
           <div class="flex items-center gap-3">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-inset transition-colors"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-inset transition-colors leading-none"
               [class.text-emerald-600]="summary.accent === 'emerald'"
               [class.text-amber-600]="summary.accent === 'amber'"
               [class.text-violet-500]="summary.accent === 'violet'"
@@ -83,61 +90,33 @@ import { FaviconComponent } from '../../shared/favicon.component';
               [class.ring-slate-200]="summary.accent === 'slate'"
             >
               @switch (summary.state) { @case ('navigate') {
-              <svg
-                class="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+              <fa-icon
+                class="block h-4 w-4"
+                [icon]="navigateIcon"
                 aria-hidden="true"
-              >
-                <path d="M5 10h8m0 0-3-3m3 3-3 3" />
-              </svg>
+                [fixedWidth]="true"
+              />
               } @case ('system') {
-              <svg
-                class="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+              <fa-icon
+                class="block h-4 w-4"
+                [icon]="systemIcon"
                 aria-hidden="true"
-              >
-                <rect x="4" y="5" width="12" height="10" rx="2" />
-                <path d="M4 8.5h12" />
-              </svg>
+                [fixedWidth]="true"
+              />
               } @case ('search') {
-              <svg
-                class="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+              <fa-icon
+                class="block h-4 w-4"
+                [icon]="searchIcon"
                 aria-hidden="true"
-              >
-                <circle cx="9" cy="9" r="4" />
-                <path d="m12.5 12.5 3 3" />
-              </svg>
-              } @case ('pending') {
-              <svg
-                class="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                [fixedWidth]="true"
+              />
+              } @case ('ready') {
+              <fa-icon
+                class="block h-4 w-4"
+                [icon]="readyIcon"
                 aria-hidden="true"
-              >
-                <path
-                  d="M10 4v2m0 8v2m6-6h-2M6 10H4m9.07-4.07-1.42 1.42M8.35 13.07 6.93 14.5m7.14-1.43 1.43 1.43M6.93 6.93 8.35 8.35"
-                />
-              </svg>
+                [fixedWidth]="true"
+              />
               } }
             </div>
             <div class="min-w-0 flex-1">
@@ -230,6 +209,10 @@ export default class ActionDialogComponent implements OnInit {
   private readonly hasManualNavigation = signal(false);
   private readonly suppressInitialSelection = signal(true);
   readonly actionType = signal<ActionType | null>(null);
+  readonly navigateIcon = faArrowRight;
+  readonly systemIcon = faWindowRestore;
+  readonly searchIcon = faMagnifyingGlass;
+  readonly readyIcon = faMapLocationDot;
   readonly activeSuggestion = computed(() => {
     const items = this.suggestions();
     const index = this.activeSuggestionIndex();
@@ -241,10 +224,10 @@ export default class ActionDialogComponent implements OnInit {
 
     if (!rawValue) {
       return {
-        state: 'pending' as const,
+        state: 'ready' as const,
         title: 'Ready for your next move',
         subtitle: 'Type to search or navigate to a page.',
-        badge: 'Pending',
+        badge: 'Ready',
         accent: 'slate',
       };
     }
