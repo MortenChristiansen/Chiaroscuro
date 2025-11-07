@@ -29,7 +29,12 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
             void ContextWindow_Deactivated(object? s, System.EventArgs e)
             {
                 window!.Deactivated -= ContextWindow_Deactivated;
-                window.Close();
+                try // If closed elsewhere this will throw
+                {
+                    window.Close();
+                }
+                catch
+                { }
             }
         });
     }

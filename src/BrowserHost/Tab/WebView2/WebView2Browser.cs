@@ -425,7 +425,12 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             void ContextMenuWindow_Deactivated(object? s, EventArgs args)
             {
                 window.Deactivated -= ContextMenuWindow_Deactivated;
-                window.Close();
+                try // If closed elsewhere this will throw
+                {
+                    window.Close();
+                }
+                catch
+                { }
             }
         });
     }
