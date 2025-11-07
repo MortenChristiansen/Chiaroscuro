@@ -14,6 +14,12 @@ import { FaIconComponent } from '@fortawesome/angular-fontawesome';
     }
   `,
   imports: [FaIconComponent],
+  styles: `
+      img {
+        height: 100%;
+        width: 100%;
+      }
+    `,
 })
 export class FaviconComponent {
   src = input<string | null>(null);

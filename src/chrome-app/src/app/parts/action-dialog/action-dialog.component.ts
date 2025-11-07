@@ -2,9 +2,10 @@ import {
   Component,
   ElementRef,
   OnInit,
-  viewChild,
-  signal,
+  computed,
   effect,
+  signal,
+  viewChild,
 } from '@angular/core';
 import { ActionDialogApi, NavigationSuggestion } from './actionDialogApi';
 import { loadBackendApi, exposeApiToBackend } from '../interfaces/api';
@@ -17,73 +18,181 @@ import { FaviconComponent } from '../../shared/favicon.component';
   imports: [CommonModule, FaviconComponent],
   template: `
     <div
-      class="fixed inset-0 bg-transparent z-1000"
+      class="fixed inset-0 z-1000 bg-transparent"
       (click)="api.dismissActionDialog()"
     ></div>
     <div
-      class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-1001 bg-white/95 rounded-2xl shadow-2xl p-8 min-w-[350px] flex flex-col items-center"
-      (keydown.esc)="api.dismissActionDialog()"
+      class="fixed left-1/2 top-1/2 z-1001 w-120 max-w-[90vw] -translate-x-1/2 -translate-y-1/2"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="action-dialog-title"
     >
-      <input
-        class="w-30rem text-lg px-4 py-3 rounded-lg border border-gray-300 outline-none shadow-sm bg-white/80 placeholder-gray-400"
-        placeholder="Where to?"
-        type="text"
-        (keydown)="onKeyDown($event)"
-        (input)="onInputChange($event)"
-        spellcheck="false"
-        #dialog
-      />
-      @if (suggestions().length > 0) {
       <div
-        class="w-30rem mt-2 bg-white rounded-lg border border-gray-200 shadow-lg max-h-64 overflow-y-auto"
+        class="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-2xl"
       >
-        @for (suggestion of suggestions(); track suggestion.address) {
+        <header class="flex flex-col gap-1">
+          <h2
+            id="action-dialog-title"
+            class="text-lg font-semibold text-slate-900"
+          >
+            Quick action
+          </h2>
+          <p class="text-sm text-slate-500">
+            Jump straight to a tab, workspace, or command.
+          </p>
+        </header>
+        <div class="relative">
+          <input
+            #dialog
+            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            placeholder="Where to?"
+            type="text"
+            [value]="inputValue()"
+            (input)="onInputChange($event)"
+            (keydown)="onKeyDown($event)"
+            spellcheck="false"
+            role="combobox"
+            autocomplete="off"
+            aria-autocomplete="list"
+            [attr.aria-expanded]="suggestions().length > 0"
+            [attr.aria-controls]="
+              suggestions().length > 0 ? 'action-dialog-options' : null
+            "
+            [attr.aria-activedescendant]="
+              activeSuggestionIndex() >= 0
+                ? 'action-dialog-option-' + activeSuggestionIndex()
+                : null
+            "
+          />
+        </div>
+        @let active = activeSuggestion(); @if (active) {
         <div
-          class="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-          [class.bg-blue-50]="$index === activeSuggestionIndex()"
-          (click)="selectSuggestion(suggestion)"
+          class="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-600"
         >
-          <favicon [src]="suggestion.favicon" class="w-4 h-4 mr-3 shrink-0" />
-          <div class="flex-1 min-w-0">
-            <div class="font-medium text-gray-900 truncate">
-              {{ suggestion.title }}
+          <div class="flex items-center gap-3">
+            <div
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-blue-500 ring-1 ring-inset ring-blue-200"
+            >
+              <span class="text-xs font-semibold">✓</span>
             </div>
-            <div class="text-sm text-gray-500 truncate">
-              {{ suggestion.address }}
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-medium text-slate-900">
+                {{ active.title }}
+              </p>
+              <p class="truncate text-xs text-slate-500">
+                {{ active.address }}
+              </p>
             </div>
+            <span
+              class="text-xs font-semibold uppercase tracking-wide text-blue-500"
+            >
+              Selected
+            </span>
           </div>
+        </div>
+        } @if (suggestions().length === 0) {
+        <div
+          class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500"
+        >
+          Start typing to see suggestions.
+        </div>
+        } @else {
+        <div
+          id="action-dialog-options"
+          role="listbox"
+          class="max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1"
+        >
+          @for (suggestion of suggestions(); track suggestion.address; let index
+          = $index) {
+          <button
+            type="button"
+            id="action-dialog-option-{{ index }}"
+            role="option"
+            class="flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-left text-slate-600 transition hover:border-slate-200 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            [attr.aria-selected]="activeSuggestionIndex() === index"
+            [class.bg-blue-50]="activeSuggestionIndex() === index"
+            [class.border-blue-200]="activeSuggestionIndex() === index"
+            [class.text-slate-900]="activeSuggestionIndex() === index"
+            [class.shadow-sm]="activeSuggestionIndex() === index"
+            (mouseenter)="highlightSuggestion(index)"
+            (click)="selectSuggestion(suggestion)"
+          >
+            <div
+              class="flex h-9 w-9 items-center justify-center bg-transparent transition"
+              [class.border-blue-200]="activeSuggestionIndex() === index"
+              [class.bg-blue-100]="activeSuggestionIndex() === index"
+            >
+              <favicon
+                [src]="suggestion.favicon"
+                class="h-full w-full"
+              ></favicon>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-medium">
+                {{ suggestion.title }}
+              </p>
+              <p
+                class="truncate text-xs text-slate-500"
+                [class.text-slate-600]="activeSuggestionIndex() === index"
+              >
+                {{ suggestion.address }}
+              </p>
+            </div>
+            <span
+              class="text-xs font-semibold uppercase tracking-wide text-slate-400"
+              [class.text-blue-500]="activeSuggestionIndex() === index"
+            >
+              Enter
+            </span>
+          </button>
+          }
         </div>
         }
       </div>
-      }
     </div>
   `,
 })
 export default class ActionDialogComponent implements OnInit {
-  dialog = viewChild<ElementRef<HTMLInputElement>>('dialog');
-  suggestions = signal<NavigationSuggestion[]>([]);
-  activeSuggestionIndex = signal<number>(-1);
-  private userTypedText = '';
-  private isUpdatingInput = false;
-  private userNavigatedSuggestions = false;
-  private suggestionDebounceDelay = 500;
+  private readonly suggestionDebounceDelay = 300;
+  readonly dialog = viewChild<ElementRef<HTMLInputElement>>('dialog');
+  readonly inputValue = signal('');
+  readonly suggestions = signal<NavigationSuggestion[]>([]);
+  readonly activeSuggestionIndex = signal<number>(-1);
+  private readonly hasManualNavigation = signal(false);
+  readonly activeSuggestion = computed(() => {
+    const items = this.suggestions();
+    const index = this.activeSuggestionIndex();
+    return index >= 0 && index < items.length ? items[index] : null;
+  });
+
+  private readonly notifyValueChanged = debounce((value: string) => {
+    this.api.notifyValueChanged(value);
+  }, this.suggestionDebounceDelay);
 
   constructor() {
-    // Reset active suggestion when suggestions change, but preserve user navigation
     effect(() => {
-      const sigs = this.suggestions();
-      if (sigs.length > 0) {
-        // Only reset to 0 if user hasn't manually navigated or if current index is out of bounds
-        const currentIndex = this.activeSuggestionIndex();
-        if (!this.userNavigatedSuggestions || currentIndex >= sigs.length) {
+      const items = this.suggestions();
+      const manual = this.hasManualNavigation();
+      const currentIndex = this.activeSuggestionIndex();
+
+      if (items.length === 0) {
+        if (currentIndex !== -1) {
+          this.activeSuggestionIndex.set(-1);
+        }
+        return;
+      }
+
+      if (!manual) {
+        if (currentIndex !== 0) {
           this.activeSuggestionIndex.set(0);
         }
-        this.updateInputWithSuggestion();
-      } else {
-        this.activeSuggestionIndex.set(-1);
-        this.userNavigatedSuggestions = false;
-        // Clear any auto-completion when no suggestions are available
-        this.clearAutoCompletion();
+        return;
+      }
+
+      if (currentIndex >= items.length) {
+        this.activeSuggestionIndex.set(items.length - 1);
+      } else if (currentIndex < 0) {
+        this.activeSuggestionIndex.set(0);
       }
     });
   }
@@ -93,14 +202,14 @@ export default class ActionDialogComponent implements OnInit {
 
     exposeApiToBackend({
       showDialog: () => {
-        this.dialog()!.nativeElement.value = '';
-        this.userTypedText = '';
+        this.inputValue.set('');
         this.suggestions.set([]);
         this.activeSuggestionIndex.set(-1);
-        this.userNavigatedSuggestions = false;
-        this.dialog()!.nativeElement.focus();
+        this.hasManualNavigation.set(false);
+        setTimeout(() => this.dialog()?.nativeElement.focus(), 0);
       },
       updateSuggestions: (suggestions: NavigationSuggestion[]) => {
+        this.hasManualNavigation.set(false);
         this.suggestions.set(suggestions);
       },
     });
@@ -112,23 +221,12 @@ export default class ActionDialogComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const value = input.value;
 
-    // Only update userTypedText if we're not in the middle of programmatically updating the input
-    if (!this.isUpdatingInput) {
-      this.userTypedText = value;
-      // Reset navigation flag when user types manually
-      this.userNavigatedSuggestions = false;
-    }
-
-    this.notifyValueChanged(this.userTypedText);
+    this.inputValue.set(value);
+    this.hasManualNavigation.set(false);
+    this.notifyValueChanged(value);
   }
 
-  private notifyValueChanged = debounce((value: string) => {
-    this.api.notifyValueChanged(value);
-  }, this.suggestionDebounceDelay);
-
   onKeyDown(event: KeyboardEvent) {
-    const input = event.target as HTMLInputElement;
-
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       this.moveActiveSuggestion(1);
@@ -137,7 +235,12 @@ export default class ActionDialogComponent implements OnInit {
       this.moveActiveSuggestion(-1);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      this.executeAction(input.value, event.ctrlKey);
+      const active = this.activeSuggestion();
+      const value = active ? active.address : this.inputValue().trim();
+      if (!value) {
+        return;
+      }
+      void this.executeAction(value, event.ctrlKey || event.metaKey);
     } else if (event.key === 'Escape') {
       this.api.dismissActionDialog();
     }
@@ -148,93 +251,27 @@ export default class ActionDialogComponent implements OnInit {
     if (suggestions.length === 0) return;
 
     const currentIndex = this.activeSuggestionIndex();
-    let newIndex = currentIndex + direction;
+    const normalizedCurrent = currentIndex < 0 ? 0 : currentIndex;
+    const nextIndex =
+      (normalizedCurrent + direction + suggestions.length) % suggestions.length;
 
-    if (newIndex < 0) {
-      newIndex = suggestions.length - 1;
-    } else if (newIndex >= suggestions.length) {
-      newIndex = 0;
-    }
-
-    this.activeSuggestionIndex.set(newIndex);
-    this.userNavigatedSuggestions = true;
-    this.updateInputWithSuggestion();
+    this.hasManualNavigation.set(true);
+    this.activeSuggestionIndex.set(nextIndex);
   }
 
-  private updateInputWithSuggestion() {
-    const suggestions = this.suggestions();
-    const activeIndex = this.activeSuggestionIndex();
-
-    if (
-      activeIndex >= 0 &&
-      activeIndex < suggestions.length &&
-      this.userTypedText
-    ) {
-      const suggestion = suggestions[activeIndex];
-      const input = this.dialog()!.nativeElement;
-
-      // Only apply the suggestion if it's relevant to the current user input
-      // Check if the suggestion matches the user's typed text
-      if (
-        this.suggestionMatchesUserInput(suggestion.address, this.userTypedText)
-      ) {
-        // Set flag to prevent onInputChange from updating userTypedText
-        this.isUpdatingInput = true;
-
-        // Set the full suggestion text
-        input.value = suggestion.address;
-
-        // Select the auto-completed part (only in browser environment)
-        if (input.setSelectionRange) {
-          const userTextLength = this.userTypedText.length;
-          input.setSelectionRange(userTextLength, suggestion.address.length);
-        }
-
-        // Reset flag after a short delay to allow the input event to fire
-        setTimeout(() => {
-          this.isUpdatingInput = false;
-        }, 0);
-      } else {
-        // If the suggestion doesn't match the user input, clear auto-completion
-        this.clearAutoCompletion();
-      }
+  highlightSuggestion(index: number) {
+    if (index < 0 || index >= this.suggestions().length) {
+      return;
     }
-  }
 
-  private suggestionMatchesUserInput(
-    suggestionAddress: string,
-    userInput: string
-  ) {
-    return userInput && suggestionAddress.startsWith(userInput.toLowerCase());
-  }
-
-  private clearAutoCompletion() {
-    if (this.userTypedText !== undefined) {
-      const input = this.dialog()!.nativeElement;
-
-      // Set flag to prevent onInputChange from updating userTypedText
-      this.isUpdatingInput = true;
-
-      // Reset input to only show user's typed text
-      input.value = this.userTypedText;
-
-      // Position cursor at the end (only in browser environment)
-      if (input.setSelectionRange) {
-        input.setSelectionRange(
-          this.userTypedText.length,
-          this.userTypedText.length
-        );
-      }
-
-      // Reset flag after a short delay
-      setTimeout(() => {
-        this.isUpdatingInput = false;
-      }, 0);
-    }
+    this.hasManualNavigation.set(true);
+    this.activeSuggestionIndex.set(index);
   }
 
   selectSuggestion(suggestion: NavigationSuggestion) {
-    this.executeAction(suggestion.address, false);
+    this.inputValue.set(suggestion.address);
+    this.hasManualNavigation.set(true);
+    void this.executeAction(suggestion.address, false);
   }
 
   private async executeAction(value: string, ctrl: boolean) {
