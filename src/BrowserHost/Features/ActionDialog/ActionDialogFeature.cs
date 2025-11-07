@@ -15,6 +15,13 @@ namespace BrowserHost.Features.ActionDialog;
 public record SearchProvider(string Name, string Key, string Pattern);
 public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory);
 
+public enum ActionType
+{
+    Navigate,
+    Search,
+    OpenSystemPage,
+}
+
 public partial class ActionDialogFeature(MainWindow window) : Feature(window)
 {
     [GeneratedRegex(@"^!(\w+)|\s+!(\w+)$")]
@@ -66,6 +73,18 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
         }
 
         PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
+    }
+
+    public static ActionType GetActionType(string command)
+    {
+        if (TryGetSearchProvider(command, out _, out _))
+            return ActionType.Search;
+        if (ContentServer.IsContentPage(command, out var page))
+            return ActionType.OpenSystemPage;
+        if (HandleUsingDefaultSearchProvider(new CommandExecutedEvent(command, false)))
+            return ActionType.Search;
+
+        return ActionType.Navigate;
     }
 
     private static bool TryGetSearchProvider(string command, [NotNullWhen(true)] out SearchProvider? provider, out string remainderQuery)

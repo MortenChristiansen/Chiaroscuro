@@ -7,7 +7,11 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { ActionDialogApi, NavigationSuggestion } from './actionDialogApi';
+import {
+  ActionDialogApi,
+  ActionType,
+  NavigationSuggestion,
+} from './actionDialogApi';
 import { loadBackendApi, exposeApiToBackend } from '../interfaces/api';
 import { CommonModule } from '@angular/common';
 import { debounce } from '../../shared/utils';
@@ -65,32 +69,108 @@ import { FaviconComponent } from '../../shared/favicon.component';
             "
           />
         </div>
-        @let active = activeSuggestion(); @if (active) {
+        @let summary = actionSummary();
         <div
-          class="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-600"
+          class="rounded-xl border px-4 py-3 text-sm text-slate-600 transition-colors"
+          [class.border-emerald-200]="summary.accent === 'emerald'"
+          [class.border-amber-200]="summary.accent === 'amber'"
+          [class.border-violet-200]="summary.accent === 'violet'"
+          [class.border-slate-200]="summary.accent === 'slate'"
+          [class.bg-emerald-50]="summary.accent === 'emerald'"
+          [class.bg-amber-50]="summary.accent === 'amber'"
+          [class.bg-violet-50]="summary.accent === 'violet'"
+          [class.bg-slate-50]="summary.accent === 'slate'"
         >
           <div class="flex items-center gap-3">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-blue-500 ring-1 ring-inset ring-blue-200"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-inset transition-colors"
+              [class.text-emerald-600]="summary.accent === 'emerald'"
+              [class.text-amber-600]="summary.accent === 'amber'"
+              [class.text-violet-500]="summary.accent === 'violet'"
+              [class.text-slate-500]="summary.accent === 'slate'"
+              [class.ring-emerald-200]="summary.accent === 'emerald'"
+              [class.ring-amber-200]="summary.accent === 'amber'"
+              [class.ring-violet-200]="summary.accent === 'violet'"
+              [class.ring-slate-200]="summary.accent === 'slate'"
             >
-              <span class="text-xs font-semibold">✓</span>
+              @switch (summary.state) { @case ('navigate') {
+              <svg
+                class="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M5 10h8m0 0-3-3m3 3-3 3" />
+              </svg>
+              } @case ('system') {
+              <svg
+                class="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="4" y="5" width="12" height="10" rx="2" />
+                <path d="M4 8.5h12" />
+              </svg>
+              } @case ('search') {
+              <svg
+                class="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="9" cy="9" r="4" />
+                <path d="m12.5 12.5 3 3" />
+              </svg>
+              } @case ('idle') {
+              <svg
+                class="h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path
+                  d="M10 4v2m0 8v2m6-6h-2M6 10H4m9.07-4.07-1.42 1.42M8.35 13.07 6.93 14.5m7.14-1.43 1.43 1.43M6.93 6.93 8.35 8.35"
+                />
+              </svg>
+              } }
             </div>
             <div class="min-w-0 flex-1">
               <p class="truncate font-medium text-slate-900">
-                {{ active.title }}
+                {{ summary.title }}
               </p>
               <p class="truncate text-xs text-slate-500">
-                {{ active.address }}
+                {{ summary.subtitle }}
               </p>
             </div>
             <span
-              class="text-xs font-semibold uppercase tracking-wide text-blue-500"
+              class="text-xs font-semibold uppercase tracking-wide"
+              [class.text-emerald-600]="summary.accent === 'emerald'"
+              [class.text-amber-600]="summary.accent === 'amber'"
+              [class.text-violet-500]="summary.accent === 'violet'"
+              [class.text-slate-500]="summary.accent === 'slate'"
             >
-              Selected
+              {{ summary.badge }}
             </span>
           </div>
         </div>
-        } @if (suggestions().length === 0) {
+        @if (suggestions().length === 0) {
         <div
           class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500"
         >
@@ -159,23 +239,109 @@ export default class ActionDialogComponent implements OnInit {
   readonly suggestions = signal<NavigationSuggestion[]>([]);
   readonly activeSuggestionIndex = signal<number>(-1);
   private readonly hasManualNavigation = signal(false);
+  private readonly suppressInitialSelection = signal(true);
+  readonly actionType = signal<ActionType | null>(null);
   readonly activeSuggestion = computed(() => {
     const items = this.suggestions();
     const index = this.activeSuggestionIndex();
     return index >= 0 && index < items.length ? items[index] : null;
   });
+  readonly actionSummary = computed(() => {
+    const selection = this.activeSuggestion();
+    const rawValue = selection ? selection.address : this.inputValue().trim();
+
+    if (!rawValue) {
+      return {
+        state: 'idle' as const,
+        title: 'Ready for your next move',
+        subtitle: 'Type to search, jump to a tab, or open a page.',
+        badge: 'Idle',
+        accent: 'slate',
+      };
+    }
+
+    const resolvedType: ActionType = this.actionType() ?? 'Search';
+    const accentByType: Record<ActionType, 'emerald' | 'violet' | 'amber'> = {
+      Navigate: 'emerald',
+      OpenSystemPage: 'violet',
+      Search: 'amber',
+    };
+    const badgeByType: Record<ActionType, string> = {
+      Navigate: 'Navigate',
+      OpenSystemPage: 'System',
+      Search: 'Search',
+    };
+    const subtitleByType: Record<ActionType, string> = {
+      Navigate: 'Navigates directly to this address.',
+      OpenSystemPage: 'Opens a built-in workspace or system view.',
+      Search: 'Searches using your default provider.',
+    };
+
+    return {
+      state:
+        resolvedType === 'OpenSystemPage'
+          ? ('system' as const)
+          : resolvedType === 'Navigate'
+          ? ('navigate' as const)
+          : ('search' as const),
+      title: selection ? selection.title : rawValue,
+      subtitle: selection ? selection.address : subtitleByType[resolvedType],
+      badge: badgeByType[resolvedType],
+      accent: accentByType[resolvedType],
+    };
+  });
 
   private readonly notifyValueChanged = debounce((value: string) => {
     this.api.notifyValueChanged(value);
   }, this.suggestionDebounceDelay);
+  private actionTypeRequestId = 0;
+  private readonly updateActionType = debounce((value: string) => {
+    void this.evaluateActionType(value);
+  }, this.suggestionDebounceDelay);
+
+  private async evaluateActionType(value: string) {
+    const trimmed = value.trim();
+    const requestId = ++this.actionTypeRequestId;
+
+    if (!trimmed) {
+      if (this.actionType() !== null) {
+        this.actionType.set(null);
+      }
+      return;
+    }
+
+    const api = this.api;
+    if (!api) {
+      return;
+    }
+
+    try {
+      const type = await api.getActionType(trimmed);
+      if (this.actionTypeRequestId === requestId) {
+        this.actionType.set(type);
+      }
+    } catch {
+      if (this.actionTypeRequestId === requestId) {
+        this.actionType.set(null);
+      }
+    }
+  }
 
   constructor() {
     effect(() => {
       const items = this.suggestions();
       const manual = this.hasManualNavigation();
+      const suppress = this.suppressInitialSelection();
       const currentIndex = this.activeSuggestionIndex();
 
       if (items.length === 0) {
+        if (currentIndex !== -1) {
+          this.activeSuggestionIndex.set(-1);
+        }
+        return;
+      }
+
+      if (suppress) {
         if (currentIndex !== -1) {
           this.activeSuggestionIndex.set(-1);
         }
@@ -206,11 +372,16 @@ export default class ActionDialogComponent implements OnInit {
         this.suggestions.set([]);
         this.activeSuggestionIndex.set(-1);
         this.hasManualNavigation.set(false);
+        this.suppressInitialSelection.set(true);
+        this.actionType.set(null);
+        this.actionTypeRequestId++;
         setTimeout(() => this.dialog()?.nativeElement.focus(), 0);
       },
       updateSuggestions: (suggestions: NavigationSuggestion[]) => {
         this.hasManualNavigation.set(false);
+        this.suppressInitialSelection.set(true);
         this.suggestions.set(suggestions);
+        void this.updateActionType(this.inputValue());
       },
     });
   }
@@ -223,7 +394,9 @@ export default class ActionDialogComponent implements OnInit {
 
     this.inputValue.set(value);
     this.hasManualNavigation.set(false);
+    this.suppressInitialSelection.set(true);
     this.notifyValueChanged(value);
+    void this.updateActionType(value);
   }
 
   onKeyDown(event: KeyboardEvent) {
@@ -251,12 +424,19 @@ export default class ActionDialogComponent implements OnInit {
     if (suggestions.length === 0) return;
 
     const currentIndex = this.activeSuggestionIndex();
-    const normalizedCurrent = currentIndex < 0 ? 0 : currentIndex;
-    const nextIndex =
-      (normalizedCurrent + direction + suggestions.length) % suggestions.length;
+    let nextIndex: number;
+
+    if (currentIndex < 0) {
+      nextIndex = direction > 0 ? 0 : suggestions.length - 1;
+    } else {
+      nextIndex =
+        (currentIndex + direction + suggestions.length) % suggestions.length;
+    }
 
     this.hasManualNavigation.set(true);
+    this.suppressInitialSelection.set(false);
     this.activeSuggestionIndex.set(nextIndex);
+    void this.evaluateActionType(suggestions[nextIndex].address);
   }
 
   highlightSuggestion(index: number) {
@@ -265,12 +445,20 @@ export default class ActionDialogComponent implements OnInit {
     }
 
     this.hasManualNavigation.set(true);
+    this.suppressInitialSelection.set(false);
     this.activeSuggestionIndex.set(index);
+    const items = this.suggestions();
+    const suggestion = items[index];
+    if (suggestion) {
+      void this.evaluateActionType(suggestion.address);
+    }
   }
 
   selectSuggestion(suggestion: NavigationSuggestion) {
     this.inputValue.set(suggestion.address);
     this.hasManualNavigation.set(true);
+    this.suppressInitialSelection.set(false);
+    void this.evaluateActionType(suggestion.address);
     void this.executeAction(suggestion.address, false);
   }
 
