@@ -34,17 +34,6 @@ import { FaviconComponent } from '../../shared/favicon.component';
       <div
         class="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-2xl"
       >
-        <header class="flex flex-col gap-1">
-          <h2
-            id="action-dialog-title"
-            class="text-lg font-semibold text-slate-900"
-          >
-            Quick action
-          </h2>
-          <p class="text-sm text-slate-500">
-            Jump straight to a tab, workspace, or command.
-          </p>
-        </header>
         <div class="relative">
           <input
             #dialog
@@ -134,7 +123,7 @@ import { FaviconComponent } from '../../shared/favicon.component';
                 <circle cx="9" cy="9" r="4" />
                 <path d="m12.5 12.5 3 3" />
               </svg>
-              } @case ('idle') {
+              } @case ('pending') {
               <svg
                 class="h-4 w-4"
                 viewBox="0 0 20 20"
@@ -252,10 +241,10 @@ export default class ActionDialogComponent implements OnInit {
 
     if (!rawValue) {
       return {
-        state: 'idle' as const,
+        state: 'pending' as const,
         title: 'Ready for your next move',
-        subtitle: 'Type to search, jump to a tab, or open a page.',
-        badge: 'Idle',
+        subtitle: 'Type to search or navigate to a page.',
+        badge: 'Pending',
         accent: 'slate',
       };
     }
