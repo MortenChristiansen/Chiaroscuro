@@ -18,4 +18,7 @@ public class ActionDialogBrowserApi : BrowserApi
 
     public void NotifyValueChanged(string value) =>
         PubSub.Publish(new ActionDialogValueChangedEvent(value));
+
+    public string GetActionType(string command) =>
+        ActionDialogFeature.GetActionType(command).ToString();
 }
