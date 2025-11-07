@@ -6,8 +6,14 @@ namespace BrowserHost.Features.WebContextMenu;
 
 public class WebContextMenuBrowserApi : BrowserApi
 {
-    public void DismissContextMenu() =>
-        Application.Current.Dispatcher.Invoke(() =>
-            Application.Current.Windows.OfType<WebContextMenuWindow>().Where(w => w.IsActive).FirstOrDefault()?.Close()
-        );
+    public void DismissContextMenu()
+    {
+        try // Throws if already closing
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+                Application.Current.Windows.OfType<WebContextMenuWindow>().Where(w => w.IsActive).FirstOrDefault()?.Close()
+            );
+        }
+        catch { }
+    }
 }
