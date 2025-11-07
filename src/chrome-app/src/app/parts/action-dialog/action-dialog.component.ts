@@ -17,6 +17,7 @@ import { CommonModule } from '@angular/common';
 import { debounce } from '../../shared/utils';
 import { FaviconComponent } from '../../shared/favicon.component';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { animate, style, transition, trigger } from '@angular/animations';
 import {
   faArrowRight,
   faMagnifyingGlass,
@@ -27,6 +28,76 @@ import {
 @Component({
   selector: 'action-dialog',
   imports: [CommonModule, FaviconComponent, FaIconComponent],
+  animations: [
+    trigger('suggestionsContainer', [
+      transition(':enter', [
+        style({
+          height: 0,
+          opacity: 0,
+          overflow: 'hidden',
+          paddingBottom: 0,
+          paddingTop: 0,
+        }),
+        animate(
+          '250ms cubic-bezier(0.16, 1, 0.3, 1)',
+          style({
+            height: '*',
+            opacity: 1,
+            paddingBottom: '*',
+            paddingTop: '*',
+          })
+        ),
+      ]),
+      transition(':leave', [
+        style({ overflow: 'hidden' }),
+        animate(
+          '250ms cubic-bezier(0.66, 0, 0.83, 0.67)',
+          style({
+            height: 0,
+            opacity: 0,
+            paddingBottom: 0,
+            paddingTop: 0,
+          })
+        ),
+      ]),
+    ]),
+    trigger('suggestionItem', [
+      transition(':enter', [
+        style({
+          height: 0,
+          marginBottom: 0,
+          marginTop: 0,
+          opacity: 0,
+          paddingBottom: 0,
+          paddingTop: 0,
+        }),
+        animate(
+          '250ms cubic-bezier(0.16, 1, 0.3, 1)',
+          style({
+            height: '*',
+            marginBottom: '*',
+            marginTop: '*',
+            opacity: 1,
+            paddingBottom: '*',
+            paddingTop: '*',
+          })
+        ),
+      ]),
+      transition(':leave', [
+        animate(
+          '250ms cubic-bezier(0.66, 0, 0.83, 0.67)',
+          style({
+            height: 0,
+            marginBottom: 0,
+            marginTop: 0,
+            opacity: 0,
+            paddingBottom: 0,
+            paddingTop: 0,
+          })
+        ),
+      ]),
+    ]),
+  ],
   template: `
     <div
       class="fixed inset-0 z-1000 bg-transparent"
@@ -149,6 +220,7 @@ import {
           id="action-dialog-options"
           role="listbox"
           class="max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1"
+          [@suggestionsContainer]="'active'"
         >
           @for (suggestion of suggestions(); track suggestion.address; let index
           = $index) {
@@ -164,6 +236,7 @@ import {
             [class.shadow-sm]="activeSuggestionIndex() === index"
             (mouseenter)="highlightSuggestion(index)"
             (click)="selectSuggestion(suggestion)"
+            [@suggestionItem]="'active'"
           >
             <div
               class="flex h-9 w-9 items-center justify-center bg-transparent transition"
