@@ -32,12 +32,6 @@
 	  <AssemblyName>Chiaroscuro</AssemblyName>
 	  <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
-	  <PublishTrimmed>true</PublishTrimmed>
-	  <IsTrimmable>false</IsTrimmable>
-	  <TrimMode>partial</TrimMode>
-	  <_SuppressWpfTrimError>true</_SuppressWpfTrimError>
-	  <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
   </PropertyGroup>
 
   <PropertyGroup>
