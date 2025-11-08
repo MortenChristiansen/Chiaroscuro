@@ -1,6 +1,6 @@
 using BrowserHost.Features.TabPalette.FindText;
-using BrowserHost.Utilities;
 using BrowserHost.Serialization;
+using BrowserHost.Utilities;
 using Microsoft.Web.WebView2.Core;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -108,7 +108,7 @@ internal sealed class WebView2FindManager
                   return count;
                 })();
                 """;
-        js = js.Replace("TERM_PLACEHOLDER", JsonSerializer.Serialize(term, BrowserHostCamelCaseJsonContext.Default.Object))
+        js = js.Replace("TERM_PLACEHOLDER", JsonSerializer.Serialize(term, BrowserHostJsonContext.Default.String))
                .Replace("MATCHCASE_PLACEHOLDER", matchCase ? "true" : "false");
         try
         {
