@@ -1,4 +1,5 @@
 ﻿using BrowserHost.Utilities;
+using BrowserHost.Serialization;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -13,7 +14,6 @@ public record PinnedTabDtoV1(string Id, string? Title, string? Favicon, string A
 public static class PinnedTabsStateManager
 {
     private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("pinned_tabs.json");
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
     private const int _currentVersion = 1;
     private static PinnedTabDataV1 _lastSavedPinnedTabsData = new([], null);
     private static readonly Lock _lock = new();
@@ -35,7 +35,7 @@ public static class PinnedTabsStateManager
                     Version = _currentVersion,
                     Data = pinnedTabsData
                 };
-                File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versionedData, _jsonSerializerOptions));
+                File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versionedData, BrowserHostJsonContext.Default.PersistentDataPinnedTabDataV1));
                 _lastSavedPinnedTabsData = pinnedTabsData;
             }
             catch (Exception e) when (!Debugger.IsAttached)
@@ -55,10 +55,10 @@ public static class PinnedTabsStateManager
                 if (File.Exists(_persistedStatePath))
                 {
                     var json = File.ReadAllText(_persistedStatePath);
-                    var versionedData = JsonSerializer.Deserialize<PersistentData>(json);
+                    var versionedData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                     if (versionedData?.Version == _currentVersion)
                     {
-                        var data = JsonSerializer.Deserialize<PersistentData<PinnedTabDataV1>>(json)?.Data;
+                        var data = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentDataPinnedTabDataV1)?.Data;
                         if (data != null)
                         {
                             _lastSavedPinnedTabsData = data;
