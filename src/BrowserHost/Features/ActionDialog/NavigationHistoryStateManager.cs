@@ -1,4 +1,5 @@
 using BrowserHost.Utilities;
+using BrowserHost.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,7 +16,6 @@ public record NavigationHistoryEntry(string Title, string? Favicon);
 public static class NavigationHistoryStateManager
 {
     private static readonly string _navigationHistoryPath = AppDataPathManager.GetAppDataFilePath("navigationHistory.json");
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
 
     // In-memory cache for navigation history
     private static Dictionary<string, NavigationHistoryEntry>? _cachedHistory = null;
@@ -49,7 +49,7 @@ public static class NavigationHistoryStateManager
                     }
 
                     _cachedHistory[normalizedAddress] = newValue;
-                    File.WriteAllText(_navigationHistoryPath, JsonSerializer.Serialize(_cachedHistory, _jsonSerializerOptions));
+                    File.WriteAllText(_navigationHistoryPath, JsonSerializer.Serialize(_cachedHistory, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry));
                 }
             });
         }
@@ -93,7 +93,7 @@ public static class NavigationHistoryStateManager
             if (File.Exists(_navigationHistoryPath))
             {
                 var json = File.ReadAllText(_navigationHistoryPath);
-                return JsonSerializer.Deserialize<Dictionary<string, NavigationHistoryEntry>>(json) ?? new Dictionary<string, NavigationHistoryEntry>();
+                return JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry) ?? new Dictionary<string, NavigationHistoryEntry>();
             }
         }
         catch (Exception e) when (!Debugger.IsAttached)

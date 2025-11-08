@@ -1,4 +1,5 @@
 using BrowserHost.Utilities;
+using BrowserHost.Serialization;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -12,7 +13,6 @@ public record AppStateDataV1(double ActionContextWidth, double TabPaletteWidth);
 public static class AppStateStateManager
 {
     private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("appState.json");
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
     private const int _currentVersion = 1;
     private static AppStateDataV1? _lastSavedState;
     private static readonly Lock _lock = new();
@@ -28,10 +28,10 @@ public static class AppStateStateManager
                 if (File.Exists(_persistedStatePath))
                 {
                     var json = File.ReadAllText(_persistedStatePath);
-                    var versioned = JsonSerializer.Deserialize<PersistentData>(json);
+                    var versioned = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                     if (versioned?.Version == _currentVersion)
                     {
-                        var parsed = JsonSerializer.Deserialize<PersistentData<AppStateDataV1>>(json);
+                        var parsed = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentDataAppStateDataV1);
                         if (parsed?.Data is not null)
                             _lastSavedState = parsed.Data;
                     }
@@ -86,7 +86,7 @@ public static class AppStateStateManager
                 Version = _currentVersion,
                 Data = updated
             };
-            File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versioned, _jsonSerializerOptions));
+            File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versioned, BrowserHostJsonContext.Default.PersistentDataAppStateDataV1));
             _lastSavedState = updated;
         }
         catch (Exception e) when (!Debugger.IsAttached)

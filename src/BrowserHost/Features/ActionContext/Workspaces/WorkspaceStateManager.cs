@@ -1,4 +1,5 @@
 ﻿using BrowserHost.Logging;
+using BrowserHost.Serialization;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
@@ -21,7 +22,6 @@ public record FolderDtoV1(string Id, string Name, int StartIndex, int EndIndex);
 public static class WorkspaceStateManager
 {
     private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("workspaces.json");
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
     private const int _currentVersion = 1;
     private const int _ephemeralTabExpirationHours = 16;
     private static readonly WorkspaceDtoV1 _defaultWorkspace = new($"{Guid.NewGuid()}", "Browse", "#202634", "🌐", [], 0);
@@ -75,7 +75,7 @@ public static class WorkspaceStateManager
                 Version = _currentVersion,
                 Data = newWorkspacesData
             };
-            File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versionedData, _jsonSerializerOptions));
+            File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versionedData, BrowserHostJsonContext.Default.PersistentDataWorkspacesDataDtoV1));
 
             // Update the cache after successful save
             _lastSavedWorkspaceData = newWorkspacesData;
@@ -102,10 +102,10 @@ public static class WorkspaceStateManager
 
                         try
                         {
-                            var versionedData = JsonSerializer.Deserialize<PersistentData>(json);
+                            var versionedData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                             if (versionedData?.Version == _currentVersion)
                             {
-                                var rawData = JsonSerializer.Deserialize<PersistentData<WorkspacesDataDtoV1>>(json)?.Data ?? new([_defaultWorkspace]);
+                                var rawData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentDataWorkspacesDataDtoV1)?.Data ?? new([_defaultWorkspace]);
                                 result = FilterExpiredEphemeralTabs(rawData);
                             }
                         }
