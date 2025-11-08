@@ -1,4 +1,5 @@
 using BrowserHost.Logging;
+using BrowserHost.Serialization;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
@@ -11,14 +12,14 @@ namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
 public record DomainCustomizationDataV1(string Domain, bool CssEnabled, bool HasCustomCss);
 
+// These should have been private to the DomainCustomizationStateManager class, but that did not work with serialization using source generation.
+public record DomainCustomizationSettingsV1(bool CssEnabled);
+public record DomainCustomizationSettingsV2(string Domain, bool CssEnabled);
+
 public static class DomainCustomizationStateManager
 {
-    private record DomainCustomizationSettingsV1(bool CssEnabled);
-    private record DomainCustomizationSettingsV2(string Domain, bool CssEnabled);
-
     private const int _currentVersion = 2;
     private static readonly Lock _lock = new();
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
 
     // Cache customizations per domain on-demand only
     private static readonly Dictionary<string, DomainCustomizationDataV1> _cachedPerDomain = [];
@@ -64,18 +65,18 @@ public static class DomainCustomizationStateManager
             if (File.Exists(filePath))
             {
                 var json = File.ReadAllText(filePath);
-                var versioned = JsonSerializer.Deserialize<PersistentData>(json);
+                var versioned = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                 if (versioned?.Version == _currentVersion)
                 {
                     var hasCustomCss = File.Exists(cssPath);
-                    var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationSettingsV2>>(json)?.Data;
+                    var rawData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentDataDomainCustomizationSettingsV2)?.Data;
                     var rawDomain = rawData?.Domain ?? domain;
                     return new DomainCustomizationDataV1(rawDomain, rawData?.CssEnabled ?? false, hasCustomCss);
                 }
                 else if (versioned?.Version == 1)
                 {
                     var hasCustomCss = File.Exists(cssPath);
-                    var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationSettingsV1>>(json)?.Data;
+                    var rawData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentDataDomainCustomizationSettingsV1)?.Data;
                     return new DomainCustomizationDataV1(domain, rawData?.CssEnabled ?? false, hasCustomCss);
                 }
             }
@@ -104,7 +105,7 @@ public static class DomainCustomizationStateManager
                     Version = _currentVersion,
                     Data = new DomainCustomizationSettingsV2(customization.Domain, customization.CssEnabled)
                 };
-                var json = JsonSerializer.Serialize(data, _jsonSerializerOptions);
+                var json = JsonSerializer.Serialize(data, BrowserHostJsonContext.Default.PersistentDataDomainCustomizationSettingsV2);
 
                 File.WriteAllText(GetCustomizationFilePath(customization.Domain), json);
 
@@ -178,10 +179,10 @@ public static class DomainCustomizationStateManager
                                 try
                                 {
                                     var json = File.ReadAllText(settingsFile);
-                                    var versioned = JsonSerializer.Deserialize<PersistentData>(json);
+                                    var versioned = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                                     if (versioned?.Version == _currentVersion)
                                     {
-                                        var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationSettingsV2>>(json)?.Data;
+                                        var rawData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentDataDomainCustomizationSettingsV2)?.Data;
                                         if (rawData is not null)
                                         {
                                             cssEnabled = rawData.CssEnabled;
@@ -190,7 +191,7 @@ public static class DomainCustomizationStateManager
                                     }
                                     else if (versioned?.Version == 1)
                                     {
-                                        var rawData = JsonSerializer.Deserialize<PersistentData<DomainCustomizationSettingsV1>>(json)?.Data;
+                                        var rawData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentDataDomainCustomizationSettingsV1)?.Data;
                                         cssEnabled = rawData?.CssEnabled ?? cssEnabled;
                                     }
                                 }

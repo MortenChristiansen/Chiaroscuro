@@ -1,4 +1,5 @@
 ﻿using BrowserHost.Utilities;
+using BrowserHost.Serialization;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -12,7 +13,6 @@ public record SettingsDataV1(string? UserAgent, string[]? SsoEnabledDomains, boo
 public static class SettingsStateManager
 {
     private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("settings.json");
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
     private const int _currentVersion = 1;
     private static SettingsDataV1? _lastSavedSettingsData = null;
     private static readonly Lock _lock = new();
@@ -34,7 +34,7 @@ public static class SettingsStateManager
                     Version = _currentVersion,
                     Data = settings
                 };
-                File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versionedData, _jsonSerializerOptions));
+                File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versionedData, BrowserHostJsonContext.Default.PersistentDataSettingsDataV1));
                 _lastSavedSettingsData = settings;
             }
             catch (Exception e) when (!Debugger.IsAttached)
@@ -54,10 +54,10 @@ public static class SettingsStateManager
                 if (File.Exists(_persistedStatePath))
                 {
                     var json = File.ReadAllText(_persistedStatePath);
-                    var versionedData = JsonSerializer.Deserialize<PersistentData>(json);
+                    var versionedData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                     if (versionedData?.Version == _currentVersion)
                     {
-                        var data = JsonSerializer.Deserialize<PersistentData<SettingsDataV1>>(json)?.Data;
+                        var data = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentDataSettingsDataV1)?.Data;
                         if (data != null)
                         {
                             _lastSavedSettingsData = data;

@@ -1,5 +1,6 @@
 using BrowserHost.Logging;
 using BrowserHost.Utilities;
+using BrowserHost.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,7 +16,6 @@ public static class TabCustomizationStateManager
 {
     private const int _currentVersion = 1;
     private static readonly Lock _lock = new();
-    private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
 
     // Cache customizations per tab on-demand only
     private static readonly Dictionary<string, TabCustomizationDataV1> _cachedPerTab = [];
@@ -69,10 +69,10 @@ public static class TabCustomizationStateManager
                             try
                             {
                                 var json = File.ReadAllText(file);
-                                var versioned = JsonSerializer.Deserialize<PersistentData>(json);
+                                var versioned = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                                 if (versioned?.Version == _currentVersion)
                                 {
-                                    var parsed = JsonSerializer.Deserialize<PersistentData<TabCustomizationDataV1>>(json);
+                                    var parsed = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentDataTabCustomizationDataV1);
                                     if (parsed?.Data is not null)
                                         _cachedPerTab[parsed.Data.TabId] = parsed.Data;
                                 }
@@ -137,7 +137,7 @@ public static class TabCustomizationStateManager
                     Data = data
                 };
 
-                File.WriteAllText(file, JsonSerializer.Serialize(versioned, _jsonSerializerOptions));
+                File.WriteAllText(file, JsonSerializer.Serialize(versioned, BrowserHostJsonContext.Default.PersistentDataTabCustomizationDataV1));
                 _cachedPerTab[tabId] = data;
             }
             catch (Exception e) when (!Debugger.IsAttached)
