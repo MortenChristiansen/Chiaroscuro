@@ -80,6 +80,9 @@ type UrlViewModel =
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        flex: 0 1 auto;
+        min-width: 0;
+        flex-shrink: 1;
       }
 
       .path {
@@ -87,6 +90,9 @@ type UrlViewModel =
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        flex: 1 1 0%;
+        min-width: 0;
+        flex-shrink: 20;
       }
 
       .rest {
@@ -95,6 +101,7 @@ type UrlViewModel =
         text-overflow: ellipsis;
         white-space: nowrap;
         flex: 1;
+        min-width: 0;
       }
 
       .placeholder {
