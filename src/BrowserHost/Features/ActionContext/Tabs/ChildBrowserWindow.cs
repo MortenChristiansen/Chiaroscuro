@@ -396,18 +396,6 @@ public class ChildBrowserWindow : OverlayWindow
         };
         _browser.BeginAnimation(UIElement.OpacityProperty, opacityAnim);
 
-        // Fade the loading background out once content is visible
-        StopLoadingPulse();
-        var bgFadeOut = new DoubleAnimation
-        {
-            From = _loadingBackground.Opacity,
-            To = 0.0,
-            Duration = TimeSpan.FromMilliseconds(150),
-            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
-        };
-        bgFadeOut.Completed += (_, __) => _loadingBackground.Visibility = Visibility.Collapsed;
-        _loadingBackground.BeginAnimation(UIElement.OpacityProperty, bgFadeOut);
-
         // Show and fade-in the buttons in sync with content
         _buttonsPanel.Visibility = Visibility.Visible;
         var btnOpacityAnim = new DoubleAnimation
