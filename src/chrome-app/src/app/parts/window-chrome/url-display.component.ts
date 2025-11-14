@@ -76,7 +76,6 @@ type UrlViewModel =
 
       .domain {
         color: white;
-        font-weight: 600;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
