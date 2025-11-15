@@ -28,6 +28,7 @@ public class ChildBrowserWindow : OverlayWindow
     private readonly Grid _rootGrid;
     private readonly Grid _contentContainer;
     private readonly StackPanel _buttonsPanel;
+    private readonly Border _loadingBackground;
     private bool _isClosing;
     private bool _contentAnimationStarted;
 
@@ -58,6 +59,9 @@ public class ChildBrowserWindow : OverlayWindow
 
         _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.ActionContext, setManualAddress: false, favicon: null, isChildBrowser: true);
         _browser.PageLoadEnded += Browser_PageLoadEnded;
+        _browser.Opacity = 0.0; // Keep child browser hidden until first load completes
+        _browser.RenderTransformOrigin = new Point(0.5, 0.5);
+        _browser.RenderTransform = new ScaleTransform(0.5, 0.5); // scale browser content itself, not the host
 
         _overlayBrush = new SolidColorBrush(Color.FromArgb(128, 180, 180, 200)) { Opacity = 0.0 };
 
@@ -74,10 +78,22 @@ public class ChildBrowserWindow : OverlayWindow
             VerticalAlignment = VerticalAlignment.Center,
             CornerRadius = new CornerRadius(8),
             SnapsToDevicePixels = true,
-            Child = _browser,
-            Opacity = 0,
-            LayoutTransform = new ScaleTransform(0.5, 0.5)
+            Opacity = 1 // Host must be visible to show loading background at final size
         };
+
+        // Loading background behind the child browser (fades in while content loads)
+        _loadingBackground = new Border
+        {
+            Background = new SolidColorBrush(Colors.White),
+            Opacity = 0.0,
+            SnapsToDevicePixels = true
+        };
+
+        // Host both loading background and browser
+        var contentGrid = new Grid();
+        contentGrid.Children.Add(_loadingBackground);
+        contentGrid.Children.Add(_browser);
+        _contentHost.Child = contentGrid;
 
         // Overlay container that hosts content and floating buttons in the same centered layer
         _contentContainer = new Grid
@@ -222,6 +238,8 @@ public class ChildBrowserWindow : OverlayWindow
 
         // Start overlay fade-in once sized and positioned
         AnimateOverlayIn();
+        // Fade in the loading background so there is UI feedback while the child browser loads
+        StartLoadingPulse();
         UpdateContentCornerClip();
     }
 
@@ -338,16 +356,37 @@ public class ChildBrowserWindow : OverlayWindow
         _overlayBrush.BeginAnimation(Brush.OpacityProperty, fade);
     }
 
+    private void StartLoadingPulse()
+    {
+        // Pulse opacity while we wait for the page to load
+        var pulse = new DoubleAnimation
+        {
+            From = 0.35,
+            To = 0.65,
+            Duration = TimeSpan.FromMilliseconds(600),
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever,
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
+        };
+        _loadingBackground.BeginAnimation(UIElement.OpacityProperty, pulse);
+    }
+
+    private void StopLoadingPulse()
+    {
+        // Remove any running animation on opacity so we can fade out cleanly
+        _loadingBackground.BeginAnimation(UIElement.OpacityProperty, null);
+    }
+
     private void AnimateContentIn()
     {
-        // Ensure we have a ScaleTransform as LayoutTransform
-        if (_contentHost.LayoutTransform is not ScaleTransform scale)
+        // Scale the browser content only (keep the host at final size)
+        if (_browser.RenderTransform is not ScaleTransform bScale)
         {
-            scale = new ScaleTransform(0.5, 0.5);
-            _contentHost.LayoutTransform = scale;
+            bScale = new ScaleTransform(0.5, 0.5);
+            _browser.RenderTransform = bScale;
         }
 
-        // Opacity: 0 -> 1
+        // Fade the actual browser in (keep host visible for loading background)
         var opacityAnim = new DoubleAnimation
         {
             From = 0.0,
@@ -355,7 +394,7 @@ public class ChildBrowserWindow : OverlayWindow
             Duration = TimeSpan.FromMilliseconds(200),
             EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
         };
-        _contentHost.BeginAnimation(UIElement.OpacityProperty, opacityAnim);
+        _browser.BeginAnimation(UIElement.OpacityProperty, opacityAnim);
 
         // Show and fade-in the buttons in sync with content
         _buttonsPanel.Visibility = Visibility.Visible;
@@ -376,24 +415,26 @@ public class ChildBrowserWindow : OverlayWindow
             Duration = TimeSpan.FromMilliseconds(200),
             EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
         };
-        scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
-        scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+        bScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+        bScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
     }
 
     private void AnimateContentOut()
     {
-        // Ensure we have a ScaleTransform as LayoutTransform
-        var scale = new ScaleTransform(1.0, 1.0);
-        _contentHost.LayoutTransform = scale;
-        // Opacity: 1 -> 0
+        // Scale the browser content only (keep the host at final size)
+        var bScale = _browser.RenderTransform as ScaleTransform ?? new ScaleTransform(1.0, 1.0);
+        _browser.RenderTransform = bScale;
+
+        // Opacity: current -> 0 for the whole host (including any background)
+        StopLoadingPulse();
         var opacityAnim = new DoubleAnimation
         {
-            From = 1.0,
             To = 0.0,
             Duration = TimeSpan.FromMilliseconds(200),
             EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
         };
         _contentHost.BeginAnimation(UIElement.OpacityProperty, opacityAnim);
+
         // Buttons fade-out and collapse after animation
         var btnOpacityAnim = new DoubleAnimation
         {
@@ -404,7 +445,8 @@ public class ChildBrowserWindow : OverlayWindow
         };
         btnOpacityAnim.Completed += (_, __) => _buttonsPanel.Visibility = Visibility.Collapsed;
         _buttonsPanel.BeginAnimation(UIElement.OpacityProperty, btnOpacityAnim);
-        // Scale: 1.0 -> 0.5 (both axes)
+
+        // Scale: 1.0 -> 0.5 (both axes) on browser content
         var scaleAnim = new DoubleAnimation
         {
             From = 1.0,
@@ -412,8 +454,8 @@ public class ChildBrowserWindow : OverlayWindow
             Duration = TimeSpan.FromMilliseconds(200),
             EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
         };
-        scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
-        scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+        bScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+        bScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
     }
 
     private void UpdateContentCornerClip()
