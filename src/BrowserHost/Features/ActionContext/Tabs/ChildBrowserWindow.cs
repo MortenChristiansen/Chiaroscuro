@@ -429,7 +429,6 @@ public class ChildBrowserWindow : OverlayWindow
         StopLoadingPulse();
         var opacityAnim = new DoubleAnimation
         {
-            From = bScale.ScaleX,
             To = 0.0,
             Duration = TimeSpan.FromMilliseconds(200),
             EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
