@@ -425,11 +425,11 @@ public class ChildBrowserWindow : OverlayWindow
         var bScale = _browser.RenderTransform as ScaleTransform ?? new ScaleTransform(1.0, 1.0);
         _browser.RenderTransform = bScale;
 
-        // Opacity: 1 -> 0 for the whole host (including any background)
+        // Opacity: current -> 0 for the whole host (including any background)
         StopLoadingPulse();
         var opacityAnim = new DoubleAnimation
         {
-            From = 1.0,
+            From = bScale.ScaleX,
             To = 0.0,
             Duration = TimeSpan.FromMilliseconds(200),
             EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
