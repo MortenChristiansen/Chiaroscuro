@@ -76,10 +76,11 @@ type UrlViewModel =
 
       .domain {
         color: white;
-        font-weight: 600;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        flex: 0 1 auto;
+        min-width: 0;
       }
 
       .path {
@@ -87,6 +88,8 @@ type UrlViewModel =
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        flex: 1 20 0%;
+        min-width: 0;
       }
 
       .rest {
@@ -95,6 +98,7 @@ type UrlViewModel =
         text-overflow: ellipsis;
         white-space: nowrap;
         flex: 1;
+        min-width: 0;
       }
 
       .placeholder {
