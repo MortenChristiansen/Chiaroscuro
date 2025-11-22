@@ -3,7 +3,7 @@ using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.WebContextMenu;
 
-public record ContextMenuParameters(string LinkUrl);
+public record ContextMenuParameters(string? LinkUrl, string? ImageSourceUrl);
 
 public class WebContextMenuBrowser : Browser<WebContextMenuBrowserApi>
 {

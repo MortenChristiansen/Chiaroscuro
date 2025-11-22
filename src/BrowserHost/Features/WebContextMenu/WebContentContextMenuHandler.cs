@@ -40,7 +40,7 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
     }
 
     private static ContextMenuParameters Map(IContextMenuParams parameters) =>
-        new(parameters.LinkUrl);
+        new(parameters.LinkUrl, parameters.MediaType == ContextMenuMediaType.Image ? parameters.SourceUrl : null);
 
     protected override bool RunContextMenu(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IContextMenuParams parameters, IMenuModel model, IRunContextMenuCallback callback)
     {

@@ -29,7 +29,7 @@ public class ProgramPublishSingleFile
         {
             if (e.ExceptionObject is Exception ex)
             {
-                LoggingService.Instance.LogCrash(ex);
+                LoggingService.Instance.LogException(ex, LogType.Crashes);
                 LoggingService.SafeFlushLogsOnShutdown();
             }
         };
