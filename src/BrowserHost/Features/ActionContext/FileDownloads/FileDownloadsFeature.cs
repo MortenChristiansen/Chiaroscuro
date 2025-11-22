@@ -28,7 +28,6 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
     private int _nextBackgroundDownloadId = 1_000_000;
     private async Task OnBackgroundDownloadStarted(BackgroundDownloadStartedEvent e)
     {
-
         var downloadId = Interlocked.Increment(ref _nextBackgroundDownloadId);
         using var ct = new CancellationTokenSource();
         var downloadInfo = new DownloadInfo
@@ -57,9 +56,12 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
             },
             ct.Token
         );
+        downloadInfo.IsCompleted = true;
+        downloadInfo.IsCancelled = ct.IsCancellationRequested;
 
         RemoveCompletedDownloadAfterDelay(downloadId);
-
+        SendProgressUpdate();
+        
         if (data != null)
             await DownloadHelper.SaveFile(e.FileName, data);
     }
