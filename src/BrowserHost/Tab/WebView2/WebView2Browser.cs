@@ -392,10 +392,13 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 
         // Capture data from event args synchronously; the args object isn't valid after returning to caller
         var linkUrlSnapshot = "";
+        string? imageUrl = null;
         try
         {
             var target = e.ContextMenuTarget;
             linkUrlSnapshot = target?.LinkUri ?? "";
+            if (target?.Kind == CoreWebView2ContextMenuTargetKind.Image && !string.IsNullOrWhiteSpace(target.SourceUri))
+                imageUrl = target.SourceUri;
         }
         catch (System.Runtime.InteropServices.COMException)
         {
@@ -414,7 +417,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             var cursorPos = VisualDpiUtil.GetCursorPositionInDips(owner);
             var offset = VisualDpiUtil.GetDpiAwareOffset(owner, 12, 12); // 12px right and down, scaled for DPI
             var window = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
-            var parameters = new ContextMenuParameters(linkUrlSnapshot);
+            var parameters = new ContextMenuParameters(linkUrlSnapshot, imageUrl);
             window.Prepare(parameters);
             window.Show();
             window.Activate(); // Ensure focus so Deactivated fires on outside click

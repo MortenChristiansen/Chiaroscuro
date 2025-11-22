@@ -24,6 +24,8 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
             downloadInfo.Callback?.Cancel();
     }
 
+    // TODO: Extend the browser specific download logic with manual C# downloads. We need an event to publish for starting downloads. Cancelling must also be supported via the existing approach.
+
     public void OnDownloadUpdated(int downloadId, DownloadItem downloadItem, IDownloadItemCallback callback)
     {
         _progressTimer ??= new Timer(SendProgressUpdate, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
