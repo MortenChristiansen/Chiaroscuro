@@ -90,4 +90,14 @@ public static class PubSub
                 value.Remove(action);
         }
     }
+
+    public static void Unsubscribe<T>(Func<T, Task> action)
+    {
+        lock (_lock)
+        {
+            var type = typeof(T);
+            if (_subscribers.TryGetValue(type, out List<Delegate>? value))
+                value.Remove(action);
+        }
+    }
 }
