@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace BrowserHost.Utilities;
 
@@ -11,6 +12,21 @@ public static class PubSub
     private static readonly Lock _lock = new();
 
     public static void Subscribe<T>(Action<T> action)
+    {
+        var type = typeof(T);
+        lock (_lock)
+        {
+            if (!_subscribers.TryGetValue(type, out List<Delegate>? value))
+            {
+                value = [];
+                _subscribers[type] = value;
+            }
+
+            value.Add(action);
+        }
+    }
+
+    public static void Subscribe<T>(Func<T, Task> action)
     {
         var type = typeof(T);
         lock (_lock)
@@ -44,6 +60,20 @@ public static class PubSub
                         catch (Exception ex) when (!Debugger.IsAttached)
                         {
                             Console.WriteLine($"Error in subscriber action: {ex.Message}");
+                        }
+                    });
+                }
+                else if (action is Func<T, Task> asyncAction)
+                {
+                    MainWindow.Instance.Dispatcher.Invoke(async () =>
+                    {
+                        try
+                        {
+                            await asyncAction(message);
+                        }
+                        catch (Exception ex) when (!Debugger.IsAttached)
+                        {
+                            Console.WriteLine($"Error in subscriber async action: {ex.Message}");
                         }
                     });
                 }

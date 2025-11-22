@@ -1,10 +1,10 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Logging;
+using BrowserHost.Utilities;
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
@@ -28,7 +28,8 @@ public class WebContextMenuBrowserApi : BrowserApi
     {
         Application.Current.Dispatcher.Invoke(() =>
         {
-            // Intentionally left blank until download integration is added.
+            var evt = new BackgroundDownloadStartedEvent(imageUrl, Path.GetFileName(new Uri(imageUrl).LocalPath));
+            PubSub.Publish(evt);
         });
     }
 
@@ -38,7 +39,7 @@ public class WebContextMenuBrowserApi : BrowserApi
 
         Task.Run(async () =>
         {
-            var bytes = await DownloadUtil.DownloadBytesAsync(imageUrl);
+            var bytes = await DownloadHelper.DownloadBytesAsync(imageUrl);
 
             if (bytes == null || bytes.Length == 0)
                 return;
@@ -49,13 +50,7 @@ public class WebContextMenuBrowserApi : BrowserApi
                 try
                 {
                     ms.Position = 0;
-                    var bmp = new BitmapImage();
-                    bmp.BeginInit();
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.StreamSource = ms;
-                    bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-                    bmp.EndInit();
-                    bmp.Freeze();
+                    var bmp = CreateBitmap(ms);
                     Clipboard.SetImage(bmp);
                 }
                 catch (Exception ex)
@@ -66,39 +61,15 @@ public class WebContextMenuBrowserApi : BrowserApi
         });
     }
 
-    private sealed class DownloadUtil
+    private static BitmapImage CreateBitmap(MemoryStream ms)
     {
-        private static HttpClient CreateClient()
-        {
-            var c = new HttpClient();
-            try
-            {
-                c.Timeout = TimeSpan.FromSeconds(15);
-                c.DefaultRequestHeaders.UserAgent.ParseAdd("ChiaroscuroBrowser/1.0");
-                c.DefaultRequestHeaders.Accept.ParseAdd("image/avif,image/webp,image/png,image/jpeg,image/gif,*/*");
-            }
-            catch { }
-            return c;
-        }
-
-        public static async Task<byte[]?> DownloadBytesAsync(string url, CancellationToken ct = default)
-        {
-            var httpClient = CreateClient();
-            if (string.IsNullOrWhiteSpace(url)) return null;
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return null;
-            try
-            {
-                using var response = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
-                if (!response.IsSuccessStatusCode) return null;
-                var mediaType = response.Content.Headers.ContentType?.MediaType;
-                if (mediaType != null && !mediaType.StartsWith("image", StringComparison.OrdinalIgnoreCase)) return null;
-                return await response.Content.ReadAsByteArrayAsync(ct);
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-            {
-                LoggingService.Instance.Log(LogType.Info, $"DownloadUtil: failed to download '{url}': {ex.Message}");
-                return null;
-            }
-        }
+        var bmp = new BitmapImage();
+        bmp.BeginInit();
+        bmp.CacheOption = BitmapCacheOption.OnLoad;
+        bmp.StreamSource = ms;
+        bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+        bmp.EndInit();
+        bmp.Freeze();
+        return bmp;
     }
 }

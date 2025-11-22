@@ -16,19 +16,55 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
     public override void Configure()
     {
         PubSub.Subscribe<DownloadCancelledEvent>(HandleFileDownloadCancelled);
+        PubSub.Subscribe<BackgroundDownloadStartedEvent>(OnBackgroundDownloadStarted);
     }
 
     private void HandleFileDownloadCancelled(DownloadCancelledEvent e)
     {
         if (_activeDownloads.TryRemove(e.DownloadId, out var downloadInfo) && !downloadInfo.IsCompleted)
-            downloadInfo.Callback?.Cancel();
+            downloadInfo.Cancel?.Invoke();
     }
 
-    // TODO: Extend the browser specific download logic with manual C# downloads. We need an event to publish for starting downloads. Cancelling must also be supported via the existing approach.
+    private int _nextBackgroundDownloadId = 1_000_000;
+    private async Task OnBackgroundDownloadStarted(BackgroundDownloadStartedEvent e)
+    {
+        EnsureDownloadTimerCreated();
+
+        var downloadId = Interlocked.Increment(ref _nextBackgroundDownloadId);
+        var ct = new CancellationTokenSource();
+        var downloadInfo = new DownloadInfo
+        {
+            Id = downloadId,
+            FileName = e.FileName,
+            Cancel = ct.Cancel,
+            IsCancelled = false,
+            IsCompleted = false,
+            Progress = 0
+        };
+
+        if (!_activeDownloads.TryAdd(downloadId, downloadInfo))
+            return;
+
+        SendProgressUpdate();
+
+        var data = await DownloadHelper.DownloadBytesAsync(e.DownloadSource, progress =>
+        {
+            downloadInfo.Progress = progress.PercentCompleted;
+            downloadInfo.IsCompleted = progress.HasCompleted;
+            SendProgressUpdate();
+
+            if (progress.HasCompleted || progress.IsCancelled)
+                RemoveCompletedDownloadAfterDelay(downloadId);
+        },
+        ct.Token);
+
+        if (data != null)
+            await DownloadHelper.SaveFile(e.FileName, data);
+    }
 
     public void OnDownloadUpdated(int downloadId, DownloadItem downloadItem, IDownloadItemCallback callback)
     {
-        _progressTimer ??= new Timer(SendProgressUpdate, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        EnsureDownloadTimerCreated();
 
         var fileName = !string.IsNullOrWhiteSpace(downloadItem.SuggestedFileName) ?
             downloadItem.SuggestedFileName :
@@ -38,7 +74,7 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
         {
             Id = downloadId,
             FileName = fileName,
-            Callback = callback,
+            Cancel = callback.Cancel,
             IsCancelled = false,
             IsCompleted = false,
             Progress = 0
@@ -49,22 +85,30 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
         downloadInfo.IsCancelled = downloadItem.IsCancelled;
 
         if (downloadItem.IsComplete || downloadItem.IsCancelled)
-        {
-            // Keep completed downloads for 10 seconds
-            Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ =>
-            {
-                _activeDownloads.TryRemove(downloadId, out var _);
-                if (_activeDownloads.Count == 0)
-                {
-                    _progressTimer?.Dispose();
-                    _progressTimer = null;
-                    SendProgressUpdate(null);
-                }
-            });
-        }
+            RemoveCompletedDownloadAfterDelay(downloadId);
     }
 
-    private void SendProgressUpdate(object? state)
+    private void RemoveCompletedDownloadAfterDelay(int downloadId)
+    {
+        // Keep completed downloads for 10 seconds
+        var _ = Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ =>
+        {
+            _activeDownloads.TryRemove(downloadId, out var _);
+            if (_activeDownloads.Count == 0)
+            {
+                _progressTimer?.Dispose();
+                _progressTimer = null;
+                SendProgressUpdate();
+            }
+        });
+    }
+
+    private void EnsureDownloadTimerCreated()
+    {
+        _progressTimer ??= new Timer(SendProgressUpdate, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    private void SendProgressUpdate(object? state = null)
     {
         var downloads = _activeDownloads.Values
             .Select(d => new DownloadItemDto(
@@ -89,7 +133,7 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
         {
             if (!download.IsCompleted && !download.IsCancelled)
             {
-                download.Callback?.Cancel();
+                download.Cancel?.Invoke();
                 download.IsCancelled = true;
             }
         }
@@ -103,5 +147,5 @@ internal class DownloadInfo
     public required int Progress { get; set; }
     public required bool IsCompleted { get; set; }
     public required bool IsCancelled { get; set; }
-    public required IDownloadItemCallback? Callback { get; set; }
+    public required Action? Cancel { get; set; }
 }
