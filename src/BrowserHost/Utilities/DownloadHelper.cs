@@ -9,25 +9,37 @@ namespace BrowserHost.Utilities;
 
 public record DownloadProgress(long BytesRead, long TotalBytes, int PercentCompleted, bool HasCompleted, bool IsCancelled);
 
-public class DownloadHelper
+public static class DownloadHelper
 {
+    private static readonly HttpClient _httpClient = CreateClient();
+
     private static HttpClient CreateClient()
     {
-        var c = new HttpClient();
-        c.Timeout = TimeSpan.FromSeconds(15);
-        c.DefaultRequestHeaders.UserAgent.ParseAdd("ChiaroscuroBrowser/1.0");
-        c.DefaultRequestHeaders.Accept.ParseAdd("image/avif,image/webp,image/png,image/jpeg,image/gif,*/*");
-        return c;
+        var handler = new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(2), // Rotate connections for DNS refresh
+            MaxConnectionsPerServer = 20,
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1)
+        };
+
+        var client = new HttpClient(handler, disposeHandler: true)
+        {
+            Timeout = TimeSpan.FromSeconds(15)
+        };
+
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("ChiaroscuroBrowser/1.0");
+        client.DefaultRequestHeaders.Accept.ParseAdd("image/avif,image/webp,image/png,image/jpeg,image/gif,*/*");
+
+        return client;
     }
 
     public static async Task<byte[]?> DownloadBytesAsync(string url, Action<DownloadProgress>? progressCallback = null, CancellationToken ct = default)
     {
-        var httpClient = CreateClient();
         if (string.IsNullOrWhiteSpace(url)) return null;
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return null;
         try
         {
-            using var response = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
+            using var response = await _httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
             if (!response.IsSuccessStatusCode) return null;
             var mediaType = response.Content.Headers.ContentType?.MediaType;
             if (mediaType != null && !mediaType.StartsWith("image", StringComparison.OrdinalIgnoreCase)) return null;
