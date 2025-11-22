@@ -1,5 +1,4 @@
-﻿using BrowserHost.Features.ActionContext;
-using BrowserHost.Utilities;
+﻿using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.ActionContext.FileDownloads;
 

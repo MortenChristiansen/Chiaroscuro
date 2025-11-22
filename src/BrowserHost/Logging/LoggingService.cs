@@ -30,11 +30,13 @@ public sealed class LoggingService : IDisposable
         _ = Task.Factory.StartNew(DeleteLogsNotTouchedWithinLastWeek);
     }
 
-    public void LogCrash(Exception exception)
+    public void LogException(Exception exception, LogType logType, string? additionalContext = null)
     {
         try
         {
             var message = new StringBuilder();
+            if (additionalContext != null)
+                message.AppendLine(additionalContext);
             void Append(Exception ex, string? prefix = null)
             {
                 var p = string.IsNullOrEmpty(prefix) ? "" : prefix + " ";
@@ -43,14 +45,16 @@ public sealed class LoggingService : IDisposable
                 message.AppendLine(ex.StackTrace);
                 if (ex.InnerException != null) Append(ex.InnerException, (prefix ?? "Inner").Trim());
             }
-            message.AppendLine("Application crashed");
+            if (logType == LogType.Crashes)
+                message.AppendLine("Application crashed");
+            
             Append(exception);
 
-            Log(LogType.Crashes, message.ToString());
+            Log(logType, message.ToString());
         }
         catch (Exception) when (!Debugger.IsAttached)
         {
-            /* Preserve originalal crash */
+            /* Preserve original error */
         }
     }
 

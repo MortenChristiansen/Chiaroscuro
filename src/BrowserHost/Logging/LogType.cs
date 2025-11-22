@@ -5,5 +5,6 @@ public enum LogType
     Info,
     Performance,
     Crashes,
-    ConsoleErrors
+    ConsoleErrors,
+    Errors
 }
