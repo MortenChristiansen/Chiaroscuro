@@ -12,9 +12,26 @@ import { ContextMenuApi } from './contextMenuApi';
       class="px-4 py-2 bg-gray-800 text-gray-300 font-semibold border-b border-gray-700 min-w-60 rounded-sm cursor-default select-none w-min h-min max-w-200 max-h-150"
     >
       @if (params.imageSourceUrl) {
-      <div class="flex flex-col gap-2">
-        <div class="text-sm font-medium text-gray-400">Image actions</div>
-        <div class="flex flex-wrap gap-2">
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="flex-1 min-w-0 max-w-96">
+            <div>Image URL:</div>
+            <div
+              class="text-gray-400 font-normal text-sm wrap-break-word line-clamp-3"
+            >
+              {{ params.imageSourceUrl }}
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="copyLink(params.imageSourceUrl)"
+            class="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-gray-200 hover:bg-gray-600 transition active:scale-95"
+            title="Copy image URL"
+          >
+            <fa-icon [icon]="copyIcon" />
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-2">
           <button
             type="button"
             (click)="downloadImage(params.imageSourceUrl)"
@@ -37,17 +54,18 @@ import { ContextMenuApi } from './contextMenuApi';
       </div>
       } @else if (params.linkUrl) {
       <div class="flex items-center gap-3 min-w-0">
-        <div class="flex-1 w-max">
+        <div class="flex-1 min-w-0 max-w-96">
           <div>Link URL:</div>
-          <div class="text-gray-400 font-normal text-sm break-all">
+          <div
+            class="text-gray-400 font-normal text-sm wrap-break-word line-clamp-3"
+          >
             {{ params.linkUrl }}
           </div>
         </div>
         <button
           type="button"
           (click)="copyLink(params.linkUrl)"
-          class="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-gray-200 hover:bg-gray-600 focus:outline-none transition active:scale-95"
-          aria-label="Copy link URL"
+          class="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-gray-200 hover:bg-gray-600 transition active:scale-95"
           title="Copy link URL"
         >
           <fa-icon [icon]="copyIcon" />
