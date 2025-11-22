@@ -14,13 +14,9 @@ public class DownloadHelper
     private static HttpClient CreateClient()
     {
         var c = new HttpClient();
-        try
-        {
-            c.Timeout = TimeSpan.FromSeconds(15);
-            c.DefaultRequestHeaders.UserAgent.ParseAdd("ChiaroscuroBrowser/1.0");
-            c.DefaultRequestHeaders.Accept.ParseAdd("image/avif,image/webp,image/png,image/jpeg,image/gif,*/*");
-        }
-        catch { }
+        c.Timeout = TimeSpan.FromSeconds(15);
+        c.DefaultRequestHeaders.UserAgent.ParseAdd("ChiaroscuroBrowser/1.0");
+        c.DefaultRequestHeaders.Accept.ParseAdd("image/avif,image/webp,image/png,image/jpeg,image/gif,*/*");
         return c;
     }
 
@@ -70,19 +66,26 @@ public class DownloadHelper
 
     public static async Task SaveFile(string fileName, byte[] data)
     {
-        var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-        var filePath = Path.Combine(desktopPath, fileName);
-        // If file exists, append a number
-        var originalFilePath = filePath;
-        var count = 1;
-        while (File.Exists(filePath))
+        try
         {
-            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(originalFilePath);
-            var extension = Path.GetExtension(originalFilePath);
-            filePath = Path.Combine(desktopPath, $"{fileNameWithoutExtension} ({count}){extension}");
-            count++;
-        }
+            var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            var filePath = Path.Combine(desktopPath, fileName);
+            // If file exists, append a number
+            var originalFilePath = filePath;
+            var count = 1;
+            while (File.Exists(filePath))
+            {
+                var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(originalFilePath);
+                var extension = Path.GetExtension(originalFilePath);
+                filePath = Path.Combine(desktopPath, $"{fileNameWithoutExtension} ({count}){extension}");
+                count++;
+            }
 
-        await System.IO.File.WriteAllBytesAsync(filePath, data);
+            await File.WriteAllBytesAsync(filePath, data);
+        }
+        catch (IOException e)
+        {
+            LoggingService.Instance.LogException(e, LogType.Errors, "Error saving file: " + fileName);
+        }
     }
 }

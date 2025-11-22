@@ -65,7 +65,7 @@ public static class PubSub
                 }
                 else if (action is Func<T, Task> asyncAction)
                 {
-                    MainWindow.Instance.Dispatcher.Invoke(async () =>
+                    MainWindow.Instance.Dispatcher.InvokeAsync(async () =>
                     {
                         try
                         {

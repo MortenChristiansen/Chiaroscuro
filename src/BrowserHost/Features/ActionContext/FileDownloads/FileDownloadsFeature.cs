@@ -22,7 +22,7 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
     private void HandleFileDownloadCancelled(DownloadCancelledEvent e)
     {
         if (_activeDownloads.TryRemove(e.DownloadId, out var downloadInfo) && !downloadInfo.IsCompleted)
-            downloadInfo.Cancel?.Invoke();
+            downloadInfo.Cancel.Invoke();
     }
 
     private int _nextBackgroundDownloadId = 1_000_000;
@@ -31,7 +31,7 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
         EnsureDownloadTimerCreated();
 
         var downloadId = Interlocked.Increment(ref _nextBackgroundDownloadId);
-        var ct = new CancellationTokenSource();
+        using var ct = new CancellationTokenSource();
         var downloadInfo = new DownloadInfo
         {
             Id = downloadId,
@@ -133,7 +133,7 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
         {
             if (!download.IsCompleted && !download.IsCancelled)
             {
-                download.Cancel?.Invoke();
+                download.Cancel.Invoke();
                 download.IsCancelled = true;
             }
         }
@@ -147,5 +147,5 @@ internal class DownloadInfo
     public required int Progress { get; set; }
     public required bool IsCompleted { get; set; }
     public required bool IsCancelled { get; set; }
-    public required Action? Cancel { get; set; }
+    public required Action Cancel { get; set; }
 }

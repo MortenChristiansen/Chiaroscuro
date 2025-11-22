@@ -19,7 +19,7 @@ public partial class App : Application
         // Set up unhandled exception handlers for crash logging
         DispatcherUnhandledException += (sender, e) =>
         {
-            LoggingService.Instance.LogCrash(e.Exception);
+            LoggingService.Instance.LogException(e.Exception, LogType.Crashes);
             LoggingService.SafeFlushLogsOnShutdown();
         };
 
@@ -27,7 +27,7 @@ public partial class App : Application
         {
             if (e.ExceptionObject is Exception ex)
             {
-                LoggingService.Instance.LogCrash(ex);
+                LoggingService.Instance.LogException(ex, LogType.Crashes);
                 LoggingService.SafeFlushLogsOnShutdown();
             }
         };

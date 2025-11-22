@@ -26,9 +26,15 @@ public class WebContextMenuBrowserApi : BrowserApi
 
     public void DownloadImage(string imageUrl)
     {
+        if (string.IsNullOrWhiteSpace(imageUrl) || !Uri.TryCreate(imageUrl, UriKind.Absolute, out var uri))
+        {
+            LoggingService.Instance.Log(LogType.Info, $"DownloadImage: invalid URL '{imageUrl}'");
+            return;
+        }
+
         Application.Current.Dispatcher.Invoke(() =>
         {
-            var evt = new BackgroundDownloadStartedEvent(imageUrl, Path.GetFileName(new Uri(imageUrl).LocalPath));
+            var evt = new BackgroundDownloadStartedEvent(imageUrl, Path.GetFileName(uri.LocalPath));
             PubSub.Publish(evt);
         });
     }
