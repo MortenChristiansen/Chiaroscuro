@@ -3,10 +3,10 @@ using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.CustomWindowChrome;
-using BrowserHost.Features.WebContextMenu;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Permissions;
 using BrowserHost.Features.TabPalette.FindText;
+using BrowserHost.Features.WebContextMenu;
 using BrowserHost.Utilities;
 using CefSharp;
 using System;
@@ -77,8 +77,25 @@ public class CefSharpTabBrowser : Browser
             ManualAddress = address;
     }
 
+    private static string _lastChildUrl = string.Empty;
+
     protected override void OnAddressChanged(string oldValue, string newValue)
     {
+        if (_isChildBrowser)
+            _lastChildUrl = newValue;
+
+        // This is a workaround to behavior seen on Google product links that uses JS to change the url
+        // after opening in a new tab. This causes us to both open a child browser tab and change the url
+        // of the parent tab. To prevent this, we check if the new url matches the last child url opened.
+        // In some cases the child url changes to a google redirect link, while the parent tab is changed
+        // to the final destination url. To handle this, we also check for the google redirect pattern.
+        if (!_isChildBrowser && (newValue == _lastChildUrl || _lastChildUrl.StartsWith("https://www.google.com/aclk?")))
+        {
+            _lastChildUrl = "";
+            GetBrowser().GoBack();
+            return;
+        }
+
         if (DragDropFeature.IsDragging && oldValue != null && newValue.StartsWith("file://"))
         {
             // This is a workaround to prevent the current address from being set
