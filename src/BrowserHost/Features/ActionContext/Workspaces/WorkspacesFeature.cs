@@ -102,7 +102,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspaceId));
 
         if (App.Options.LaunchUrl != null)
-            PubSub.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true));
+            PubSub.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
     }
 
     private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, int tabIndex, TabsFeature tabsFeature)

@@ -16,7 +16,7 @@ public class RequestHandler(string tabId, bool isChildBrowser) : CefSharp.Handle
     {
         if (targetDisposition == WindowOpenDisposition.NewBackgroundTab)
         {
-            PubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true));
+            PubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
             return true;
         }
 

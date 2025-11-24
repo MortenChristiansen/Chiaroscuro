@@ -66,6 +66,8 @@
                     </Border>
                 </Grid>
                 <ad:ActionDialogBrowser x:Name="ActionDialog" Visibility="Hidden" />
+                <!-- Hidden host for preloading background tabs -->
+                <Grid x:Name="PreloadTabsHost" Width="1" Height="1" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False" />
             </Grid>
         </Border>
     </Border>

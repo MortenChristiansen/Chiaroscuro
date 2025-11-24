@@ -1,6 +1,7 @@
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Utilities;
 using CefSharp;
+using System.Collections.Generic;
 using System.Windows;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
@@ -41,9 +42,11 @@ public sealed class PopupLifeSpanHandler(string tabId) : ILifeSpanHandler
         switch (targetDisposition)
         {
             case WindowOpenDisposition.NewBackgroundTab:
-                PubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true));
+                PubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
                 return true;
             case WindowOpenDisposition.NewForegroundTab:
+                PubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+                return true;
             case WindowOpenDisposition.NewWindow:
             case WindowOpenDisposition.NewPopup:
                 Application.Current?.Dispatcher.BeginInvoke(() =>

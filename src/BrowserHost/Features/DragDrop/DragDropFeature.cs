@@ -72,7 +72,7 @@ public class DragDropFeature(MainWindow window) : Feature(window)
             try
             {
                 var fileUri = new Uri(filePath).AbsoluteUri;
-                PubSub.Publish(new NavigationStartedEvent(fileUri, UseCurrentTab: false, SaveInHistory: true));
+                PubSub.Publish(new NavigationStartedEvent(fileUri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
             }
             catch (Exception ex) when (!Debugger.IsAttached)
             {

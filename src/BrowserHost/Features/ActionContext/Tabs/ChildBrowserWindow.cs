@@ -132,7 +132,7 @@ public class ChildBrowserWindow : OverlayWindow
         {
             var address = _browser.Address;
             // Trigger regular navigation (new tab)
-            PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true));
+            PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
             // Close this child window
             BeginCloseWithFade();
             AnimateContentOut();
