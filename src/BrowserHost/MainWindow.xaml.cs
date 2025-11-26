@@ -1,4 +1,5 @@
 using BrowserHost.Features;
+using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Features.ActionContext.Folders;
 using BrowserHost.Features.ActionContext.PinnedTabs;
@@ -66,6 +67,7 @@ public partial class MainWindow : Window
         [
             new SettingsFeature(this),
             new CustomWindowChromeFeature(this),
+            new ActionContextFeature(this),
             new ActionDialogFeature(this),
             new TabsFeature(this),
             new PinnedTabsFeature(this),
