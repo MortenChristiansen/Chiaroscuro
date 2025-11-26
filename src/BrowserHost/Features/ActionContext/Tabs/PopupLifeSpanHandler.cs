@@ -1,12 +1,12 @@
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Tab.CefSharp;
 using BrowserHost.Utilities;
 using CefSharp;
-using System.Collections.Generic;
 using System.Windows;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
 
-public sealed class PopupLifeSpanHandler(string tabId) : ILifeSpanHandler
+public sealed class PopupLifeSpanHandler(CefSharpTabBrowser tabBrowser) : ILifeSpanHandler
 {
     public bool DoClose(IWebBrowser chromiumWebBrowser, IBrowser browser)
     {
@@ -42,17 +42,20 @@ public sealed class PopupLifeSpanHandler(string tabId) : ILifeSpanHandler
         switch (targetDisposition)
         {
             case WindowOpenDisposition.NewBackgroundTab:
+                tabBrowser.ApplyTemporaryNavigationBlock();
                 PubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
                 return true;
             case WindowOpenDisposition.NewForegroundTab:
+                tabBrowser.ApplyTemporaryNavigationBlock();
                 PubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
                 return true;
             case WindowOpenDisposition.NewWindow:
             case WindowOpenDisposition.NewPopup:
+                tabBrowser.ApplyTemporaryNavigationBlock();
                 Application.Current?.Dispatcher.BeginInvoke(() =>
                 {
                     var owner = MainWindow.Instance;
-                    var win = new ChildBrowserWindow(targetUrl, tabId)
+                    var win = new ChildBrowserWindow(targetUrl, tabBrowser.Id)
                     {
                         Owner = owner
                     };

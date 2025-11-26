@@ -41,7 +41,7 @@ public class CefSharpTabBrowser : Browser
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
         RequestHandler = new RequestHandler(Id, isChildBrowser);
-        LifeSpanHandler = new PopupLifeSpanHandler(Id);
+        LifeSpanHandler = new PopupLifeSpanHandler(this);
         FindHandler = new FindHandler();
         PermissionHandler = new CefSharpPermissionHandler();
         MenuHandler = new WebContentContextMenuHandler();
@@ -51,14 +51,14 @@ public class CefSharpTabBrowser : Browser
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (!_isChildBrowser)
+        if (!_isChildBrowser && !IsNavigationBlocked)
             _actionContextBrowser.UpdateTabTitle(Id, (string)e.NewValue);
     }
 
     private void OnFaviconAddressesChanged(IList<string> addresses)
     {
         Favicon = addresses.FirstOrDefault();
-        if (!_isChildBrowser)
+        if (!_isChildBrowser && !IsNavigationBlocked)
         {
             PubSub.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
             Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
@@ -77,21 +77,22 @@ public class CefSharpTabBrowser : Browser
             ManualAddress = address;
     }
 
-    private static string _lastChildUrl = string.Empty;
+    private DateTimeOffset? _navigationBlockedUntil;
+    private bool IsNavigationBlocked => _navigationBlockedUntil.HasValue && DateTimeOffset.UtcNow < _navigationBlockedUntil.Value;
+    public void ApplyTemporaryNavigationBlock()
+    {
+        // This is a workaround to behavior seen on Google product links that uses JS to change the url
+        // after opening in a new tab. This causes us to both open a new browser tab and change the url
+        // of the existing tab. To prevent this, we block any navigation for a short time in the original
+        // tab.
+
+        _navigationBlockedUntil = DateTimeOffset.UtcNow.AddSeconds(3);
+    }
 
     protected override void OnAddressChanged(string oldValue, string newValue)
     {
-        if (_isChildBrowser)
-            _lastChildUrl = newValue;
-
-        // This is a workaround to behavior seen on Google product links that uses JS to change the url
-        // after opening in a new tab. This causes us to both open a child browser tab and change the url
-        // of the parent tab. To prevent this, we check if the new url matches the last child url opened.
-        // In some cases the child url changes to a google redirect link, while the parent tab is changed
-        // to the final destination url. To handle this, we also check for the google redirect pattern.
-        if (!_isChildBrowser && (newValue == _lastChildUrl || _lastChildUrl.StartsWith("https://www.google.com/aclk?")))
+        if (IsNavigationBlocked)
         {
-            _lastChildUrl = "";
             GetBrowser().GoBack();
             return;
         }
