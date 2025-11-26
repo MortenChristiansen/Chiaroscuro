@@ -6,8 +6,8 @@ using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Input;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
 
@@ -107,13 +107,11 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
         var tab = new TabDto(browser.Id, browser.Title, browser.Favicon, DateTimeOffset.UtcNow);
         Window.ActionContext.AddTab(tab, activate: activateTab);
-        Window.Dispatcher.Invoke(() =>
-        {
-            if (activateTab)
-                SetCurrentTab(browser);
-            else
-                PreloadTab(browser);
-        });
+
+        if (activateTab)
+            SetCurrentTab(browser);
+        else
+            PreloadTab(browser);
 
         PubSub.Publish(new TabBrowserCreatedEvent(browser));
         return browser;
