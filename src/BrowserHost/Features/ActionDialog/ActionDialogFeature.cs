@@ -13,7 +13,7 @@ using System.Windows.Media.Animation;
 namespace BrowserHost.Features.ActionDialog;
 
 public record SearchProvider(string Name, string Key, string Pattern);
-public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory);
+public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory, bool ActivateTab);
 
 public enum ActionType
 {
@@ -62,7 +62,7 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
         if (ContentServer.IsContentPage(e.Command, out var page))
         {
             var pageUrl = ContentServer.GetUiAddress(page.Address);
-            PubSub.Publish(new NavigationStartedEvent(pageUrl, UseCurrentTab: e.Ctrl, SaveInHistory: false));
+            PubSub.Publish(new NavigationStartedEvent(pageUrl, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
             return;
         }
 
@@ -72,7 +72,7 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
             return;
         }
 
-        PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true));
+        PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true, ActivateTab: true));
     }
 
     public static ActionType GetActionType(string command)
@@ -122,7 +122,7 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
     {
         var urlEncodedQuery = WebUtility.UrlEncode(query);
         var url = string.Format(provider.Pattern, urlEncodedQuery);
-        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false));
+        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
     }
 
     private void HandlePageHistoryChange(string tabId)
