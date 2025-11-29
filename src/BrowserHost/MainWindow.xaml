@@ -20,7 +20,7 @@
                 <Grid Margin="0,32,0,0" x:Name="MainContentGrid">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition x:Name="ActionContextColumn" Width="300" MinWidth="200" />
-                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition x:Name="ActionContextSplitterColumn" Width="8" />
                         <ColumnDefinition Width="*" MinWidth="200" />
                         <ColumnDefinition x:Name="TabPaletteSplitterColumn" Width="0" MinWidth="0" />
                         <ColumnDefinition x:Name="TabPaletteColumn" Width="0" MinWidth="0" />

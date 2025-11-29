@@ -20,6 +20,7 @@ In browser:
 - **F3**: Open tab palette and focus the Find in Page input.
 - **F5**: Reload page.
 - **Ctrl-F5**: Reload page, ignoring cache.
+- **Ctrl-S**: Toggle action context panel.
 - **F12**: Toggle dev tools.
 
 In action dialog:
