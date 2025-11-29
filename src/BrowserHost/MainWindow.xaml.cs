@@ -26,6 +26,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -270,6 +271,42 @@ public partial class MainWindow : Window
         }
     }
 
+    // Shared helpers for side panel animations (ActionContext, TabPalette)
+    internal void InitializeSidePanel(ColumnDefinition contentColumn, ColumnDefinition splitterColumn, double splitterExpandedWidth, bool isExpanded)
+    {
+        GridAnimationBehavior.Initialize(contentColumn);
+        splitterColumn.Width = new GridLength(splitterExpandedWidth);
+        GridAnimationBehavior.Initialize(splitterColumn);
+        GridAnimationBehavior.SetIsExpanded(contentColumn, isExpanded);
+        GridAnimationBehavior.SetIsExpanded(splitterColumn, isExpanded);
+    }
+
+    internal void ExpandSidePanel(ColumnDefinition contentColumn, ColumnDefinition splitterColumn, FrameworkElement contentElement, GridSplitter splitter, TimeSpan duration)
+    {
+        contentElement.Visibility = Visibility.Visible;
+        splitter.Visibility = Visibility.Visible;
+        GridAnimationBehavior.SetDuration(contentColumn, duration);
+        GridAnimationBehavior.SetIsExpanded(contentColumn, true);
+        GridAnimationBehavior.SetDuration(splitterColumn, duration);
+        GridAnimationBehavior.SetIsExpanded(splitterColumn, true);
+    }
+
+    internal void CollapseSidePanel(ColumnDefinition contentColumn, ColumnDefinition splitterColumn, FrameworkElement contentElement, GridSplitter splitter, TimeSpan duration)
+    {
+        GridAnimationBehavior.SetDuration(contentColumn, duration);
+        GridAnimationBehavior.SetIsExpanded(contentColumn, false);
+        GridAnimationBehavior.SetDuration(splitterColumn, duration);
+        GridAnimationBehavior.SetIsExpanded(splitterColumn, false);
+        var timer = new DispatcherTimer { Interval = duration };
+        timer.Tick += (s, e) =>
+        {
+            timer.Stop();
+            contentElement.Visibility = Visibility.Collapsed;
+            splitter.Visibility = Visibility.Collapsed;
+        };
+        timer.Start();
+    }
+
     public void ShowTabPalette()
     {
         if (TabPaletteBrowserControl.Visibility == Visibility.Visible)
@@ -280,23 +317,12 @@ public partial class MainWindow : Window
 
         if (!_tabPaletteHasBeenShown)
         {
-            // We need to initialize the animation because the ActualWidth property does not have a value yet
-            GridAnimationBehavior.Initialize(TabPaletteColumn);
-            // Initialize the splitter column to its expanded width (8) so it can animate without popping
-            TabPaletteSplitterColumn.Width = new GridLength(8);
-            GridAnimationBehavior.Initialize(TabPaletteSplitterColumn);
+            InitializeSidePanel(TabPaletteColumn, TabPaletteSplitterColumn, 8, isExpanded: false);
             _tabPaletteHasBeenShown = true;
         }
 
-        TabPaletteBrowserControl.Visibility = Visibility.Visible;
-        TabPaletteGridSplitter.Visibility = Visibility.Visible;
-        // Set the desired expanded width for the column before expanding
         var duration = TimeSpan.FromMilliseconds(300);
-        GridAnimationBehavior.SetDuration(TabPaletteColumn, duration);
-        GridAnimationBehavior.SetIsExpanded(TabPaletteColumn, true);
-        // Animate the splitter column from 0 -> 8 smoothly
-        GridAnimationBehavior.SetDuration(TabPaletteSplitterColumn, duration);
-        GridAnimationBehavior.SetIsExpanded(TabPaletteSplitterColumn, true);
+        ExpandSidePanel(TabPaletteColumn, TabPaletteSplitterColumn, TabPaletteBrowserControl, TabPaletteGridSplitter, duration);
     }
 
     public void HideTabPalette()
@@ -305,19 +331,6 @@ public partial class MainWindow : Window
             return;
 
         var duration = TimeSpan.FromMilliseconds(200);
-        GridAnimationBehavior.SetDuration(TabPaletteColumn, duration);
-        GridAnimationBehavior.SetIsExpanded(TabPaletteColumn, false);
-        // Collapse the splitter column from 8 -> 0 smoothly
-        GridAnimationBehavior.SetDuration(TabPaletteSplitterColumn, duration);
-        GridAnimationBehavior.SetIsExpanded(TabPaletteSplitterColumn, false);
-        // Hide controls after animation completes
-        var timer = new DispatcherTimer { Interval = duration };
-        timer.Tick += (s, e) =>
-        {
-            timer.Stop();
-            TabPaletteBrowserControl.Visibility = Visibility.Collapsed;
-            TabPaletteGridSplitter.Visibility = Visibility.Collapsed;
-        };
-        timer.Start();
+        CollapseSidePanel(TabPaletteColumn, TabPaletteSplitterColumn, TabPaletteBrowserControl, TabPaletteGridSplitter, duration);
     }
 }
