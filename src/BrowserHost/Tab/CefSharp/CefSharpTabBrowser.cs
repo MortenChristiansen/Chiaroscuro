@@ -3,10 +3,10 @@ using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.CustomWindowChrome;
-using BrowserHost.Features.WebContextMenu;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Permissions;
 using BrowserHost.Features.TabPalette.FindText;
+using BrowserHost.Features.WebContextMenu;
 using BrowserHost.Utilities;
 using CefSharp;
 using System;
@@ -41,7 +41,7 @@ public class CefSharpTabBrowser : Browser
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
         RequestHandler = new RequestHandler(Id, isChildBrowser);
-        LifeSpanHandler = new PopupLifeSpanHandler(Id);
+        LifeSpanHandler = new PopupLifeSpanHandler(this);
         FindHandler = new FindHandler();
         PermissionHandler = new CefSharpPermissionHandler();
         MenuHandler = new WebContentContextMenuHandler();
@@ -51,14 +51,14 @@ public class CefSharpTabBrowser : Browser
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        if (!_isChildBrowser)
+        if (!_isChildBrowser && !IsNavigationBlocked)
             _actionContextBrowser.UpdateTabTitle(Id, (string)e.NewValue);
     }
 
     private void OnFaviconAddressesChanged(IList<string> addresses)
     {
         Favicon = addresses.FirstOrDefault();
-        if (!_isChildBrowser)
+        if (!_isChildBrowser && !IsNavigationBlocked)
         {
             PubSub.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
             Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
@@ -77,8 +77,26 @@ public class CefSharpTabBrowser : Browser
             ManualAddress = address;
     }
 
+    private DateTimeOffset? _navigationBlockedUntil;
+    private bool IsNavigationBlocked => _navigationBlockedUntil.HasValue && DateTimeOffset.UtcNow < _navigationBlockedUntil.Value;
+    public void ApplyTemporaryNavigationBlock()
+    {
+        // This is a workaround to behavior seen on Google product links that uses JS to change the url
+        // after opening in a new tab. This causes us to both open a new browser tab and change the url
+        // of the existing tab. To prevent this, we block any navigation for a short time in the original
+        // tab.
+
+        _navigationBlockedUntil = DateTimeOffset.UtcNow.AddSeconds(3);
+    }
+
     protected override void OnAddressChanged(string oldValue, string newValue)
     {
+        if (IsNavigationBlocked)
+        {
+            GetBrowser().GoBack();
+            return;
+        }
+
         if (DragDropFeature.IsDragging && oldValue != null && newValue.StartsWith("file://"))
         {
             // This is a workaround to prevent the current address from being set
