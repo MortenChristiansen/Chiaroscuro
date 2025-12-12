@@ -26,7 +26,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
             }
             else
             {
-                AddNewTab(e.Address, e.SaveInHistory, e.ActivateTab);
+                AddNewTab(e.Address, e.SaveInHistory, e.ActivateTab, e.ReuseTabBrowser);
             }
         });
         PubSub.Subscribe<TabActivatedEvent>(e =>
@@ -100,9 +100,9 @@ public class TabsFeature(MainWindow window) : Feature(window)
         return base.HandleOnPreviewKeyDown(e);
     }
 
-    private TabBrowser AddNewTab(string address, bool saveInHistory, bool activateTab)
+    private TabBrowser AddNewTab(string address, bool saveInHistory, bool activateTab, TabBrowser? reuseTabBrowser)
     {
-        var browser = new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null, isChildBrowser: false);
+        var browser = reuseTabBrowser ?? new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null, isChildBrowser: false);
         _tabBrowsers.Add(browser);
 
         var tab = new TabDto(browser.Id, browser.Title, browser.Favicon, DateTimeOffset.UtcNow);
