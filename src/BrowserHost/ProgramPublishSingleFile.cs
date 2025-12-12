@@ -55,10 +55,12 @@ public class ProgramPublishSingleFile
 
         var appSettings = SettingsFeature.ExecutionSettings;
 
+        var cacheFolder = Debugger.IsAttached ? "CefSharp\\DevCache" : "CefSharp\\Cache";
+
         var settings = new CefSettings()
         {
             //By default CefSharp will use an in-memory cache, you need to specify a Cache Folder to persist data
-            CachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CefSharp\\Cache"),
+            CachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), cacheFolder),
             BrowserSubprocessPath = Process.GetCurrentProcess().MainModule!.FileName,
             UserAgent = appSettings.UserAgent ?? "",
         };
