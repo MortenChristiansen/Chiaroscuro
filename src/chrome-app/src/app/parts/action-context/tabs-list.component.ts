@@ -16,6 +16,8 @@ import { TabsListFolderComponent } from './tab-list-folder.component';
 import { SortablejsModule } from 'nxt-sortablejs';
 import { Options, SortableEvent } from 'sortablejs';
 import { animate, style, transition, trigger } from '@angular/animations';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faBroom } from '@fortawesome/free-solid-svg-icons';
 
 interface FolderDto {
   id: string;
@@ -42,6 +44,7 @@ const TAB_ANIMATION = trigger('tabMotion', [
     TabsListTabComponent,
     TabsListFolderComponent,
     SortablejsModule,
+    FontAwesomeModule,
   ],
   animations: [TAB_ANIMATION],
   template: `
@@ -94,14 +97,22 @@ const TAB_ANIMATION = trigger('tabMotion', [
       } }
     </div>
 
-    <div
-      class="w-full h-px mt-2 pt-2 border-t border-white/10"
-      style="pointer-events: none;"
-    ></div>
+    <div class="relative w-full mt-2 pt-2 pr-16">
+      <div class="w-full h-px pr-12 border-t border-white/10"></div>
+      <button
+        type="button"
+        class="absolute right-0 top-1/2 -translate-y-1/2 text-xs font-medium text-white/60 hover:text-white px-2 py-0.5 transition"
+        [disabled]="!hasEphemeralTabs()"
+        [class.opacity-40]="!hasEphemeralTabs()"
+        (click)="closeAllEphemeralTabs()"
+      >
+        Clear <fa-icon [icon]="clearTabsIcon" />
+      </button>
+    </div>
 
     <div
       id="ephemeral-tabs"
-      class="flex flex-col gap-2"
+      class="flex flex-col gap-2 mt-2"
       [nxtSortablejs]="sortableEphemeralTabs"
       [config]="sortableOptions"
       [@.disabled]="animationsSuspended()"
@@ -137,11 +148,14 @@ export class TabsListComponent implements OnInit {
   activeTabId = signal<TabId | undefined>(undefined);
   tabsInitialized = signal(false);
   tabCustomizations = signal<TabCustomization[]>([]);
+  animationsSuspended = signal(false);
+  hasEphemeralTabs = computed(() => this.ephemeralTabs().length > 0);
+  clearTabsIcon = faBroom;
+
   private saveTabsDebounceDelay = 1000;
   private tabActivationOrderStack = new Stack<TabId>();
   private folderOpenState: Record<string, boolean> = {};
-  readonly isDragging = signal(false);
-  readonly animationsSuspended = signal(false);
+  private isDragging = signal(false);
   private dragCooldownMs = 250;
   private lastDragEndedAt = 0;
   private dragAnimationReleaseTimer: number | undefined;
@@ -440,6 +454,15 @@ export class TabsListComponent implements OnInit {
     if (updateBackend) {
       this.api.closeTab(tabId);
     }
+  }
+
+  closeAllEphemeralTabs(): void {
+    const tabsToClose = [...this.ephemeralTabs()];
+    const activeId = this.activeTabId();
+    if (activeId && tabsToClose.some((t) => t.id === activeId)) {
+      this.activeTabId.set(undefined);
+    }
+    tabsToClose.forEach((tab) => this.closeTab(tab.id, true, false));
   }
 
   isFolder(tab: Tab | FolderDto): tab is FolderDto {

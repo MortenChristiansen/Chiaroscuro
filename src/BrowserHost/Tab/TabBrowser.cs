@@ -20,7 +20,7 @@ public class TabBrowser : UserControl
 
     private ITabWebBrowser _browser;
     private readonly ActionContextBrowser _actionContextBrowser;
-    private readonly bool _isChildBrowser;
+    private bool _isChildBrowser;
     private PersistableState? _persistableState;
 
     private event DependencyPropertyChangedEventHandler? _addressChanged;
@@ -82,6 +82,11 @@ public class TabBrowser : UserControl
     {
         if (ContentServer.IsContentServerUrl(address)) return false;
         return SettingsFeature.ExecutionSettings.SsoEnabledDomains?.Any(domain => HasDomain(address, domain)) == true;
+    }
+
+    public void PromoteToFullTab()
+    {
+        _isChildBrowser = false;
     }
 
     private static bool HasDomain(string address, string domain)
