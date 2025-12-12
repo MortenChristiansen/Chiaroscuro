@@ -1,4 +1,5 @@
 using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -13,7 +14,7 @@ using System.Windows.Media.Animation;
 namespace BrowserHost.Features.ActionDialog;
 
 public record SearchProvider(string Name, string Key, string Pattern);
-public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory, bool ActivateTab);
+public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory, bool ActivateTab, TabBrowser? ReuseTabBrowser = null);
 
 public enum ActionType
 {

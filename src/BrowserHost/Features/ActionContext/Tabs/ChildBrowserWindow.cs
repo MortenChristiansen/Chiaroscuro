@@ -31,6 +31,7 @@ public class ChildBrowserWindow : OverlayWindow
     private readonly Border _loadingBackground;
     private bool _isClosing;
     private bool _contentAnimationStarted;
+    private bool _reuseBrowserForParentTab;
 
     // --- Static management of child windows per parent tab ---
     private static readonly Dictionary<string, List<ChildBrowserWindow>> _windowsByTab = [];
@@ -130,12 +131,15 @@ public class ChildBrowserWindow : OverlayWindow
         convertBtn.Margin = new Thickness(0, 8, 0, 0); // gap between buttons
         convertBtn.Click += (_, __) =>
         {
+            PrepareBrowserForPromotion();
             var address = _browser.Address;
             // Trigger regular navigation (new tab)
-            PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+            contentGrid.Children.Remove(_browser);
+            _browser.PromoteToFullTab();
+            PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
             // Close this child window
             BeginCloseWithFade();
-            AnimateContentOut();
+            AnimateContentOut(animateBrowser: false);
         };
 
         _buttonsPanel.Children.Add(closeBtn);
@@ -419,11 +423,25 @@ public class ChildBrowserWindow : OverlayWindow
         bScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
     }
 
-    private void AnimateContentOut()
+    private void AnimateContentOut(bool animateBrowser = true)
     {
-        // Scale the browser content only (keep the host at final size)
-        var bScale = _browser.RenderTransform as ScaleTransform ?? new ScaleTransform(1.0, 1.0);
-        _browser.RenderTransform = bScale;
+        if (animateBrowser)
+        {
+            // Scale the browser content only (keep the host at final size)
+            var bScale = _browser.RenderTransform as ScaleTransform ?? new ScaleTransform(1.0, 1.0);
+            _browser.RenderTransform = bScale;
+
+            // Scale: 1.0 -> 0.5 (both axes) on browser content
+            var scaleAnim = new DoubleAnimation
+            {
+                From = 1.0,
+                To = 0.5,
+                Duration = TimeSpan.FromMilliseconds(200),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+            };
+            bScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+            bScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+        }
 
         // Opacity: current -> 0 for the whole host (including any background)
         StopLoadingPulse();
@@ -445,17 +463,6 @@ public class ChildBrowserWindow : OverlayWindow
         };
         btnOpacityAnim.Completed += (_, __) => _buttonsPanel.Visibility = Visibility.Collapsed;
         _buttonsPanel.BeginAnimation(UIElement.OpacityProperty, btnOpacityAnim);
-
-        // Scale: 1.0 -> 0.5 (both axes) on browser content
-        var scaleAnim = new DoubleAnimation
-        {
-            From = 1.0,
-            To = 0.5,
-            Duration = TimeSpan.FromMilliseconds(200),
-            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
-        };
-        bScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
-        bScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
     }
 
     private void UpdateContentCornerClip()
@@ -506,13 +513,27 @@ public class ChildBrowserWindow : OverlayWindow
         };
         fade.Completed += (_, __) =>
         {
-            if (_browser == null) return;
             // Stop animation and close
             _overlayBrush.BeginAnimation(Brush.OpacityProperty, null);
-            try { _browser.Dispose(); } catch { }
+            if (!_reuseBrowserForParentTab)
+            {
+                try { _browser.Dispose(); } catch { }
+            }
             try { Close(); } catch { }
         };
         _overlayBrush.BeginAnimation(Brush.OpacityProperty, fade);
+    }
+
+    private void PrepareBrowserForPromotion()
+    {
+        if (_reuseBrowserForParentTab)
+            return;
+
+        _reuseBrowserForParentTab = true;
+        _browser.BeginAnimation(UIElement.OpacityProperty, null);
+        _browser.Opacity = 1.0;
+        _browser.RenderTransform = Transform.Identity;
+        _browser.RenderTransformOrigin = new Point(0, 0);
     }
 
     private static bool IsDescendantOf(DependencyObject child, DependencyObject potentialAncestor)
