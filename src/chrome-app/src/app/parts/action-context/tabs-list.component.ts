@@ -458,6 +458,10 @@ export class TabsListComponent implements OnInit {
 
   closeAllEphemeralTabs(): void {
     const tabsToClose = [...this.ephemeralTabs()];
+    const activeId = this.activeTabId();
+    if (activeId && tabsToClose.some((t) => t.id === activeId)) {
+      this.activeTabId.set(undefined);
+    }
     tabsToClose.forEach((tab) => this.closeTab(tab.id, true, false));
   }
 
