@@ -71,6 +71,9 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
 
     private void RemovePinnedTabFromState(string tabId)
     {
+        if (!IsTabPinned(tabId))
+            return;
+
         _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
         {
             ActiveTabId = _pinnedTabData.ActiveTabId == tabId ? null : _pinnedTabData.ActiveTabId,
