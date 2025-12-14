@@ -11,4 +11,4 @@ In addition to the best practices provided by the angular-cli/get_best_practices
 - Always create single-file components.
 - Do not prefix component selectors with app-.
 - Use the new css based Angular animation system.
-- Do not use ChangeDetectionStrategy.OnPush.
+- Do not use ChangeDetectionStrategy.OnPush, EVER.

@@ -31,6 +31,9 @@ export class DomainTrustService {
     signal?: AbortSignal
   ): Promise<DomainTrustRating | null> {
     const normalized = this.normalizeDomain(domain);
+    if (normalized === null) {
+      return null;
+    }
 
     const cached = this.readCache(normalized);
     if (cached !== undefined) {
@@ -52,11 +55,45 @@ export class DomainTrustService {
     }
   }
 
-  private normalizeDomain(domain: string): string {
-    return domain
-      .trim()
-      .toLowerCase()
-      .replace(/^www\./, '');
+  normalizeDomain(domain: string): string | null {
+    const trimmed = domain.trim();
+    if (trimmed.length === 0) {
+      return null;
+    }
+
+    try {
+      const parsed = new URL(`http://${trimmed}`);
+      const hostname = parsed.hostname.toLowerCase();
+      if (this.isLocalhost(hostname)) {
+        return null;
+      }
+      if (parsed.port.length > 0) {
+        return null;
+      }
+      return this.stripWww(hostname);
+    } catch {
+      const simple = trimmed.toLowerCase();
+      if (this.isLocalhost(simple)) {
+        return null;
+      }
+      if (simple.includes(':')) {
+        return null;
+      }
+      return this.stripWww(simple);
+    }
+  }
+
+  private stripWww(hostname: string): string {
+    return hostname.replace(/^www\./, '');
+  }
+
+  private isLocalhost(hostname: string): boolean {
+    return (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname === '0.0.0.0'
+    );
   }
 
   private async fetchTrustpilotScore(

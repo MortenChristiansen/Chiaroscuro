@@ -74,17 +74,18 @@ export default class TrustIndicatorComponent {
 
   constructor() {
     effect((onCleanup) => {
-      const domain = this.domain();
-      if (!domain) {
+      const normalizedDomain = this.domainTrustService.normalizeDomain(
+        this.domain() ?? ''
+      );
+      if (!normalizedDomain) {
         this.trustState.set({ status: 'idle' });
         return;
       }
 
-      const lookupDomain = domain.split(':')[0];
       const currentState = untracked(() => this.trustState());
       if (
         currentState.status !== 'idle' &&
-        currentState.domain === domain &&
+        currentState.domain === normalizedDomain &&
         (currentState.status === 'loading' ||
           currentState.status === 'success' ||
           currentState.status === 'unknown')
@@ -93,19 +94,23 @@ export default class TrustIndicatorComponent {
       }
 
       const controller = new AbortController();
-      this.trustState.set({ status: 'loading', domain });
+      this.trustState.set({ status: 'loading', domain: normalizedDomain });
 
       this.domainTrustService
-        .lookup(lookupDomain, controller.signal)
+        .lookup(normalizedDomain, controller.signal)
         .then((rating) => {
           if (controller.signal.aborted) {
             return;
           }
           if (rating) {
-            this.trustState.set({ status: 'success', domain, rating });
+            this.trustState.set({
+              status: 'success',
+              domain: normalizedDomain,
+              rating,
+            });
             return;
           }
-          this.trustState.set({ status: 'unknown', domain });
+          this.trustState.set({ status: 'unknown', domain: normalizedDomain });
         })
         .catch((error) => {
           if (controller.signal.aborted) {
@@ -113,7 +118,11 @@ export default class TrustIndicatorComponent {
           }
           const message =
             error instanceof Error ? error.message : 'Unknown error';
-          this.trustState.set({ status: 'error', domain, message });
+          this.trustState.set({
+            status: 'error',
+            domain: normalizedDomain,
+            message,
+          });
         });
 
       onCleanup(() => controller.abort());
@@ -137,8 +146,15 @@ export default class TrustIndicatorComponent {
   };
 
   readonly viewModel = computed<TrustIconViewModel | null>(() => {
+    const normalizedDomain = this.domainTrustService.normalizeDomain(
+      this.domain() ?? ''
+    );
+    if (!normalizedDomain) {
+      return null;
+    }
+
     const state = this.trustState();
-    if (state.status !== 'success') {
+    if (state.status !== 'success' || state.domain !== normalizedDomain) {
       return null;
     }
 
