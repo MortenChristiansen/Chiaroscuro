@@ -218,52 +218,54 @@ export default class UrlDisplayComponent {
 
   private readonly trustState = signal<TrustLookupState>({ status: 'idle' });
 
-  private readonly _trustLookupEffect = effect((onCleanup) => {
-    const vm = this.viewModel();
-    if (vm === null || vm.kind !== 'web') {
-      this.trustState.set({ status: 'idle' });
-      return;
-    }
+  constructor() {
+    effect((onCleanup) => {
+      const vm = this.viewModel();
+      if (vm === null || vm.kind !== 'web') {
+        this.trustState.set({ status: 'idle' });
+        return;
+      }
 
-    const domain = vm.domain;
-    const lookupDomain = vm.domain.split(':')[0];
-    const currentState = untracked(() => this.trustState());
-    if (
-      currentState.status !== 'idle' &&
-      currentState.domain === domain &&
-      (currentState.status === 'loading' ||
-        currentState.status === 'success' ||
-        currentState.status === 'unknown')
-    ) {
-      return;
-    }
+      const domain = vm.domain;
+      const lookupDomain = vm.domain.split(':')[0];
+      const currentState = untracked(() => this.trustState());
+      if (
+        currentState.status !== 'idle' &&
+        currentState.domain === domain &&
+        (currentState.status === 'loading' ||
+          currentState.status === 'success' ||
+          currentState.status === 'unknown')
+      ) {
+        return;
+      }
 
-    const controller = new AbortController();
-    this.trustState.set({ status: 'loading', domain });
+      const controller = new AbortController();
+      this.trustState.set({ status: 'loading', domain });
 
-    this.domainTrustService
-      .lookup(lookupDomain, controller.signal)
-      .then((rating) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        if (rating) {
-          this.trustState.set({ status: 'success', domain, rating });
-          return;
-        }
-        this.trustState.set({ status: 'unknown', domain });
-      })
-      .catch((error) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        const message =
-          error instanceof Error ? error.message : 'Unknown error';
-        this.trustState.set({ status: 'error', domain, message });
-      });
+      this.domainTrustService
+        .lookup(lookupDomain, controller.signal)
+        .then((rating) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+          if (rating) {
+            this.trustState.set({ status: 'success', domain, rating });
+            return;
+          }
+          this.trustState.set({ status: 'unknown', domain });
+        })
+        .catch((error) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+          const message =
+            error instanceof Error ? error.message : 'Unknown error';
+          this.trustState.set({ status: 'error', domain, message });
+        });
 
-    onCleanup(() => controller.abort());
-  });
+      onCleanup(() => controller.abort());
+    });
+  }
 
   private readonly trustIconMap: Record<TrustStarScore, IconDefinition> = {
     1: faFaceGrimace,
