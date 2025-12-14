@@ -123,6 +123,7 @@ export class DomainTrustService {
 
   private parseScore(raw: string): number | null {
     const numeric = Number.parseFloat(raw.replace(',', '.'));
+    // Are rating of 0 indicates that there are no reviews.
     if (Number.isNaN(numeric) || numeric <= 0) {
       return null;
     }
