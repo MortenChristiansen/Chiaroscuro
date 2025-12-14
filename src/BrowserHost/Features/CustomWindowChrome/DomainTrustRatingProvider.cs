@@ -33,21 +33,28 @@ public static partial class DomainTrustRatingProvider
         var url = $"https://www.trustpilot.com/review/{Uri.EscapeDataString(domain)}";
 
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+        try
+        {
+            using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            var payload = await response.Content.ReadAsStringAsync();
 
-        if (!response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var score = ExtractTrustpilotScore(payload);
+            if (score == null)
+                return null;
+
+            var clamped = ClampScore(score.Value);
+            var stars = RoundToStars(clamped);
+            var fetchedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            return new DomainTrustRating("trustpilot", clamped, stars, fetchedAt);
+        }
+        catch
+        {
             return null;
-
-        var payload = await response.Content.ReadAsStringAsync();
-        var score = ExtractTrustpilotScore(payload);
-        if (score == null)
-            return null;
-
-        var clamped = ClampScore(score.Value);
-        var stars = RoundToStars(clamped);
-        var fetchedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-        return new DomainTrustRating("trustpilot", clamped, stars, fetchedAt);
+        }
     }
 
     private static double? ExtractTrustpilotScore(string page)
@@ -65,7 +72,7 @@ public static partial class DomainTrustRatingProvider
                 return parsed;
         }
 
-        var aggregateMatch = ReateRegex2().Match(page);
+        var aggregateMatch = RateRegex2().Match(page);
         if (aggregateMatch.Success)
         {
             var parsed = ParseScore(aggregateMatch.Groups[1].Value);
@@ -108,11 +115,11 @@ public static partial class DomainTrustRatingProvider
         return Math.Min(5, Math.Max(1, rounded));
     }
 
-    [GeneratedRegex("is rated \"[^\"]+\" with\\s+([0-9]+(?:[\\.,][0-9]+)?)\\s*/\\s*5", RegexOptions.IgnoreCase, "en-DK")]
+    [GeneratedRegex("is rated \"[^\"]+\" with\\s+([0-9]+(?:[\\.,][0-9]+)?)\\s*/\\s*5", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex RateRegex();
-    [GeneratedRegex("\"@type\"\\s*:\\s*\"AggregateRating\"[\\s\\S]*?\"ratingValue\"\\s*:\\s*\"?([0-9]+(?:[\\.,][0-9]+)?)", RegexOptions.IgnoreCase, "en-DK")]
-    private static partial Regex ReateRegex2();
-    [GeneratedRegex("TrustScore[^0-9]*([0-5](?:[\\.,][0-9]+)?)", RegexOptions.IgnoreCase, "en-DK")]
+    [GeneratedRegex("\"@type\"\\s*:\\s*\"AggregateRating\"[\\s\\S]*?\"ratingValue\"\\s*:\\s*\"?([0-9]+(?:[\\.,][0-9]+)?)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex RateRegex2();
+    [GeneratedRegex("TrustScore[^0-9]*([0-5](?:[\\.,][0-9]+)?)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ScoreRegex();
     [GeneratedRegex("\\s+")]
     private static partial Regex WhitespaceRegex();

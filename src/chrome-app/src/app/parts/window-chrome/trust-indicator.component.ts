@@ -1,6 +1,4 @@
-import { CommonModule } from '@angular/common';
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
@@ -39,7 +37,7 @@ interface TrustIconViewModel {
 
 @Component({
   selector: 'trust-indicator',
-  imports: [CommonModule, FaIconComponent],
+  imports: [FaIconComponent],
   host: {
     class: 'inline-flex items-center',
   },
@@ -161,9 +159,7 @@ export default class TrustIndicatorComponent {
     const { rating } = state;
     return {
       icon: this.trustIconMap[rating.Stars],
-      title: `${
-        rating.Source === 'trustpilot' ? 'Trustpilot rating' : 'Trust score'
-      }: ${rating.Score.toFixed(1)} / 5`,
+      title: `Trustpilot rating: ${rating.Score.toFixed(1)} / 5`,
       color: this.trustColorMap[rating.Stars],
     } satisfies TrustIconViewModel;
   });
