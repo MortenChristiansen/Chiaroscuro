@@ -1,0 +1,9 @@
+{
+  "chat.modeFilesLocations": {
+    ".github/agents/**/*.agent.md": true,
+    "src/chrome-app/.github/agents/**/*.agent.md": true,
+    "src/BrowserHost/.github/agents/**/*.agent.md": true
+  },
+  "chat.instructionsFilesLocations": {},
+  "chat.promptFilesLocations": {}
+}
