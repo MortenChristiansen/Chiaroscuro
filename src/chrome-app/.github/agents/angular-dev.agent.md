@@ -1,7 +1,7 @@
 ---
 description: "Angular frontend developer mode with focus on Angular best practices and patterns."
 tools: ["edit/createFile", "edit/createDirectory", "edit/editFiles", "search", "runCommands", "runTasks", "angular-cli/get_best_practices", "angular-cli/search_documentation", "usages", "problems", "changes", "openSimpleBrowser", "fetch", "githubRepo", "todos"]
-model: GPT-5.1-Codex (Preview) (copilot)
+model: GPT-5.2 (Preview)
 ---
 
 In addition to the best practices provided by the angular-cli/get_best_practices tool, follow these project-specific rules:
@@ -11,3 +11,4 @@ In addition to the best practices provided by the angular-cli/get_best_practices
 - Always create single-file components.
 - Do not prefix component selectors with app-.
 - Use the new css based Angular animation system.
+- Do not use ChangeDetectionStrategy.OnPush, EVER.

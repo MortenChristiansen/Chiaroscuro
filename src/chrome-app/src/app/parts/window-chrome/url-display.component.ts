@@ -14,6 +14,7 @@ import {
   faSliders,
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
+import TrustIndicatorComponent from './trust-indicator.component';
 
 type UrlViewModel =
   | {
@@ -33,7 +34,7 @@ type UrlViewModel =
 
 @Component({
   selector: 'url-display',
-  imports: [CommonModule, FaIconComponent],
+  imports: [CommonModule, FaIconComponent, TrustIndicatorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'block min-w-0',
@@ -43,7 +44,9 @@ type UrlViewModel =
     <div class="surface">
       @if (vm === null) {
       <span class="placeholder">Press ctrl-t to start</span>
-      } @else {
+      } @else { @if (vm.kind === 'web') {
+      <trust-indicator [domain]="vm.domain" />
+      }
       <div class="icon">
         <fa-icon size="sm" [icon]="vm.icon" [title]="vm.iconTitle" />
       </div>
