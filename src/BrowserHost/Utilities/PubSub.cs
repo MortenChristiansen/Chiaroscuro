@@ -6,10 +6,53 @@ using System.Threading.Tasks;
 
 namespace BrowserHost.Utilities;
 
+
+
 public static class PubSub
 {
     private static readonly Dictionary<Type, List<Delegate>> _subscribers = [];
     private static readonly Lock _lock = new();
+
+    public static IPubSubDispatchStrategy DispatchStrategy { get; set; } = new MainWindowPubSubDispatchStrategy();
+
+    public interface IPubSubDispatchStrategy
+    {
+        void Invoke<T>(Action<T> action, T message);
+        Task InvokeAsync<T>(Func<T, Task> action, T message);
+    }
+
+    private class MainWindowPubSubDispatchStrategy : IPubSubDispatchStrategy
+    {
+        public void Invoke<T>(Action<T> action, T message)
+        {
+            MainWindow.Instance.Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    action(message);
+                }
+                catch (Exception ex) when (!Debugger.IsAttached)
+                {
+                    Console.WriteLine($"Error in subscriber action: {ex.Message}");
+                }
+            });
+        }
+
+        public Task InvokeAsync<T>(Func<T, Task> action, T message)
+        {
+            return MainWindow.Instance.Dispatcher.InvokeAsync(async () =>
+            {
+                try
+                {
+                    await action(message);
+                }
+                catch (Exception ex) when (!Debugger.IsAttached)
+                {
+                    Console.WriteLine($"Error in subscriber async action: {ex.Message}");
+                }
+            }).Task;
+        }
+    }
 
     public static void Subscribe<T>(Action<T> action)
     {
@@ -51,31 +94,11 @@ public static class PubSub
             {
                 if (action is Action<T> typedAction)
                 {
-                    MainWindow.Instance.Dispatcher.Invoke(() =>
-                    {
-                        try
-                        {
-                            typedAction(message);
-                        }
-                        catch (Exception ex) when (!Debugger.IsAttached)
-                        {
-                            Console.WriteLine($"Error in subscriber action: {ex.Message}");
-                        }
-                    });
+                    DispatchStrategy.Invoke(typedAction, message);
                 }
                 else if (action is Func<T, Task> asyncAction)
                 {
-                    MainWindow.Instance.Dispatcher.InvokeAsync(async () =>
-                    {
-                        try
-                        {
-                            await asyncAction(message);
-                        }
-                        catch (Exception ex) when (!Debugger.IsAttached)
-                        {
-                            Console.WriteLine($"Error in subscriber async action: {ex.Message}");
-                        }
-                    });
+                    DispatchStrategy.InvokeAsync(asyncAction, message);
                 }
             }
         }
