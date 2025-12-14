@@ -11,13 +11,11 @@ import {
 } from '@angular/core';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import {
-  faCircleQuestion,
   faFile,
   faFaceFrown,
   faFaceGrimace,
   faFaceGrin,
   faFaceMeh,
-  faFaceMehBlank,
   faFaceSmile,
   faGlobe,
   faLock,
@@ -54,15 +52,11 @@ type TrustLookupState =
   | { status: 'unknown'; domain: string }
   | { status: 'error'; domain: string; message: string };
 
-type TrustIndicatorViewModel =
-  | { status: 'loading'; icon: IconDefinition; title: string; color: string }
-  | {
-      status: 'unknown' | 'error';
-      icon: IconDefinition;
-      title: string;
-      color: string;
-    }
-  | { status: 'success'; icon: IconDefinition; title: string; color: string };
+type TrustIndicatorViewModel = {
+  icon: IconDefinition;
+  title: string;
+  color: string;
+};
 
 @Component({
   selector: 'url-display',
@@ -79,7 +73,6 @@ type TrustIndicatorViewModel =
       } @else { @if (vm.kind === 'web' && trust) {
       <div
         class="trust-icon"
-        [class.trust-icon--loading]="trust.status === 'loading'"
         [style.color]="trust.color"
       >
         <fa-icon size="sm" [icon]="trust.icon" [title]="trust.title" />
@@ -118,10 +111,6 @@ type TrustIndicatorViewModel =
 
       .trust-icon {
         transition: color 150ms ease, opacity 150ms ease;
-      }
-
-      .trust-icon--loading {
-        opacity: 0.75;
       }
 
       .domain {
@@ -305,7 +294,6 @@ export default class UrlDisplayComponent {
     if (state.status === 'success' && state.domain === vm.domain) {
       const { rating } = state;
       return {
-        status: 'success',
         icon: this.trustIconMap[rating.stars],
         title: `${
           rating.source === 'trustpilot' ? 'Trustpilot rating' : 'Trust score'
@@ -313,31 +301,7 @@ export default class UrlDisplayComponent {
         color: this.trustColorMap[rating.stars],
       } satisfies TrustIndicatorViewModel;
     }
-
-    if (state.status === 'error' && state.domain === vm.domain) {
-      return {
-        status: 'error',
-        icon: faCircleQuestion,
-        title: `Trust rating unavailable: ${state.message}`,
-        color: 'rgba(226, 232, 240, 0.9)',
-      } satisfies TrustIndicatorViewModel;
-    }
-
-    if (state.status === 'unknown' && state.domain === vm.domain) {
-      return {
-        status: 'unknown',
-        icon: faCircleQuestion,
-        title: `No trust rating found for ${vm.domain}`,
-        color: 'rgba(226, 232, 240, 0.9)',
-      } satisfies TrustIndicatorViewModel;
-    }
-
-    return {
-      status: 'loading',
-      icon: faFaceMehBlank,
-      title: `Looking up trust rating for ${vm.domain}`,
-      color: 'rgba(226, 232, 240, 0.9)',
-    } satisfies TrustIndicatorViewModel;
+    return null;
   });
 
   private parseFileUrl(value: string): string {
