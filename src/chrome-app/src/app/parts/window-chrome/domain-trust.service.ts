@@ -1,14 +1,15 @@
 import { Injectable } from '@angular/core';
+import { Api, loadBackendApi } from '../interfaces/api';
 
 export type TrustStarScore = 1 | 2 | 3 | 4 | 5;
 
 export interface DomainTrustRating {
-  source: 'trustpilot';
+  Source: 'trustpilot';
   /** Raw 5-star score reported by the provider (0.0 - 5.0). */
-  score: number;
+  Score: number;
   /** Rounded star score used for smiley mapping. */
-  stars: TrustStarScore;
-  fetchedAt: number;
+  Stars: TrustStarScore;
+  FetchedAt: number;
 }
 
 type CacheEntry = {
@@ -21,8 +22,7 @@ const STORAGE_PREFIX = 'domain-trust-rating:';
 
 @Injectable({ providedIn: 'root' })
 export class DomainTrustService {
-  private readonly trustpilotBaseUrl =
-    'https://r.jina.ai/https://www.trustpilot.com/review/';
+  private readonly backendApi = loadBackendApi<DomainTrustBackendApi>();
 
   private readonly memoryCache = new Map<string, CacheEntry>();
 
@@ -45,6 +45,10 @@ export class DomainTrustService {
       this.writeCache(normalized, rating);
       return rating;
     } catch (error) {
+      console.warn(
+        `DomainTrustService: Failed to fetch trust rating for ${normalized}:`,
+        error
+      );
       if (error instanceof DOMException && error.name === 'AbortError') {
         throw error;
       }
@@ -100,81 +104,27 @@ export class DomainTrustService {
     domain: string,
     signal?: AbortSignal
   ): Promise<DomainTrustRating | null> {
-    const endpoint = `${this.trustpilotBaseUrl}${encodeURIComponent(domain)}`;
-    const response = await fetch(endpoint, { signal, cache: 'no-store' });
-    if (!response.ok) {
+    this.throwIfAborted(signal);
+    const api = await this.backendApi;
+    this.throwIfAborted(signal);
+
+    const rating = await api.getDomainTrustRating(domain);
+    this.throwIfAborted(signal);
+
+    if (!rating) {
       return null;
     }
 
-    const payload = await response.text();
-    const score = this.extractTrustpilotScore(payload);
-    if (score === null) {
-      return null;
-    }
-
-    return {
-      source: 'trustpilot',
-      score,
-      stars: this.roundToStars(score),
-      fetchedAt: Date.now(),
-    } satisfies DomainTrustRating;
+    return rating;
   }
 
-  private extractTrustpilotScore(page: string): number | null {
-    const normalized = page.replace(/\s+/g, ' ');
-
-    const titleMatch =
-      /is rated "[^"]+" with\s+([0-9]+(?:[.,][0-9]+)?)\s*\/\s*5/i.exec(
-        normalized
-      );
-    if (titleMatch) {
-      const score = this.parseScore(titleMatch[1]);
-      if (score !== null) {
-        return this.clampScore(score);
-      }
+  private throwIfAborted(signal?: AbortSignal): void {
+    if (!signal?.aborted) {
+      return;
     }
 
-    const aggregateMatch =
-      /"@type"\s*:\s*"AggregateRating"[\s\S]*?"ratingValue"\s*:\s*"?([0-9]+(?:[.,][0-9]+)?)/i.exec(
-        page
-      );
-    if (aggregateMatch) {
-      const score = this.parseScore(aggregateMatch[1]);
-      if (score !== null) {
-        return this.clampScore(score);
-      }
-    }
-
-    const trustScoreMatch = /TrustScore[^0-9]*([0-5](?:[.,][0-9]+)?)/i.exec(
-      page
-    );
-    if (trustScoreMatch) {
-      const score = this.parseScore(trustScoreMatch[1]);
-      if (score !== null) {
-        return this.clampScore(score);
-      }
-    }
-
-    return null;
-  }
-
-  private parseScore(raw: string): number | null {
-    const numeric = Number.parseFloat(raw.replace(',', '.'));
-    // Are rating of 0 indicates that there are no reviews.
-    if (Number.isNaN(numeric) || numeric <= 0) {
-      return null;
-    }
-    return numeric;
-  }
-
-  private clampScore(value: number): number {
-    return Math.min(5, Math.max(0, value));
-  }
-
-  private roundToStars(value: number): TrustStarScore {
-    const rounded = Math.round(value);
-    const constrained = Math.min(5, Math.max(1, rounded));
-    return constrained as TrustStarScore;
+    // Match fetch() abort behavior so existing callers keep working.
+    throw new DOMException('Aborted', 'AbortError');
   }
 
   private readCache(domain: string): DomainTrustRating | null | undefined {
@@ -251,4 +201,8 @@ export class DomainTrustService {
   private storageKey(domain: string): string {
     return `${STORAGE_PREFIX}${domain}`;
   }
+}
+
+interface DomainTrustBackendApi extends Api {
+  getDomainTrustRating: (domain: string) => Promise<DomainTrustRating | null>;
 }

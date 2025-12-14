@@ -160,11 +160,11 @@ export default class TrustIndicatorComponent {
 
     const { rating } = state;
     return {
-      icon: this.trustIconMap[rating.stars],
+      icon: this.trustIconMap[rating.Stars],
       title: `${
-        rating.source === 'trustpilot' ? 'Trustpilot rating' : 'Trust score'
-      }: ${rating.score.toFixed(1)} / 5`,
-      color: this.trustColorMap[rating.stars],
+        rating.Source === 'trustpilot' ? 'Trustpilot rating' : 'Trust score'
+      }: ${rating.Score.toFixed(1)} / 5`,
+      color: this.trustColorMap[rating.Stars],
     } satisfies TrustIconViewModel;
   });
 }
