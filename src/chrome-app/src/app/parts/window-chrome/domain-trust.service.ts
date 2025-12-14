@@ -86,9 +86,10 @@ export class DomainTrustService {
   private extractTrustpilotScore(page: string): number | null {
     const normalized = page.replace(/\s+/g, ' ');
 
-    const titleMatch = /is rated "[^"]+" with\s+([0-9]+(?:[.,][0-9]+)?)\s*\/\s*5/i.exec(
-      normalized,
-    );
+    const titleMatch =
+      /is rated "[^"]+" with\s+([0-9]+(?:[.,][0-9]+)?)\s*\/\s*5/i.exec(
+        normalized
+      );
     if (titleMatch) {
       const score = this.parseScore(titleMatch[1]);
       if (score !== null) {
@@ -96,9 +97,10 @@ export class DomainTrustService {
       }
     }
 
-    const aggregateMatch = /"@type"\s*:\s*"AggregateRating"[\s\S]*?"ratingValue"\s*:\s*"?([0-9]+(?:[.,][0-9]+)?)/i.exec(
-      page,
-    );
+    const aggregateMatch =
+      /"@type"\s*:\s*"AggregateRating"[\s\S]*?"ratingValue"\s*:\s*"?([0-9]+(?:[.,][0-9]+)?)/i.exec(
+        page
+      );
     if (aggregateMatch) {
       const score = this.parseScore(aggregateMatch[1]);
       if (score !== null) {
@@ -106,7 +108,9 @@ export class DomainTrustService {
       }
     }
 
-    const trustScoreMatch = /TrustScore[^0-9]*([0-5](?:[.,][0-9]+)?)/i.exec(page);
+    const trustScoreMatch = /TrustScore[^0-9]*([0-5](?:[.,][0-9]+)?)/i.exec(
+      page
+    );
     if (trustScoreMatch) {
       const score = this.parseScore(trustScoreMatch[1]);
       if (score !== null) {
@@ -119,7 +123,10 @@ export class DomainTrustService {
 
   private parseScore(raw: string): number | null {
     const numeric = Number.parseFloat(raw.replace(',', '.'));
-    return Number.isNaN(numeric) ? null : numeric;
+    if (Number.isNaN(numeric) || numeric <= 0) {
+      return null;
+    }
+    return numeric;
   }
 
   private clampScore(value: number): number {
@@ -154,7 +161,7 @@ export class DomainTrustService {
 
     try {
       const parsed = JSON.parse(raw) as CacheEntry;
-      if (parsed.expiresAt <= now || !parsed.rating) {
+      if (parsed.expiresAt <= now) {
         storage.removeItem(this.storageKey(domain));
         return undefined;
       }
