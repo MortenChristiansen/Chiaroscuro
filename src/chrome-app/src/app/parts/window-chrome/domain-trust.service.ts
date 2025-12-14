@@ -11,26 +11,35 @@ export interface DomainTrustRating {
   fetchedAt: number;
 }
 
+type CacheEntry = {
+  rating: DomainTrustRating | null;
+  expiresAt: number;
+};
+
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // one week
+const STORAGE_PREFIX = 'domain-trust-rating:';
+
 @Injectable({ providedIn: 'root' })
 export class DomainTrustService {
   private readonly trustpilotBaseUrl =
     'https://r.jina.ai/https://www.trustpilot.com/review/';
 
-  /** Cache already fetched ratings to avoid duplicate remote calls. */
-  private readonly cache = new Map<string, DomainTrustRating | null>();
+  private readonly memoryCache = new Map<string, CacheEntry>();
 
   async lookup(
     domain: string,
     signal?: AbortSignal
   ): Promise<DomainTrustRating | null> {
     const normalized = this.normalizeDomain(domain);
-    if (this.cache.has(normalized)) {
-      return this.cache.get(normalized) ?? null;
+
+    const cached = this.readCache(normalized);
+    if (cached !== undefined) {
+      return cached;
     }
 
     try {
       const rating = await this.fetchTrustpilotScore(normalized, signal);
-      this.cache.set(normalized, rating);
+      this.writeCache(normalized, rating);
       return rating;
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
@@ -38,7 +47,7 @@ export class DomainTrustService {
       }
       // Network failure or parser issues result in "unknown" for the caller,
       // but we don't cache the failure so a later attempt can retry.
-      this.cache.delete(normalized);
+      this.evictCache(normalized);
       return null;
     }
   }
@@ -104,5 +113,80 @@ export class DomainTrustService {
     const rounded = Math.round(value);
     const constrained = Math.min(5, Math.max(1, rounded));
     return constrained as TrustStarScore;
+  }
+
+  private readCache(domain: string): DomainTrustRating | null | undefined {
+    const now = Date.now();
+    const inMemory = this.memoryCache.get(domain);
+    if (inMemory) {
+      if (inMemory.expiresAt > now) {
+        return inMemory.rating;
+      }
+      this.memoryCache.delete(domain);
+    }
+
+    const storage = this.getStorage();
+    if (!storage) {
+      return undefined;
+    }
+
+    const raw = storage.getItem(this.storageKey(domain));
+    if (!raw) {
+      return undefined;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as CacheEntry;
+      if (parsed.expiresAt <= now || !parsed.rating) {
+        storage.removeItem(this.storageKey(domain));
+        return undefined;
+      }
+
+      this.memoryCache.set(domain, parsed);
+      return parsed.rating;
+    } catch {
+      storage.removeItem(this.storageKey(domain));
+      return undefined;
+    }
+  }
+
+  private writeCache(domain: string, rating: DomainTrustRating | null): void {
+    const entry: CacheEntry = {
+      rating,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    };
+    this.memoryCache.set(domain, entry);
+
+    const storage = this.getStorage();
+    if (!storage) {
+      return;
+    }
+
+    try {
+      storage.setItem(this.storageKey(domain), JSON.stringify(entry));
+    } catch {
+      // Ignore storage quota or availability errors.
+    }
+  }
+
+  private evictCache(domain: string): void {
+    this.memoryCache.delete(domain);
+    const storage = this.getStorage();
+    storage?.removeItem(this.storageKey(domain));
+  }
+
+  private getStorage(): Storage | null {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return null;
+      }
+      return window.localStorage;
+    } catch {
+      return null;
+    }
+  }
+
+  private storageKey(domain: string): string {
+    return `${STORAGE_PREFIX}${domain}`;
   }
 }
