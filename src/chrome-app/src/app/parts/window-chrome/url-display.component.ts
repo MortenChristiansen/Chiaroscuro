@@ -71,10 +71,7 @@ type TrustIndicatorViewModel = {
       @if (vm === null) {
       <span class="placeholder">Press ctrl-t to start</span>
       } @else { @if (vm.kind === 'web' && trust) {
-      <div
-        class="trust-icon"
-        [style.color]="trust.color"
-      >
+      <div class="trust-icon" [style.color]="trust.color">
         <fa-icon size="sm" [icon]="trust.icon" [title]="trust.title" />
       </div>
       }

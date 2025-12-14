@@ -84,25 +84,42 @@ export class DomainTrustService {
   }
 
   private extractTrustpilotScore(page: string): number | null {
-    const patterns = [
-      /"trustScore"\s*:?\s*([0-9]+(?:[.,][0-9]+)?)/i,
-      /"TrustScore"\s*:?\s*([0-9]+(?:[.,][0-9]+)?)/i,
-      /"ratingValue"\s*:?\s*"([0-9]+(?:[.,][0-9]+)?)"/i,
-      /TrustScore[^0-9]*([0-9]+(?:[.,][0-9]+)?)/i,
-    ];
+    const normalized = page.replace(/\s+/g, ' ');
 
-    for (const pattern of patterns) {
-      const match = pattern.exec(page);
-      if (!match) {
-        continue;
+    const titleMatch = /is rated "[^"]+" with\s+([0-9]+(?:[.,][0-9]+)?)\s*\/\s*5/i.exec(
+      normalized,
+    );
+    if (titleMatch) {
+      const score = this.parseScore(titleMatch[1]);
+      if (score !== null) {
+        return this.clampScore(score);
       }
-      const numeric = Number.parseFloat(match[1].replace(',', '.'));
-      if (!Number.isNaN(numeric)) {
-        return this.clampScore(numeric);
+    }
+
+    const aggregateMatch = /"@type"\s*:\s*"AggregateRating"[\s\S]*?"ratingValue"\s*:\s*"?([0-9]+(?:[.,][0-9]+)?)/i.exec(
+      page,
+    );
+    if (aggregateMatch) {
+      const score = this.parseScore(aggregateMatch[1]);
+      if (score !== null) {
+        return this.clampScore(score);
+      }
+    }
+
+    const trustScoreMatch = /TrustScore[^0-9]*([0-5](?:[.,][0-9]+)?)/i.exec(page);
+    if (trustScoreMatch) {
+      const score = this.parseScore(trustScoreMatch[1]);
+      if (score !== null) {
+        return this.clampScore(score);
       }
     }
 
     return null;
+  }
+
+  private parseScore(raw: string): number | null {
+    const numeric = Number.parseFloat(raw.replace(',', '.'));
+    return Number.isNaN(numeric) ? null : numeric;
   }
 
   private clampScore(value: number): number {
