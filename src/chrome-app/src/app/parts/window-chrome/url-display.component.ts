@@ -3,17 +3,33 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
+  inject,
   input,
+  signal,
+  untracked,
 } from '@angular/core';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import {
+  faCircleQuestion,
   faFile,
+  faFaceFrown,
+  faFaceGrimace,
+  faFaceGrin,
+  faFaceMeh,
+  faFaceMehBlank,
+  faFaceSmile,
   faGlobe,
   faLock,
   faLockOpen,
   faSliders,
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
+import {
+  DomainTrustRating,
+  DomainTrustService,
+  TrustStarScore,
+} from './domain-trust.service';
 
 type UrlViewModel =
   | {
@@ -31,6 +47,23 @@ type UrlViewModel =
       display: string;
     };
 
+type TrustLookupState =
+  | { status: 'idle' }
+  | { status: 'loading'; domain: string }
+  | { status: 'success'; domain: string; rating: DomainTrustRating }
+  | { status: 'unknown'; domain: string }
+  | { status: 'error'; domain: string; message: string };
+
+type TrustIndicatorViewModel =
+  | { status: 'loading'; icon: IconDefinition; title: string; color: string }
+  | {
+      status: 'unknown' | 'error';
+      icon: IconDefinition;
+      title: string;
+      color: string;
+    }
+  | { status: 'success'; icon: IconDefinition; title: string; color: string };
+
 @Component({
   selector: 'url-display',
   imports: [CommonModule, FaIconComponent],
@@ -39,11 +72,19 @@ type UrlViewModel =
     class: 'block min-w-0',
   },
   template: `
-    @let vm = viewModel();
+    @let vm = viewModel(); @let trust = trustIndicator();
     <div class="surface">
       @if (vm === null) {
       <span class="placeholder">Press ctrl-t to start</span>
-      } @else {
+      } @else { @if (vm.kind === 'web' && trust) {
+      <div
+        class="trust-icon"
+        [class.trust-icon--loading]="trust.status === 'loading'"
+        [style.color]="trust.color"
+      >
+        <fa-icon size="sm" [icon]="trust.icon" [title]="trust.title" />
+      </div>
+      }
       <div class="icon">
         <fa-icon size="sm" [icon]="vm.icon" [title]="vm.iconTitle" />
       </div>
@@ -66,12 +107,21 @@ type UrlViewModel =
         gap: 0.25rem;
       }
 
-      .icon {
+      .icon,
+      .trust-icon {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         color: white;
         flex-shrink: 0;
+      }
+
+      .trust-icon {
+        transition: color 150ms ease, opacity 150ms ease;
+      }
+
+      .trust-icon--loading {
+        opacity: 0.75;
       }
 
       .domain {
@@ -110,6 +160,7 @@ type UrlViewModel =
 })
 export default class UrlDisplayComponent {
   readonly url = input<string | null>(null);
+  private readonly domainTrustService = inject(DomainTrustService);
 
   readonly viewModel = computed<UrlViewModel | null>(() => {
     const rawUrl = this.url();
@@ -177,6 +228,116 @@ export default class UrlDisplayComponent {
       display: normalizedUrl,
       iconTitle: 'Unknown protocol',
     } satisfies UrlViewModel;
+  });
+
+  private readonly trustState = signal<TrustLookupState>({ status: 'idle' });
+
+  private readonly _trustLookupEffect = effect((onCleanup) => {
+    const vm = this.viewModel();
+    if (vm === null || vm.kind !== 'web') {
+      this.trustState.set({ status: 'idle' });
+      return;
+    }
+
+    const domain = vm.domain;
+    const lookupDomain = vm.domain.split(':')[0];
+    const currentState = untracked(() => this.trustState());
+    if (
+      currentState.status !== 'idle' &&
+      currentState.domain === domain &&
+      (currentState.status === 'loading' ||
+        currentState.status === 'success' ||
+        currentState.status === 'unknown')
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+    this.trustState.set({ status: 'loading', domain });
+
+    this.domainTrustService
+      .lookup(lookupDomain, controller.signal)
+      .then((rating) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        if (rating) {
+          this.trustState.set({ status: 'success', domain, rating });
+          return;
+        }
+        this.trustState.set({ status: 'unknown', domain });
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.trustState.set({ status: 'error', domain, message });
+      });
+
+    onCleanup(() => controller.abort());
+  });
+
+  private readonly trustIconMap: Record<TrustStarScore, IconDefinition> = {
+    1: faFaceGrimace,
+    2: faFaceFrown,
+    3: faFaceMeh,
+    4: faFaceSmile,
+    5: faFaceGrin,
+  };
+
+  private readonly trustColorMap: Record<TrustStarScore, string> = {
+    1: '#f87171',
+    2: '#fb923c',
+    3: '#facc15',
+    4: '#86efac',
+    5: '#4ade80',
+  };
+
+  readonly trustIndicator = computed<TrustIndicatorViewModel | null>(() => {
+    const vm = this.viewModel();
+    if (vm === null || vm.kind !== 'web') {
+      return null;
+    }
+
+    const state = this.trustState();
+    if (state.status === 'success' && state.domain === vm.domain) {
+      const { rating } = state;
+      return {
+        status: 'success',
+        icon: this.trustIconMap[rating.stars],
+        title: `${
+          rating.source === 'trustpilot' ? 'Trustpilot rating' : 'Trust score'
+        }: ${rating.score.toFixed(1)} / 5`,
+        color: this.trustColorMap[rating.stars],
+      } satisfies TrustIndicatorViewModel;
+    }
+
+    if (state.status === 'error' && state.domain === vm.domain) {
+      return {
+        status: 'error',
+        icon: faCircleQuestion,
+        title: `Trust rating unavailable: ${state.message}`,
+        color: 'rgba(226, 232, 240, 0.9)',
+      } satisfies TrustIndicatorViewModel;
+    }
+
+    if (state.status === 'unknown' && state.domain === vm.domain) {
+      return {
+        status: 'unknown',
+        icon: faCircleQuestion,
+        title: `No trust rating found for ${vm.domain}`,
+        color: 'rgba(226, 232, 240, 0.9)',
+      } satisfies TrustIndicatorViewModel;
+    }
+
+    return {
+      status: 'loading',
+      icon: faFaceMehBlank,
+      title: `Looking up trust rating for ${vm.domain}`,
+      color: 'rgba(226, 232, 240, 0.9)',
+    } satisfies TrustIndicatorViewModel;
   });
 
   private parseFileUrl(value: string): string {
