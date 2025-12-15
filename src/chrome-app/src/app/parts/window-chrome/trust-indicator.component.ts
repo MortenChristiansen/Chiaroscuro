@@ -21,6 +21,7 @@ import {
   DomainTrustService,
   TrustStarScore,
 } from './domain-trust.service';
+import { normalizeBackendModel } from '../../shared/utils';
 
 type TrustLookupState =
   | { status: 'idle' }
@@ -104,7 +105,7 @@ export default class TrustIndicatorComponent {
             this.trustState.set({
               status: 'success',
               domain: normalizedDomain,
-              rating,
+              rating: normalizeBackendModel(rating),
             });
             return;
           }
@@ -158,9 +159,9 @@ export default class TrustIndicatorComponent {
 
     const { rating } = state;
     return {
-      icon: this.trustIconMap[rating.Stars],
-      title: `Trustpilot rating: ${rating.Score.toFixed(1)} / 5`,
-      color: this.trustColorMap[rating.Stars],
+      icon: this.trustIconMap[rating.stars],
+      title: `Trustpilot rating: ${rating.score.toFixed(1)} / 5`,
+      color: this.trustColorMap[rating.stars],
     } satisfies TrustIconViewModel;
   });
 }

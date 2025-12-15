@@ -4,12 +4,12 @@ import { Api, loadBackendApi } from '../interfaces/api';
 export type TrustStarScore = 1 | 2 | 3 | 4 | 5;
 
 export interface DomainTrustRating {
-  Source: 'trustpilot';
+  source: 'trustpilot';
   /** Raw 5-star score reported by the provider (0.0 - 5.0). */
-  Score: number;
+  score: number;
   /** Rounded star score used for smiley mapping. */
-  Stars: TrustStarScore;
-  FetchedAt: number;
+  stars: TrustStarScore;
+  fetchedAt: number;
 }
 
 type CacheEntry = {
