@@ -21,7 +21,6 @@ import {
   DomainTrustService,
   TrustStarScore,
 } from './domain-trust.service';
-import { normalizeBackendModel } from '../../shared/utils';
 
 type TrustLookupState =
   | { status: 'idle' }
@@ -105,7 +104,7 @@ export default class TrustIndicatorComponent {
             this.trustState.set({
               status: 'success',
               domain: normalizedDomain,
-              rating: normalizeBackendModel(rating),
+              rating,
             });
             return;
           }

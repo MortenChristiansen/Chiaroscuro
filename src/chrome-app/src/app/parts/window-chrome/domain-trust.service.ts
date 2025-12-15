@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Api, loadBackendApi } from '../interfaces/api';
+import { normalizeBackendModel } from '../../shared/utils';
 
 export type TrustStarScore = 1 | 2 | 3 | 4 | 5;
 
@@ -37,7 +38,8 @@ export class DomainTrustService {
 
     const cached = this.readCache(normalized);
     if (cached !== undefined) {
-      return cached;
+      // We normalize in case we cached before the normalizeBackendModel was added.
+      return normalizeBackendModel(cached);
     }
 
     try {
@@ -115,7 +117,7 @@ export class DomainTrustService {
       return null;
     }
 
-    return rating;
+    return normalizeBackendModel(rating);
   }
 
   private throwIfAborted(signal?: AbortSignal): void {
