@@ -47,4 +47,13 @@ public class CustomWindowChromeBrowserApi : BrowserApi
 
     public bool GetIsMaximized() =>
         MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.WindowState == WindowState.Maximized);
+
+    public DomainTrustRating? GetDomainTrustRating(string domain)
+    {
+        var rating = DomainTrustRatingProvider.LookupTrustpilotAsync(domain).GetAwaiter().GetResult();
+        if (rating == null)
+            return null;
+
+        return rating;
+    }
 }

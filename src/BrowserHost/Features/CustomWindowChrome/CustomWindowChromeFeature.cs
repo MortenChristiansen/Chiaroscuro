@@ -2,6 +2,7 @@ using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Interop;
 using BrowserHost.Utilities;
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,6 +16,16 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
 {
     private Rect? _lastNormalBounds; // Stored size/position before maximizing (for detach drag only)
     private bool _applyingRestoreBounds; // Prevent recursive capture while programmatically setting during detach
+    private static readonly HashSet<string> _googleAdTrackingParameters = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "gclid",
+        "gclsrc",
+        "gbraid",
+        "wbraid",
+        "gad_source",
+        "gad_campaignid",
+        "srsltid"
+    };
 
     public override void Configure()
     {
@@ -34,13 +45,62 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         PubSub.Subscribe<AddressCopyRequestedEvent>(_ =>
         {
             var address = Window.CurrentTab?.Address;
-            if (!string.IsNullOrEmpty(address))
-                Clipboard.SetText(address);
+            if (string.IsNullOrEmpty(address))
+                return;
+
+            var sanitized = RemoveGoogleAdTrackingParameters(address);
+            Clipboard.SetText(sanitized);
         });
         PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
         PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
 
         CaptureNormalBounds();
+    }
+
+    private static string RemoveGoogleAdTrackingParameters(string address)
+    {
+        if (string.IsNullOrWhiteSpace(address))
+            return address;
+
+        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) || string.IsNullOrEmpty(uri.Query))
+            return address;
+
+        var query = uri.Query.TrimStart('?');
+        if (string.IsNullOrEmpty(query))
+            return address;
+
+        var parts = query.Split('&', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+            return address;
+
+        var filtered = new List<string>(parts.Length);
+        var removed = false;
+
+        foreach (var part in parts)
+        {
+            var key = part;
+            var equalsIndex = part.IndexOf('=');
+            if (equalsIndex >= 0)
+                key = part[..equalsIndex];
+
+            var decodedKey = Uri.UnescapeDataString(key);
+            if (_googleAdTrackingParameters.Contains(decodedKey))
+            {
+                removed = true;
+                continue;
+            }
+
+            filtered.Add(part);
+        }
+
+        if (!removed)
+            return address;
+
+        var builder = new UriBuilder(uri)
+        {
+            Query = filtered.Count > 0 ? string.Join("&", filtered) : string.Empty
+        };
+        return builder.Uri.ToString();
     }
 
     private void CaptureNormalBounds()

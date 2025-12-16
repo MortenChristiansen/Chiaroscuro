@@ -1,4 +1,5 @@
 import { Api } from '../interfaces/api';
+import { DomainTrustRating } from './domain-trust.service';
 
 export interface WindowsChromeApi extends Api {
   minimize: () => Promise<void>;
@@ -13,4 +14,5 @@ export interface WindowsChromeApi extends Api {
   isLoading: () => Promise<boolean>;
   onLoaded: () => Promise<void>;
   getIsMaximized: () => Promise<boolean>;
+  getDomainTrustRating: (domain: string) => Promise<DomainTrustRating | null>;
 }
