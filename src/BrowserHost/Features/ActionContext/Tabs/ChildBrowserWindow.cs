@@ -131,15 +131,25 @@ public class ChildBrowserWindow : OverlayWindow
         convertBtn.Margin = new Thickness(0, 8, 0, 0); // gap between buttons
         convertBtn.Click += (_, __) =>
         {
-            PrepareBrowserForPromotion();
             var address = _browser.Address;
-            // Trigger regular navigation (new tab)
-            contentGrid.Children.Remove(_browser);
-            _browser.PromoteToFullTab();
-            PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
-            // Close this child window
-            BeginCloseWithFade();
-            AnimateContentOut(animateBrowser: false);
+
+            if (_browser.SupportsPromotionToFullTab)
+            {
+                PrepareBrowserForPromotion();
+                // Trigger regular navigation (new tab)
+                contentGrid.Children.Remove(_browser);
+                _browser.PromoteToFullTab();
+                PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
+                // Close this child window
+                BeginCloseWithFade();
+                AnimateContentOut(animateBrowser: false);
+            }
+            else
+            {
+                PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+                BeginCloseWithFade();
+                AnimateContentOut();
+            }
         };
 
         _buttonsPanel.Children.Add(closeBtn);

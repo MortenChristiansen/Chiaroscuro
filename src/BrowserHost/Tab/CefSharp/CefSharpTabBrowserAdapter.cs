@@ -38,6 +38,9 @@ public class CefSharpTabBrowserAdapter : ITabWebBrowser
     public double DefaultZoomLevel => 0.0;
 
     public bool HasDevTools => RunOnUi(() => _cefBrowser.GetBrowserHost().HasDevTools);
+
+    public bool SupportsPromotionToFullTab => true;
+
     public event EventHandler? PageLoadEnded;
 
     public event DependencyPropertyChangedEventHandler? AddressChanged
