@@ -74,7 +74,7 @@ public partial class MainWindow : Window
             new PinnedTabsFeature(this),
             new DevToolFeature(this),
             new FileDownloadsFeature(this),
-            new ZoomFeature(this),
+            new ZoomFeature(this, new BrowserContext(this)),
             new DragDropFeature(this),
             new WorkspacesFeature(this),
             new FoldersFeature(this),

@@ -14,7 +14,7 @@ using System.Windows.Controls;
 
 namespace BrowserHost.Tab;
 
-public class TabBrowser : UserControl
+public class TabBrowser : UserControl, ITabBrowser
 {
     private record PersistableState(string Address, string? Favicon, string? Title);
 
