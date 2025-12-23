@@ -4,7 +4,10 @@ using Xunit.v3;
 
 namespace BrowserHost.Tests.Infrastructure;
 
-internal class TestStartup : ITestPipelineStartup
+/// <summary>
+/// Registered as the test pipeline startup, configures PubSub to use direct dispatching.
+/// </summary>
+internal class TestPipelineStartup : ITestPipelineStartup
 {
     public ValueTask StartAsync(IMessageSink diagnosticMessageSink)
     {
