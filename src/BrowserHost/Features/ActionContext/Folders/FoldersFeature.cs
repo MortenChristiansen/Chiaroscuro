@@ -102,7 +102,7 @@ public class FoldersFeature(MainWindow window) : Feature(window)
     private void SaveFolders(FolderDtoV1[] folders, WorkspaceDtoV1 currentWorkspace)
     {
         // Persist the updated workspace state
-        PubSub.Publish(new TabsChangedEvent(
+        PubSub.Instance.Publish(new TabsChangedEvent(
             [..currentWorkspace.Tabs.Select(t => new TabUiStateDto(
                 t.TabId,
                 t.Title ?? "",

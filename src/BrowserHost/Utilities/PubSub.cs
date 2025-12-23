@@ -6,14 +6,21 @@ using System.Threading.Tasks;
 
 namespace BrowserHost.Utilities;
 
-
-
 public static class PubSub
 {
-    private static readonly Dictionary<Type, List<Delegate>> _subscribers = [];
-    private static readonly Lock _lock = new();
+    private static readonly AsyncLocal<PubSubContext?> _scopedInstance = new();
+    private static readonly PubSubContext _sharedInstance = new();
 
-    public static IPubSubDispatchStrategy DispatchStrategy { get; set; } = new MainWindowPubSubDispatchStrategy();
+    public static PubSubContext Instance => _scopedInstance.Value ?? _sharedInstance;
+
+    public static IDisposable PushContext(PubSubContext context)
+    {
+        var previous = _scopedInstance.Value;
+        _scopedInstance.Value = context;
+        return new ContextScope(previous);
+    }
+
+    internal static IPubSubDispatchStrategy CreateDefaultDispatchStrategy() => new MainWindowPubSubDispatchStrategy();
 
     public interface IPubSubDispatchStrategy
     {
@@ -21,7 +28,21 @@ public static class PubSub
         Task InvokeAsync<T>(Func<T, Task> action, T message);
     }
 
-    private class MainWindowPubSubDispatchStrategy : IPubSubDispatchStrategy
+    private sealed class ContextScope(PubSubContext? previous) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+            _scopedInstance.Value = previous;
+        }
+    }
+
+    private sealed class MainWindowPubSubDispatchStrategy : IPubSubDispatchStrategy
     {
         public void Invoke<T>(Action<T> action, T message)
         {
@@ -53,8 +74,21 @@ public static class PubSub
             }).Task;
         }
     }
+}
 
-    public static void Subscribe<T>(Action<T> action)
+public sealed class PubSubContext
+{
+    private readonly Dictionary<Type, List<Delegate>> _subscribers = [];
+    private readonly Lock _lock = new();
+    private PubSub.IPubSubDispatchStrategy _dispatchStrategy = PubSub.CreateDefaultDispatchStrategy();
+
+    public PubSub.IPubSubDispatchStrategy DispatchStrategy
+    {
+        get => _dispatchStrategy;
+        set => _dispatchStrategy = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
+    public void Subscribe<T>(Action<T> action)
     {
         var type = typeof(T);
         lock (_lock)
@@ -69,7 +103,7 @@ public static class PubSub
         }
     }
 
-    public static void Subscribe<T>(Func<T, Task> action)
+    public void Subscribe<T>(Func<T, Task> action)
     {
         var type = typeof(T);
         lock (_lock)
@@ -84,7 +118,7 @@ public static class PubSub
         }
     }
 
-    public static void Publish<T>(T message)
+    public void Publish<T>(T message)
     {
         var type = typeof(T);
         if (_subscribers.TryGetValue(type, out List<Delegate>? value))
@@ -94,17 +128,17 @@ public static class PubSub
             {
                 if (action is Action<T> typedAction)
                 {
-                    DispatchStrategy.Invoke(typedAction, message);
+                    _dispatchStrategy.Invoke(typedAction, message);
                 }
                 else if (action is Func<T, Task> asyncAction)
                 {
-                    DispatchStrategy.InvokeAsync(asyncAction, message);
+                    _dispatchStrategy.InvokeAsync(asyncAction, message);
                 }
             }
         }
     }
 
-    public static void Unsubscribe<T>(Action<T> action)
+    public void Unsubscribe<T>(Action<T> action)
     {
         lock (_lock)
         {
@@ -114,7 +148,7 @@ public static class PubSub
         }
     }
 
-    public static void Unsubscribe<T>(Func<T, Task> action)
+    public void Unsubscribe<T>(Func<T, Task> action)
     {
         lock (_lock)
         {

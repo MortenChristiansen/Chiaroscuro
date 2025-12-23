@@ -60,14 +60,14 @@ public class CefSharpTabBrowser : Browser
         Favicon = addresses.FirstOrDefault();
         if (!_isChildBrowser && !IsNavigationBlocked)
         {
-            PubSub.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
+            PubSub.Instance.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
             Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
         }
     }
 
     private void OnLoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)
     {
-        PubSub.Publish(new TabLoadingStateChangedEvent(Id, e.IsLoading));
+        PubSub.Instance.Publish(new TabLoadingStateChangedEvent(Id, e.IsLoading));
     }
 
     public void SetAddress(string address, bool setManualAddress)

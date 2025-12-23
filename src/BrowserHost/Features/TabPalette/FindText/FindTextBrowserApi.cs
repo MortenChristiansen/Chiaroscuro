@@ -12,14 +12,14 @@ public record FindStatusChangedEvent(int Matches);
 public class FindTextBrowserApi : BrowserApi
 {
     public void Find(string term) =>
-        PubSub.Publish(new FindTextEvent(term));
+        PubSub.Instance.Publish(new FindTextEvent(term));
 
     public void NextMatch(string term) =>
-        PubSub.Publish(new NextTextMatchEvent(term));
+        PubSub.Instance.Publish(new NextTextMatchEvent(term));
 
     public void PrevMatch(string term) =>
-        PubSub.Publish(new PrevTextMatchEvent(term));
+        PubSub.Instance.Publish(new PrevTextMatchEvent(term));
 
     public void StopFinding() =>
-        PubSub.Publish(new StopFindingTextEvent());
+        PubSub.Instance.Publish(new StopFindingTextEvent());
 }

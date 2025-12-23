@@ -11,5 +11,5 @@ public record BackgroundDownloadStartedEvent(string DownloadSource, string FileN
 public class FileDownloadsBrowserApi : BrowserApi
 {
     public void CancelDownload(int downloadId) =>
-        PubSub.Publish(new DownloadCancelledEvent(downloadId));
+        PubSub.Instance.Publish(new DownloadCancelledEvent(downloadId));
 }

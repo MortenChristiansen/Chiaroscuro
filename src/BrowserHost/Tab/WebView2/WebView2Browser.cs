@@ -77,8 +77,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _hostSurface.SizeChanged += (_, _) => { UpdateControllerBounds(); };
         _hostSurface.LayoutUpdated += (_, _) => { if (_hostSurface.IsVisible) UpdateControllerBounds(); };
 
-        PubSub.Subscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
-        PubSub.Subscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
+        PubSub.Instance.Subscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
+        PubSub.Instance.Subscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
     }
 
     public string Id => _id;
@@ -155,13 +155,13 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private void Core_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
         _isLoading = true;
-        PubSub.Publish(new TabLoadingStateChangedEvent(_id, true));
+        PubSub.Instance.Publish(new TabLoadingStateChangedEvent(_id, true));
     }
 
     private void Core_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
         _isLoading = false;
-        PubSub.Publish(new TabLoadingStateChangedEvent(_id, false));
+        PubSub.Instance.Publish(new TabLoadingStateChangedEvent(_id, false));
         var newAddress = _core?.Source;
         if (_lastAddressSnapshot != newAddress)
         {
@@ -197,7 +197,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         {
             // Ctrl+click or middle-click -> open in background tab
             e.Handled = true;
-            PubSub.Publish(new NavigationStartedEvent(uri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
+            PubSub.Instance.Publish(new NavigationStartedEvent(uri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
             return;
         }
         else
@@ -348,8 +348,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     {
         try
         {
-            PubSub.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
-            PubSub.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
+            PubSub.Instance.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
+            PubSub.Instance.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
             if (_core != null)
             {
                 _handlers.ForEach(h => h.Dispose());

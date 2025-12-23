@@ -11,12 +11,12 @@ public class TabCustomizationBrowserApi : BrowserApi
     public void SetCustomTitle(string? newTitle)
     {
         if (MainWindow.Instance.CurrentTab is { } tab)
-            PubSub.Publish(new TabCustomTitleChangedEvent(tab.Id, newTitle));
+            PubSub.Instance.Publish(new TabCustomTitleChangedEvent(tab.Id, newTitle));
     }
 
     public void SetDisableFixedAddress(bool disabled)
     {
         if (MainWindow.Instance.CurrentTab is { } tab)
-            PubSub.Publish(new TabDisableFixedAddressChangedEvent(tab.Id, disabled));
+            PubSub.Instance.Publish(new TabDisableFixedAddressChangedEvent(tab.Id, disabled));
     }
 }

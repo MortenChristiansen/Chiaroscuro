@@ -13,9 +13,9 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
 
     public override void Configure()
     {
-        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => OpenTabPalette());
-        PubSub.Subscribe<TabPaletteDismissedEvent>((_) => CloseTabPalette());
-        PubSub.Subscribe<TabDeactivatedEvent>((_) => CloseTabPalette());
+        PubSub.Instance.Subscribe<TabPaletteRequestedEvent>((_) => OpenTabPalette());
+        PubSub.Instance.Subscribe<TabPaletteDismissedEvent>((_) => CloseTabPalette());
+        PubSub.Instance.Subscribe<TabDeactivatedEvent>((_) => CloseTabPalette());
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -23,9 +23,9 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
         if (e.Key == Key.F1)
         {
             if (_tabPaletteIsOpen)
-                PubSub.Publish(new TabPaletteDismissedEvent());
+                PubSub.Instance.Publish(new TabPaletteDismissedEvent());
             else
-                PubSub.Publish(new TabPaletteRequestedEvent());
+                PubSub.Instance.Publish(new TabPaletteRequestedEvent());
 
             return true;
         }

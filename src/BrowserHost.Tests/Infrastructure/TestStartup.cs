@@ -8,7 +8,7 @@ internal class TestStartup : ITestPipelineStartup
 {
     public ValueTask StartAsync(IMessageSink diagnosticMessageSink)
     {
-        PubSub.DispatchStrategy = new DirectPubSubDispatchStrategy();
+        PubSub.Instance.DispatchStrategy = new DirectPubSubDispatchStrategy();
 
         return ValueTask.CompletedTask;
     }

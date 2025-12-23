@@ -35,7 +35,7 @@ public class WebContextMenuBrowserApi : BrowserApi
         Application.Current.Dispatcher.Invoke(() =>
         {
             var evt = new BackgroundDownloadStartedEvent(imageUrl, Path.GetFileName(uri.LocalPath));
-            PubSub.Publish(evt);
+            PubSub.Instance.Publish(evt);
         });
     }
 

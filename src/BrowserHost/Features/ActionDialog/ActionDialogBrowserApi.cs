@@ -11,13 +11,13 @@ public record ActionDialogValueChangedEvent(string Value);
 public class ActionDialogBrowserApi : BrowserApi
 {
     public void Execute(string command, bool ctrl) =>
-        PubSub.Publish(new CommandExecutedEvent(command, ctrl));
+        PubSub.Instance.Publish(new CommandExecutedEvent(command, ctrl));
 
     public void DismissActionDialog() =>
-        PubSub.Publish(new ActionDialogDismissedEvent());
+        PubSub.Instance.Publish(new ActionDialogDismissedEvent());
 
     public void NotifyValueChanged(string value) =>
-        PubSub.Publish(new ActionDialogValueChangedEvent(value));
+        PubSub.Instance.Publish(new ActionDialogValueChangedEvent(value));
 
     public string GetActionType(string command) =>
         ActionDialogFeature.GetActionType(command).ToString();

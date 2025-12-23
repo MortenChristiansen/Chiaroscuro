@@ -9,8 +9,8 @@ public record TabUnpinnedEvent(string TabId);
 public class PinnedTabsBrowserApi : BrowserApi
 {
     public void UnpinTab(string tabId) =>
-        PubSub.Publish(new TabUnpinnedEvent(tabId));
+        PubSub.Instance.Publish(new TabUnpinnedEvent(tabId));
 
     public void ActivateTab(string tabId) =>
-        PubSub.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
+        PubSub.Instance.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
 }

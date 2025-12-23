@@ -39,16 +39,16 @@ public class ChildBrowserWindow : OverlayWindow
 
     static ChildBrowserWindow()
     {
-        PubSub.Subscribe<TabActivatedEvent>(e =>
+        PubSub.Instance.Subscribe<TabActivatedEvent>(e =>
         {
             if (!string.IsNullOrEmpty(e.TabId)) ShowWindowsForTab(e.TabId);
             if (e.PreviousTab != null) HideWindowsForTab(e.PreviousTab.Id);
         });
-        PubSub.Subscribe<TabDeactivatedEvent>(e =>
+        PubSub.Instance.Subscribe<TabDeactivatedEvent>(e =>
         {
             if (!string.IsNullOrEmpty(e.TabId)) HideWindowsForTab(e.TabId);
         });
-        PubSub.Subscribe<TabClosedEvent>(e =>
+        PubSub.Instance.Subscribe<TabClosedEvent>(e =>
         {
             if (!string.IsNullOrEmpty(e.Tab.Id)) CloseWindowsForTab(e.Tab.Id);
         });
@@ -136,7 +136,7 @@ public class ChildBrowserWindow : OverlayWindow
             // Trigger regular navigation (new tab)
             contentGrid.Children.Remove(_browser);
             _browser.PromoteToFullTab();
-            PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
+            PubSub.Instance.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
             // Close this child window
             BeginCloseWithFade();
             AnimateContentOut(animateBrowser: false);

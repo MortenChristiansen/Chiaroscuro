@@ -40,9 +40,9 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
         Window.LocationChanged += (_, __) => CaptureNormalBounds();
         Window.SizeChanged += (_, __) => CaptureNormalBounds();
 
-        PubSub.Subscribe<WindowMinimizedEvent>(_ => Minimize());
-        PubSub.Subscribe<WindowStateToggledEvent>(_ => ToggleMaximizedState());
-        PubSub.Subscribe<AddressCopyRequestedEvent>(_ =>
+        PubSub.Instance.Subscribe<WindowMinimizedEvent>(_ => Minimize());
+        PubSub.Instance.Subscribe<WindowStateToggledEvent>(_ => ToggleMaximizedState());
+        PubSub.Instance.Subscribe<AddressCopyRequestedEvent>(_ =>
         {
             var address = Window.CurrentTab?.Address;
             if (string.IsNullOrEmpty(address))
@@ -51,8 +51,8 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
             var sanitized = RemoveGoogleAdTrackingParameters(address);
             Clipboard.SetText(sanitized);
         });
-        PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
-        PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
+        PubSub.Instance.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
+        PubSub.Instance.Subscribe<TabActivatedEvent>(OnTabActivated);
 
         CaptureNormalBounds();
     }

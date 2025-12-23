@@ -30,11 +30,11 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
 
     public override void Configure()
     {
-        PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
-        PubSub.Subscribe<CommandExecutedEvent>(HandleCommandExecuted);
-        PubSub.Subscribe<ActionDialogValueChangedEvent>(HandleValueChanged);
-        PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => HandlePageHistoryChange(e.TabId));
-        PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => HandlePageHistoryChange(e.TabId));
+        PubSub.Instance.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
+        PubSub.Instance.Subscribe<CommandExecutedEvent>(HandleCommandExecuted);
+        PubSub.Instance.Subscribe<ActionDialogValueChangedEvent>(HandleValueChanged);
+        PubSub.Instance.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => HandlePageHistoryChange(e.TabId));
+        PubSub.Instance.Subscribe<TabFaviconUrlChangedEvent>(e => HandlePageHistoryChange(e.TabId));
     }
 
     private static readonly SearchProvider[] _searchProviders =
@@ -63,7 +63,7 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
         if (ContentServer.IsContentPage(e.Command, out var page))
         {
             var pageUrl = ContentServer.GetUiAddress(page.Address);
-            PubSub.Publish(new NavigationStartedEvent(pageUrl, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
+            PubSub.Instance.Publish(new NavigationStartedEvent(pageUrl, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
             return;
         }
 
@@ -73,7 +73,7 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
             return;
         }
 
-        PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true, ActivateTab: true));
+        PubSub.Instance.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true, ActivateTab: true));
     }
 
     public static ActionType GetActionType(string command)
@@ -123,7 +123,7 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
     {
         var urlEncodedQuery = WebUtility.UrlEncode(query);
         var url = string.Format(provider.Pattern, urlEncodedQuery);
-        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
+        PubSub.Instance.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
     }
 
     private void HandlePageHistoryChange(string tabId)
@@ -169,7 +169,7 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
         Window.ActionDialog.Visibility = Visibility.Visible;
         Window.ActionDialog.Focus();
         Window.ActionDialog.CallClientApi("showDialog");
-        PubSub.Publish(new ActionDialogShownEvent());
+        PubSub.Instance.Publish(new ActionDialogShownEvent());
 
         if (Window.ActionDialog.RenderTransform is not ScaleTransform)
         {

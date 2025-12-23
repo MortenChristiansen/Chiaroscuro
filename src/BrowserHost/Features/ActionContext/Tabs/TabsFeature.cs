@@ -18,7 +18,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
     public override void Configure()
     {
-        PubSub.Subscribe<NavigationStartedEvent>(e =>
+        PubSub.Instance.Subscribe<NavigationStartedEvent>(e =>
         {
             if (Window.CurrentTab != null && e.UseCurrentTab)
             {
@@ -29,12 +29,12 @@ public class TabsFeature(MainWindow window) : Feature(window)
                 AddNewTab(e.Address, e.SaveInHistory, e.ActivateTab, e.ReuseTabBrowser);
             }
         });
-        PubSub.Subscribe<TabActivatedEvent>(e =>
+        PubSub.Instance.Subscribe<TabActivatedEvent>(e =>
         {
             SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId));
             Window.ActionContext.SetActiveTab(e.TabId);
         });
-        PubSub.Subscribe<TabClosedEvent>(e =>
+        PubSub.Instance.Subscribe<TabClosedEvent>(e =>
         {
             _tabBrowsers.Remove(e.Tab);
             if (e.Tab == Window.CurrentTab)
@@ -42,7 +42,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
             TryRemoveFromPreloadHost(e.Tab);
             e.Tab.Dispose();
         });
-        PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
+        PubSub.Instance.Subscribe<WorkspaceActivatedEvent>(e =>
         {
             var workspaceFeature = Window.GetFeature<WorkspacesFeature>();
             var pinnedTabsFeature = Window.GetFeature<PinnedTabsFeature>();
@@ -70,7 +70,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
     private void SetCurrentTab(TabBrowser? tab)
     {
         if (Window.CurrentTab != null && tab?.Id != Window.CurrentTab.Id)
-            PubSub.Publish(new TabDeactivatedEvent(Window.CurrentTab.Id));
+            PubSub.Instance.Publish(new TabDeactivatedEvent(Window.CurrentTab.Id));
 
         if (tab != null)
             TryRemoveFromPreloadHost(tab);
@@ -113,7 +113,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
         else
             PreloadTab(browser);
 
-        PubSub.Publish(new TabBrowserCreatedEvent(browser));
+        PubSub.Instance.Publish(new TabBrowserCreatedEvent(browser));
         return browser;
     }
 
@@ -139,7 +139,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
         browser.SavePersistableState();
 
-        PubSub.Publish(new TabBrowserCreatedEvent(browser));
+        PubSub.Instance.Publish(new TabBrowserCreatedEvent(browser));
         return browser;
     }
 

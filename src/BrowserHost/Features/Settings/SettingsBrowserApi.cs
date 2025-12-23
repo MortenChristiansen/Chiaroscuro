@@ -15,7 +15,7 @@ public record SettingUiStateDto(string? UserAgent, string[] SsoEnabledDomains, b
 public class SettingsBrowserApi : BrowserApi
 {
     public void SettingsPageLoading() =>
-        PubSub.Publish(new SettingsPageLoadingEvent());
+        PubSub.Instance.Publish(new SettingsPageLoadingEvent());
 
     public void SaveSettings(IDictionary<string, object?> settings)
     {
@@ -31,6 +31,6 @@ public class SettingsBrowserApi : BrowserApi
         var autoAddSsoDomains = settings.TryGetValue("autoAddSsoDomains", out var o3) && o3 is bool b ? b : false;
 
         var dto = new SettingUiStateDto(userAgent, ssoEnabledDomains, autoAddSsoDomains);
-        PubSub.Publish(new SettingsSavedEvent(dto));
+        PubSub.Instance.Publish(new SettingsSavedEvent(dto));
     }
 }

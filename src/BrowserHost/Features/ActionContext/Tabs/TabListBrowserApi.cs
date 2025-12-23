@@ -21,13 +21,13 @@ public record FolderUiStateDto(string Id, string Name, int StartIndex, int EndIn
 public class TabListBrowserApi : BrowserApi
 {
     public void ActivateTab(string tabId) =>
-        PubSub.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
+        PubSub.Instance.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
 
     public void CloseTab(string tabId) =>
-        PubSub.Publish(new TabClosedEvent(MainWindow.Instance.GetFeature<TabsFeature>().GetTabBrowserById(tabId)));
+        PubSub.Instance.Publish(new TabClosedEvent(MainWindow.Instance.GetFeature<TabsFeature>().GetTabBrowserById(tabId)));
 
     public void TabsChanged(List<object> tabs, int ephemeralTabStartIndex, List<object> folders) =>
-        PubSub.Publish(new TabsChangedEvent(
+        PubSub.Instance.Publish(new TabsChangedEvent(
             [.. tabs.Select((dynamic tab) => new TabUiStateDto(tab.Id, tab.Title, tab.Favicon, tab.IsActive, DateTimeOffset.Parse(tab.Created)))],
             ephemeralTabStartIndex,
             [.. folders.Select((dynamic folder) => new FolderUiStateDto(folder.Id, folder.Name, folder.StartIndex, folder.EndIndex))]

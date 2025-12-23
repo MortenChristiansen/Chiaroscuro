@@ -28,16 +28,16 @@ public class CustomWindowChromeBrowserApi : BrowserApi
         MainWindow.Instance.CurrentTab?.Reload();
 
     public void Minimize() =>
-        PubSub.Publish(new WindowMinimizedEvent());
+        PubSub.Instance.Publish(new WindowMinimizedEvent());
 
     public void Maximize() =>
-        PubSub.Publish(new WindowStateToggledEvent());
+        PubSub.Instance.Publish(new WindowStateToggledEvent());
 
     public void Close() =>
         MainWindow.Instance.Dispatcher.Invoke(MainWindow.Instance.Close);
 
     public void CopyAddress() =>
-        PubSub.Publish(new AddressCopyRequestedEvent());
+        PubSub.Instance.Publish(new AddressCopyRequestedEvent());
 
     public bool IsLoading() =>
         MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.IsLoading ?? false);

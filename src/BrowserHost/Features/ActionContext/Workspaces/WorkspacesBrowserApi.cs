@@ -14,16 +14,16 @@ public record EphemeralTabsExpiredEvent(string[] TabIds);
 public class WorkspacesBrowserApi() : BrowserApi
 {
     public void ActivateWorkspace(string workspaceId) =>
-        PubSub.Publish(new WorkspaceActivatedEvent(workspaceId));
+        PubSub.Instance.Publish(new WorkspaceActivatedEvent(workspaceId));
 
     public void CreateWorkspace(string name, string icon, string color) =>
-        PubSub.Publish(new WorkspaceCreatedEvent($"{Guid.NewGuid()}", name, icon, color));
+        PubSub.Instance.Publish(new WorkspaceCreatedEvent($"{Guid.NewGuid()}", name, icon, color));
 
     public void UpdateWorkspace(string workspaceId, string name, string icon, string color) =>
-        PubSub.Publish(new WorkspaceUpdatedEvent(workspaceId, name, icon, color));
+        PubSub.Instance.Publish(new WorkspaceUpdatedEvent(workspaceId, name, icon, color));
 
     public void DeleteWorkspace(string workspaceId) =>
-        PubSub.Publish(new WorkspaceDeletedEvent(workspaceId));
+        PubSub.Instance.Publish(new WorkspaceDeletedEvent(workspaceId));
 
     public void OnLoaded() =>
         Measure.Event("Workspaces frontend loaded");

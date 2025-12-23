@@ -9,18 +9,18 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
 {
     public override void Configure()
     {
-        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => InitializeCustomSettings());
-        PubSub.Subscribe<TabCustomTitleChangedEvent>((e) =>
+        PubSub.Instance.Subscribe<TabPaletteRequestedEvent>((_) => InitializeCustomSettings());
+        PubSub.Instance.Subscribe<TabCustomTitleChangedEvent>((e) =>
         {
             var customization = TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { CustomTitle = e.CustomTitle });
             Window.ActionContext.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
         });
-        PubSub.Subscribe<TabDisableFixedAddressChangedEvent>((e) =>
+        PubSub.Instance.Subscribe<TabDisableFixedAddressChangedEvent>((e) =>
         {
             TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { DisableFixedAddress = e.IsDisabled });
         });
-        PubSub.Subscribe<TabClosedEvent>((e) => TabCustomizationStateManager.DeleteCustomization(e.Tab.Id));
-        PubSub.Subscribe<EphemeralTabsExpiredEvent>((e) =>
+        PubSub.Instance.Subscribe<TabClosedEvent>((e) => TabCustomizationStateManager.DeleteCustomization(e.Tab.Id));
+        PubSub.Instance.Subscribe<EphemeralTabsExpiredEvent>((e) =>
         {
             foreach (var tabId in e.TabIds)
                 TabCustomizationStateManager.DeleteCustomization(tabId);

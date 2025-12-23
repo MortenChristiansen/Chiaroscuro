@@ -17,8 +17,8 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 
     public override void Configure()
     {
-        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => InitializeDomainSettings());
-        PubSub.Subscribe<DomainCustomizationChangedEvent>((e) =>
+        PubSub.Instance.Subscribe<TabPaletteRequestedEvent>((_) => InitializeDomainSettings());
+        PubSub.Instance.Subscribe<DomainCustomizationChangedEvent>((e) =>
         {
             var customization = DomainCustomizationStateManager.GetCustomization(e.Domain);
             var updated = customization with { CssEnabled = e.CssEnabled };
@@ -31,7 +31,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 
             NotifyFrontendOfDomainUpdate(e.Domain);
         });
-        PubSub.Subscribe<DomainCustomCssRemovedEvent>((e) =>
+        PubSub.Instance.Subscribe<DomainCustomCssRemovedEvent>((e) =>
         {
             try
             {
@@ -47,12 +47,12 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
             if (Window.CurrentTab != null && e.Domain == _currentDomain)
                 RemoveCssFromTab(Window.CurrentTab);
 
-            PubSub.Publish(new DomainCustomizationChangedEvent(e.Domain, CssEnabled: false));
+            PubSub.Instance.Publish(new DomainCustomizationChangedEvent(e.Domain, CssEnabled: false));
         });
-        PubSub.Subscribe<DomainCssEditRequestedEvent>((e) => EditDomainCss(e.Domain));
+        PubSub.Instance.Subscribe<DomainCssEditRequestedEvent>((e) => EditDomainCss(e.Domain));
 
-        PubSub.Subscribe<TabActivatedEvent>((e) => OnTabChanged());
-        PubSub.Subscribe<TabDeactivatedEvent>((e) => OnTabChanged());
+        PubSub.Instance.Subscribe<TabActivatedEvent>((e) => OnTabChanged());
+        PubSub.Instance.Subscribe<TabDeactivatedEvent>((e) => OnTabChanged());
     }
 
     public void InitializeDomainSettings()
@@ -384,6 +384,6 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
     {
         if (_currentDomain == null) return;
 
-        PubSub.Publish(new DomainCustomCssRemovedEvent(_currentDomain));
+        PubSub.Instance.Publish(new DomainCustomCssRemovedEvent(_currentDomain));
     }
 }

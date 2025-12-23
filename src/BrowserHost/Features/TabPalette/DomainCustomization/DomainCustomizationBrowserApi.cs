@@ -15,14 +15,14 @@ public class DomainCustomizationBrowserApi : BrowserApi
     {
         var domain = GetCurrentDomain();
         if (domain != null)
-            PubSub.Publish(new DomainCustomizationChangedEvent(domain, enabled));
+            PubSub.Instance.Publish(new DomainCustomizationChangedEvent(domain, enabled));
     }
 
     public void EditCss()
     {
         var domain = GetCurrentDomain();
         if (domain != null)
-            PubSub.Publish(new DomainCssEditRequestedEvent(domain));
+            PubSub.Instance.Publish(new DomainCssEditRequestedEvent(domain));
     }
 
     public void RemoveCss()
@@ -30,7 +30,7 @@ public class DomainCustomizationBrowserApi : BrowserApi
         var domain = GetCurrentDomain();
         if (domain == null) return;
 
-        PubSub.Publish(new DomainCustomCssRemovedEvent(domain));
+        PubSub.Instance.Publish(new DomainCustomCssRemovedEvent(domain));
     }
 
     private static string? GetCurrentDomain()
