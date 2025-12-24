@@ -7,7 +7,7 @@ namespace BrowserHost.Features.TabPalette;
 public record TabPaletteRequestedEvent();
 public record TabPaletteDismissedEvent();
 
-public class TabPaletteFeature(MainWindow window) : Feature(window)
+public class TabPaletteFeature(MainWindow window, IBrowserContext browserContext) : Feature(window)
 {
     private bool _tabPaletteIsOpen;
 
@@ -36,8 +36,8 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
     public void OpenTabPalette()
     {
         _tabPaletteIsOpen = true;
-        Window.TabPaletteBrowserControl.Init();
-        Window.ShowTabPalette();
+        browserContext.InitTabPalette();
+        browserContext.ShowTabPalette();
     }
 
     private void CloseTabPalette()
@@ -46,6 +46,6 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
             return;
 
         _tabPaletteIsOpen = false;
-        Window.HideTabPalette();
+        browserContext.HideTabPalette();
     }
 }

@@ -78,7 +78,7 @@ public partial class MainWindow : Window
             new DragDropFeature(this),
             new WorkspacesFeature(this),
             new FoldersFeature(this),
-            new TabPaletteFeature(this),
+            new TabPaletteFeature(this, new BrowserContext(this)),
             new FindTextFeature(this),
             new TabCustomizationFeature(this),
             new DomainCustomizationFeature(this),
