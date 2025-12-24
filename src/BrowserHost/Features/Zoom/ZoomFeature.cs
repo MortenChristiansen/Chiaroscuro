@@ -4,11 +4,9 @@ namespace BrowserHost.Features.Zoom;
 
 public class ZoomFeature(MainWindow window, IBrowserContext browserContext) : Feature(window)
 {
-    protected virtual ModifierKeys CurrentKeyboardModifiers => Keyboard.Modifiers;
-
     public override bool HandleOnPreviewMouseWheel(MouseWheelEventArgs e)
     {
-        if (CurrentKeyboardModifiers == ModifierKeys.Control && browserContext.CurrentTab != null)
+        if (browserContext.CurrentKeyboardModifiers == ModifierKeys.Control && browserContext.CurrentTab != null)
         {
             var currentZoomLevel = browserContext.CurrentTab.GetZoomLevelAsync().GetAwaiter().GetResult();
 
@@ -27,7 +25,7 @@ public class ZoomFeature(MainWindow window, IBrowserContext browserContext) : Fe
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Delete && CurrentKeyboardModifiers == ModifierKeys.Control)
+        if (e.Key == Key.Delete && browserContext.CurrentKeyboardModifiers == ModifierKeys.Control)
         {
             if (browserContext.CurrentTab != null)
                 browserContext.CurrentTab.ResetZoomLevel();
