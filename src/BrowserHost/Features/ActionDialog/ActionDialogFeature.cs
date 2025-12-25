@@ -23,7 +23,7 @@ public enum ActionType
     OpenSystemPage,
 }
 
-public partial class ActionDialogFeature(MainWindow window) : Feature(window)
+public partial class ActionDialogFeature(MainWindow window, ActionDialogBrowserApi actionDialogApi) : Feature(window)
 {
     [GeneratedRegex(@"^!(\w+)|\s+!(\w+)$")]
     private static partial Regex SearchProviderRegex();
@@ -141,7 +141,7 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
         var suggestions = NavigationHistoryStateManager.GetSuggestions(e.Value);
 
         // Send suggestions to frontend
-        Window.ActionDialog.UpdateSuggestions(suggestions);
+        actionDialogApi.UpdateSuggestions(suggestions);
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -168,7 +168,7 @@ public partial class ActionDialogFeature(MainWindow window) : Feature(window)
         Window.ActionDialog.Opacity = 0;
         Window.ActionDialog.Visibility = Visibility.Visible;
         Window.ActionDialog.Focus();
-        Window.ActionDialog.CallClientApi("showDialog");
+        actionDialogApi.ShowActionDialog();
         PubSub.Instance.Publish(new ActionDialogShownEvent());
 
         if (Window.ActionDialog.RenderTransform is not ScaleTransform)

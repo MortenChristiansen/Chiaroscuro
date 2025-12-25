@@ -4,6 +4,7 @@ namespace BrowserHost.Tests.Infrastructure;
 
 internal class TestTabBrowser : ITabBrowser
 {
+    public string Id { get; set; } = $"{Guid.NewGuid()}";
     public double ZoomLevel { get; set; }
 
     public bool SetZoomCalled { get; private set; }

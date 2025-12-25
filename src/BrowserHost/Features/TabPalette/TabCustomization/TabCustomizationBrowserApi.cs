@@ -1,22 +1,17 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.TabPalette.TabCustomization;
 
-public record TabCustomTitleChangedEvent(string TabId, string? CustomTitle);
-public record TabDisableFixedAddressChangedEvent(string TabId, bool IsDisabled);
-
-public class TabCustomizationBrowserApi : BrowserApi
+public class TabCustomizationBrowserApi(BaseBrowser tabPaletteBrowser) : BrowserApi(tabPaletteBrowser)
 {
-    public void SetCustomTitle(string? newTitle)
-    {
-        if (MainWindow.Instance.CurrentTab is { } tab)
-            PubSub.Instance.Publish(new TabCustomTitleChangedEvent(tab.Id, newTitle));
-    }
+    public void InitCustomSettings(TabCustomizationDataV1 settings) =>
+        CallClientApi("initCustomSettings", settings.ToJsonObject());
 
-    public void SetDisableFixedAddress(bool disabled)
-    {
-        if (MainWindow.Instance.CurrentTab is { } tab)
-            PubSub.Instance.Publish(new TabDisableFixedAddressChangedEvent(tab.Id, disabled));
-    }
+    public void SetTabCustomizations(TabCustomizationDto[] customizations) =>
+        CallClientApi("setTabCustomizations", customizations.ToJsonObject());
+
+    public void UpdateTabCustomization(TabCustomizationDto customization) =>
+        CallClientApi("updateTabCustomization", customization.ToJsonObject());
 }

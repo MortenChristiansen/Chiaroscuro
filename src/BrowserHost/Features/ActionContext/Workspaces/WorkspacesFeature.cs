@@ -11,7 +11,7 @@ using System.Windows.Media;
 
 namespace BrowserHost.Features.ActionContext.Workspaces;
 
-public class WorkspacesFeature(MainWindow window) : Feature(window)
+public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspacesApi, TabsBrowserApi tabsApi) : Feature(window)
 {
     private WorkspaceDtoV1[] _workspaces = [];
     private string _currentWorkspaceId = null!;
@@ -38,7 +38,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         PubSub.Instance.Subscribe<WorkspaceActivatedEvent>(e =>
         {
             _currentWorkspaceId = e.WorkspaceId;
-            Window.ActionContext.WorkspaceActivated(e.WorkspaceId);
+            workspacesApi.WorkspaceActivated(e.WorkspaceId);
             Window.WorkspaceColor = GetCurrentWorkspaceColor();
 
             if (!_hasLoggedInitialWorkspaceTime)
@@ -173,11 +173,11 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             return;
 
         var tab = GetTabById(currentTab.Id);
-        Window.ActionContext.CloseTab(tab.TabId);
+        tabsApi.CloseTab(tab.TabId);
         RemoveTabFromWorkspace(tab.TabId);
 
         PubSub.Instance.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
-        Window.ActionContext.AddTab(new(tab.TabId, tab.Title, tab.Favicon, tab.Created));
+        tabsApi.AddTab(new(tab.TabId, tab.Title, tab.Favicon, tab.Created));
     }
 
     private void RemoveTabFromWorkspace(string tabId)
@@ -193,12 +193,12 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     private void NotifyFrontendOfUpdatedWorkspaces()
     {
-        Window.ActionContext.WorkspacesChanged([.. _workspaces.Select(ws => new WorkspaceDescriptionDto(ws.WorkspaceId, ws.Name, ws.Color, ws.Icon))]);
+        workspacesApi.WorkspacesChanged([.. _workspaces.Select(ws => new WorkspaceDescriptionDto(ws.WorkspaceId, ws.Name, ws.Color, ws.Icon))]);
     }
 
     private void RestoreFrontendWorkspaces()
     {
-        Window.ActionContext.SetWorkspaces(
+        workspacesApi.SetWorkspaces(
             [.. _workspaces.Select(ws => new WorkspaceDto(
                 ws.WorkspaceId,
                 ws.Name,

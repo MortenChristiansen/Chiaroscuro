@@ -8,7 +8,7 @@ using System.Windows;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
-public class DomainCustomizationFeature(MainWindow window) : Feature(window)
+public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBrowserApi domainCustomizationApi) : Feature(window)
 {
     private string? _currentDomain;
     private TabBrowser? _currentTab;
@@ -61,7 +61,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
         if (domain != null)
         {
             var customization = DomainCustomizationStateManager.GetCustomization(domain);
-            Window.TabPaletteBrowserControl.InitDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
+            domainCustomizationApi.InitDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
         }
     }
 
@@ -263,7 +263,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
         if (domain != null)
         {
             var customization = DomainCustomizationStateManager.GetCustomization(domain);
-            Window.TabPaletteBrowserControl.UpdateDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
+            domainCustomizationApi.UpdateDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
         }
     }
 

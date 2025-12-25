@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace BrowserHost.Features.ActionContext.FileDownloads;
 
-public class FileDownloadsFeature(MainWindow window) : Feature(window)
+public class FileDownloadsFeature(MainWindow window, DownloadsBrowserApi downloadsApi) : Feature(window)
 {
     private readonly ConcurrentDictionary<int, DownloadInfo> _activeDownloads = new();
     private Timer? _progressTimer;
@@ -61,7 +61,7 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
 
         RemoveCompletedDownloadAfterDelay(downloadId);
         SendProgressUpdate();
-        
+
         if (data != null)
             await DownloadHelper.SaveFile(e.FileName, data);
     }
@@ -123,7 +123,7 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
                 d.IsCancelled))
             .ToArray();
 
-        Window.ActionContext.UpdateDownloads(downloads);
+        downloadsApi.UpdateDownloads(downloads);
     }
 
     public bool HasActiveDownloads()

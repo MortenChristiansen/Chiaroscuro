@@ -11,7 +11,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
 
-public class TabsFeature(MainWindow window) : Feature(window)
+public class TabsFeature(MainWindow window, TabsBrowserApi tabsApi) : Feature(window)
 {
     private readonly List<TabBrowser> _tabBrowsers = [];
     private readonly HashSet<string> _loadedWorkspaceIds = [];
@@ -32,7 +32,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
         PubSub.Instance.Subscribe<TabActivatedEvent>(e =>
         {
             SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId));
-            Window.ActionContext.SetActiveTab(e.TabId);
+            tabsApi.SetActiveTab(e.TabId);
         });
         PubSub.Instance.Subscribe<TabClosedEvent>(e =>
         {
@@ -56,7 +56,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
             var activeTabId = pinnedTabsFeature.GetActivePinnedTabId() ?? workspace.Tabs.FirstOrDefault(t => t.IsActive)?.TabId;
             var tabs = workspaceFeature.GetTabsForWorkspace(e.WorkspaceId);
-            Window.ActionContext.SetTabs(
+            tabsApi.SetTabs(
                 [.. tabs.Select(t => new TabDto(t.TabId, t.Title, t.Favicon, t.Created))],
                 activeTabId,
                 workspace.EphemeralTabStartIndex,
@@ -102,11 +102,11 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
     private TabBrowser AddNewTab(string address, bool saveInHistory, bool activateTab, TabBrowser? reuseTabBrowser)
     {
-        var browser = reuseTabBrowser ?? new TabBrowser($"{Guid.NewGuid()}", address, Window.ActionContext, setManualAddress: saveInHistory, favicon: null, isChildBrowser: false);
+        var browser = reuseTabBrowser ?? new TabBrowser($"{Guid.NewGuid()}", address, tabsApi, setManualAddress: saveInHistory, favicon: null, isChildBrowser: false);
         _tabBrowsers.Add(browser);
 
         var tab = new TabDto(browser.Id, browser.Title, browser.Favicon, DateTimeOffset.UtcNow);
-        Window.ActionContext.AddTab(tab, activate: activateTab);
+        tabsApi.AddTab(tab, activate: activateTab);
 
         if (activateTab)
             SetCurrentTab(browser);
@@ -133,7 +133,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
 
     private TabBrowser AddExistingTab(string id, string address, string? title, string? favicon)
     {
-        var browser = new TabBrowser(id, address, Window.ActionContext, setManualAddress: false, favicon, isChildBrowser: false);
+        var browser = new TabBrowser(id, address, tabsApi, setManualAddress: false, favicon, isChildBrowser: false);
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
 
@@ -148,7 +148,7 @@ public class TabsFeature(MainWindow window) : Feature(window)
         var tab = Window.CurrentTab;
         if (tab == null || Window.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id)) return;
 
-        Window.ActionContext.ToggleTabBookmark(tab.Id);
+        tabsApi.ToggleTabBookmark(tab.Id);
         tab.SavePersistableState();
     }
 

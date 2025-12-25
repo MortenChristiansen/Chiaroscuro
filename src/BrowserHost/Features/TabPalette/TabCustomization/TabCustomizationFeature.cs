@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace BrowserHost.Features.TabPalette.TabCustomization;
 
-public class TabCustomizationFeature(MainWindow window) : Feature(window)
+public class TabCustomizationFeature(MainWindow window, IBrowserContext browserContext, TabCustomizationBrowserApi tabCustomizationApi) : Feature(window)
 {
     public override void Configure()
     {
@@ -13,7 +13,7 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
         PubSub.Instance.Subscribe<TabCustomTitleChangedEvent>((e) =>
         {
             var customization = TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { CustomTitle = e.CustomTitle });
-            Window.ActionContext.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
+            tabCustomizationApi.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
         });
         PubSub.Instance.Subscribe<TabDisableFixedAddressChangedEvent>((e) =>
         {
@@ -32,16 +32,16 @@ public class TabCustomizationFeature(MainWindow window) : Feature(window)
     private void InitializeCustomizations()
     {
         var allCustomizations = TabCustomizationStateManager.GetAllCustomizations();
-        Window.ActionContext.SetTabCustomizations([.. allCustomizations.Select(c => new TabCustomizationDto(c.TabId, c.CustomTitle))]);
+        tabCustomizationApi.SetTabCustomizations([.. allCustomizations.Select(c => new TabCustomizationDto(c.TabId, c.CustomTitle))]);
     }
 
     public void InitializeCustomSettings()
     {
-        if (Window.CurrentTab is null)
+        if (browserContext.CurrentTabId is not { } tabId)
             return;
 
-        var customization = TabCustomizationStateManager.GetCustomization(Window.CurrentTab.Id);
-        Window.TabPaletteBrowserControl.InitCustomSettings(customization);
+        var customization = TabCustomizationStateManager.GetCustomization(tabId);
+        tabCustomizationApi.InitCustomSettings(customization);
     }
 
     public static TabCustomizationDataV1 GetCustomizationsForTab(string tabId) =>

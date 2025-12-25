@@ -1,16 +1,12 @@
 ﻿using BrowserHost.CefInfrastructure;
-using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.ActionContext.PinnedTabs;
-public record TabPinnedEvent(string TabId);
-public record TabUnpinnedEvent(string TabId);
 
-public class PinnedTabsBrowserApi : BrowserApi
+public record PinnedTabDto(string Id, string? Title, string? Favicon);
+
+public class PinnedTabsBrowserApi(BaseBrowser actionContextBrowser) : BrowserApi(actionContextBrowser)
 {
-    public void UnpinTab(string tabId) =>
-        PubSub.Instance.Publish(new TabUnpinnedEvent(tabId));
-
-    public void ActivateTab(string tabId) =>
-        PubSub.Instance.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
+    public void SetPinnedTabs(PinnedTabDto[] tabs, string? activeTabId) =>
+        CallClientApi("setPinnedTabs", $"{tabs.ToJsonObject()}, {activeTabId.ToJsonString()}");
 }

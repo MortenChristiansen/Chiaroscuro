@@ -1,5 +1,4 @@
 ﻿using BrowserHost.CefInfrastructure;
-using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.CustomWindowChrome;
@@ -18,14 +17,14 @@ namespace BrowserHost.Tab.CefSharp;
 
 public class CefSharpTabBrowser : Browser
 {
-    private readonly ActionContextBrowser _actionContextBrowser;
+    private readonly TabsBrowserApi _tabsBrowserApi;
     private readonly bool _isChildBrowser;
 
     public string Id { get; }
     public string? Favicon { get; private set; }
     public string? ManualAddress { get; private set; }
 
-    public CefSharpTabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, bool isChildBrowser)
+    public CefSharpTabBrowser(string id, string address, TabsBrowserApi tabsBrowserApi, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
         Id = id;
         Favicon = favicon;
@@ -36,7 +35,7 @@ public class CefSharpTabBrowser : Browser
         LoadingStateChanged += OnLoadingStateChanged;
 
         DisplayHandler = new FaviconDisplayHandler(OnFaviconAddressesChanged);
-        _actionContextBrowser = actionContextBrowser;
+        _tabsBrowserApi = tabsBrowserApi;
 
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
@@ -52,7 +51,7 @@ public class CefSharpTabBrowser : Browser
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (!_isChildBrowser && !IsNavigationBlocked)
-            _actionContextBrowser.UpdateTabTitle(Id, (string)e.NewValue);
+            _tabsBrowserApi.UpdateTabTitle(Id, (string)e.NewValue);
     }
 
     private void OnFaviconAddressesChanged(IList<string> addresses)
@@ -61,7 +60,7 @@ public class CefSharpTabBrowser : Browser
         if (!_isChildBrowser && !IsNavigationBlocked)
         {
             PubSub.Instance.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
-            Dispatcher.BeginInvoke(() => _actionContextBrowser.UpdateTabFavicon(Id, Favicon));
+            Dispatcher.BeginInvoke(() => _tabsBrowserApi.UpdateTabFavicon(Id, Favicon));
         }
     }
 
@@ -111,7 +110,7 @@ public class CefSharpTabBrowser : Browser
         }
     }
 
-    public void RegisterContentPageApi<TApi>(TApi api, string name) where TApi : BrowserApi
+    public void RegisterContentPageApi<TApi>(TApi api, string name) where TApi : BackendApi
     {
         RegisterSecondaryApi(api, name);
     }

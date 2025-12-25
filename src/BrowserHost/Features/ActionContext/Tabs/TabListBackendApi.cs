@@ -18,7 +18,7 @@ public record TabBrowserCreatedEvent(TabBrowser TabBrowser);
 public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 public record FolderUiStateDto(string Id, string Name, int StartIndex, int EndIndex);
 
-public class TabListBrowserApi : BrowserApi
+public class TabListBackendApi : BackendApi
 {
     public void ActivateTab(string tabId) =>
         PubSub.Instance.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));

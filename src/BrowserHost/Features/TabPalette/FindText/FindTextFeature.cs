@@ -4,7 +4,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.TabPalette.FindText;
 
-public class FindTextFeature(MainWindow window) : Feature(window)
+public class FindTextFeature(MainWindow window, FindTextBrowserApi findTextApi) : Feature(window)
 {
     private string? _findingTextTerm;
 
@@ -14,7 +14,7 @@ public class FindTextFeature(MainWindow window) : Feature(window)
         PubSub.Instance.Subscribe<NextTextMatchEvent>((e) => FindNext(e.Term));
         PubSub.Instance.Subscribe<PrevTextMatchEvent>((e) => FindPrevious(e.Term));
         PubSub.Instance.Subscribe<StopFindingTextEvent>((_) => StopFinding());
-        PubSub.Instance.Subscribe<FindStatusChangedEvent>((e) => Window.TabPaletteBrowserControl.FindStatusChanged(e.Matches));
+        PubSub.Instance.Subscribe<FindStatusChangedEvent>((e) => findTextApi.FindStatusChanged(e.Matches));
 
         PubSub.Instance.Subscribe<TabPaletteDismissedEvent>((_) => PubSub.Instance.Publish(new StopFindingTextEvent()));
         PubSub.Instance.Subscribe<TabDeactivatedEvent>((_) => PubSub.Instance.Publish(new StopFindingTextEvent()));
@@ -43,7 +43,7 @@ public class FindTextFeature(MainWindow window) : Feature(window)
         {
             PubSub.Instance.Publish(new TabPaletteRequestedEvent());
             Window.TabPaletteBrowserControl.Focus();
-            Window.TabPaletteBrowserControl.FocusFindTextInput();
+            findTextApi.FocusFindTextInput();
 
             return true;
         }
@@ -70,7 +70,7 @@ public class FindTextFeature(MainWindow window) : Feature(window)
     private void StopFinding()
     {
         Window.CurrentTab?.StopFinding(true);
-        Window.TabPaletteBrowserControl.FindStatusChanged(null);
+        findTextApi.FindStatusChanged(null);
         _findingTextTerm = null;
     }
 }

@@ -12,7 +12,7 @@ using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
-public partial class CustomWindowChromeFeature(MainWindow window) : Feature(window)
+public partial class CustomWindowChromeFeature(MainWindow window, CustomWindowChromeBrowserApi customWindowChromeApi) : Feature(window)
 {
     private Rect? _lastNormalBounds; // Stored size/position before maximizing (for detach drag only)
     private bool _applyingRestoreBounds; // Prevent recursive capture while programmatically setting during detach
@@ -115,7 +115,7 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
     private void Window_StateChanged(object? sender, EventArgs e)
     {
         var isMaximized = Window.WindowState == WindowState.Maximized;
-        Window.ChromeUI.UpdateWindowState(isMaximized);
+        customWindowChromeApi.UpdateWindowState(isMaximized);
 
         // When transitioning to maximized ensure we have latest normal bounds (already handled by capture logic, but explicit call is cheap)
         if (isMaximized)
@@ -163,13 +163,13 @@ public partial class CustomWindowChromeFeature(MainWindow window) : Feature(wind
     private void OnTabLoadingStateChanged(TabLoadingStateChangedEvent e)
     {
         if (Window.CurrentTab?.Id == e.TabId)
-            Window.ChromeUI.UpdateLoadingState(e.IsLoading);
+            customWindowChromeApi.UpdateLoadingState(e.IsLoading);
     }
 
     private void OnTabActivated(TabActivatedEvent e)
     {
         var isLoading = e.PreviousTab?.IsLoading ?? false;
-        Window.ChromeUI.UpdateLoadingState(isLoading);
+        customWindowChromeApi.UpdateLoadingState(isLoading);
     }
 
     #region Maximize / Minimize / Detach Drag

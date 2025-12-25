@@ -22,7 +22,7 @@ public interface ITabWebBrowser : IDisposable
 
     void SetAddress(string address, bool setManualAddress);
     event EventHandler? PageLoadEnded;
-    void RegisterContentPageApi(BrowserApi api, string name);
+    void RegisterContentPageApi(BackendApi api, string name);
     void Reload(bool ignoreCache = false);
     void Back();
     void Forward();

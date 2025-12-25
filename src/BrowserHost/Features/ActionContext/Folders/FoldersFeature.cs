@@ -7,7 +7,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.Folders;
 
-public class FoldersFeature(MainWindow window) : Feature(window)
+public class FoldersFeature(MainWindow window, TabsBrowserApi tabsApi) : Feature(window)
 {
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
@@ -116,7 +116,7 @@ public class FoldersFeature(MainWindow window) : Feature(window)
 
         // Notify the frontend
         var tabsFeature = Window.GetFeature<TabsFeature>();
-        Window.ActionContext.UpdateFolders(
+        tabsApi.UpdateFolders(
             [.. folders.Select(f => new Tabs.FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
         );
     }

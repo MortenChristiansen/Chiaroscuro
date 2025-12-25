@@ -19,7 +19,7 @@ public class TabPaletteFeatureTests
         var handled = feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.F1));
 
         Assert.True(handled);
-        Assert.True(context.InitTabPaletteCalled);
+        Assert.True(context.TabPaletteBrowserApi.WasCalledWith("init"));
         Assert.True(context.ShowTabPaletteCalled);
         Assert.False(context.HideTabPaletteCalled);
     }
@@ -34,7 +34,7 @@ public class TabPaletteFeatureTests
         Assert.True(feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.F1)));
         Assert.True(feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.F1)));
 
-        Assert.True(context.InitTabPaletteCalled);
+        Assert.True(context.TabPaletteBrowserApi.WasCalledWith("init"));
         Assert.True(context.ShowTabPaletteCalled);
         Assert.True(context.HideTabPaletteCalled);
     }

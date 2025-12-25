@@ -58,7 +58,7 @@ public class ChildBrowserWindow : OverlayWindow
     {
         Owner = MainWindow.Instance;
 
-        _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.ActionContext, setManualAddress: false, favicon: null, isChildBrowser: true);
+        _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.TabsBrowserApi, setManualAddress: false, favicon: null, isChildBrowser: true);
         _browser.PageLoadEnded += Browser_PageLoadEnded;
         _browser.Opacity = 0.0; // Keep child browser hidden until first load completes
         _browser.RenderTransformOrigin = new Point(0.5, 0.5);

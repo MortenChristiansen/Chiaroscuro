@@ -7,7 +7,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.PinnedTabs;
 
-public class PinnedTabsFeature(MainWindow window) : Feature(window)
+public class PinnedTabsFeature(MainWindow window, TabsBrowserApi tabsApi, PinnedTabsBrowserApi pinnedTabsApi) : Feature(window)
 {
     private PinnedTabDataV1 _pinnedTabData = null!;
 
@@ -32,7 +32,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
             var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
             var activateTabId = Window.CurrentTab?.Id;
             AddPinnedTabToState(new PinnedTabDtoV1(e.TabId, tab.Title, tab.Favicon, tab.Address), activateTabId);
-            Window.ActionContext.CloseTab(e.TabId, activateNext: false);
+            tabsApi.CloseTab(e.TabId, activateNext: false);
             NotifyFrontendOfUpdatedPinnedTabs();
         });
         PubSub.Instance.Subscribe<TabUnpinnedEvent>(e =>
@@ -40,7 +40,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
             var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
             RemovePinnedTabFromState(e.TabId);
             NotifyFrontendOfUpdatedPinnedTabs();
-            Window.ActionContext.AddTab(new(e.TabId, tab.Title, tab.Favicon, DateTimeOffset.UtcNow)); // We don't currently store creation info for pinned tabs
+            tabsApi.AddTab(new(e.TabId, tab.Title, tab.Favicon, DateTimeOffset.UtcNow)); // We don't currently store creation info for pinned tabs
         });
         PubSub.Instance.Subscribe<TabClosedEvent>(e =>
         {
@@ -53,7 +53,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
 
     private void NotifyFrontendOfUpdatedPinnedTabs()
     {
-        Window.ActionContext.SetPinnedTabs(
+        pinnedTabsApi.SetPinnedTabs(
             [.. _pinnedTabData.PinnedTabs.Select(t => new PinnedTabDto(t.Id, t.Title, t.Favicon))],
             _pinnedTabData.ActiveTabId
         );

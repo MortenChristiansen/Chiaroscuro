@@ -6,9 +6,9 @@ using System.Threading;
 
 namespace BrowserHost.Features.Settings;
 
-public class SettingsFeature(MainWindow window) : Feature(window)
+public class SettingsFeature(MainWindow window, SettingsBrowserApi settingsApi) : Feature(window)
 {
-    private readonly SettingsBrowserApi _browserApi = new();
+    private readonly SettingsBackendApi _backendApi = new();
     private readonly Lock _autoAddSsoLock = new();
 
     // These are the settings for the current execution, loaded from disk.
@@ -19,12 +19,12 @@ public class SettingsFeature(MainWindow window) : Feature(window)
         PubSub.Instance.Subscribe<TabBrowserCreatedEvent>(e =>
         {
             if (ContentServer.IsSettingsPage(e.TabBrowser.Address))
-                e.TabBrowser.RegisterContentPageApi(_browserApi, "settingsApi");
+                e.TabBrowser.RegisterContentPageApi(_backendApi, "settingsApi");
         });
         PubSub.Instance.Subscribe<SettingsPageLoadingEvent>(e =>
         {
             var settings = ExecutionSettings;
-            Window.CurrentTab?.SettingsLoaded(new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? [], settings.AutoAddSsoDomains ?? false));
+            settingsApi.SettingsLoaded(new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? [], settings.AutoAddSsoDomains ?? false));
         });
         PubSub.Instance.Subscribe<SettingsSavedEvent>(e =>
         {
