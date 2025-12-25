@@ -50,6 +50,11 @@ Feature tests follow a small set of conventions designed to keep tests readable,
   - `CreateMouseWheelEventArgs(delta: ...)`
   - `CreateKeyEventArgs(Key. ...)`
 
+## Managing persistent state
+
+- Create a test version of state managers (e.g., `TestTabCustomizationStateManager`) when persistent state
+  is needed. These are available via the `TestBrowserContext`.
+
 ## Assertions
 
 - Assert the observable behavior:
@@ -57,3 +62,7 @@ Feature tests follow a small set of conventions designed to keep tests readable,
   - Calls made to collaborators (e.g., `tab.SetZoomCalled`, `context.HideTabPaletteCalled`).
   - State changes (e.g., updated zoom level).
 - Keep assertions focused and minimal; avoid asserting internal state unless it is exposed via the test context.
+
+## Verification
+
+- All tests must pass.

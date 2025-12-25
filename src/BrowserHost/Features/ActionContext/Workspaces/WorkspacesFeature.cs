@@ -25,7 +25,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
         PubSub.Instance.Subscribe<TabsChangedEvent>(e =>
             _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
-                e.Tabs.Select((t, idx) => CreateTabState(t, idx, tabsFeature)),
+                e.Tabs.Select(t => CreateTabState(t, tabsFeature)),
                 e.EphemeralTabStartIndex,
                 e.Folders.Select(f => new FolderDtoV1(
                     f.Id,
@@ -105,9 +105,9 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
             PubSub.Instance.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
     }
 
-    private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, int tabIndex, TabsFeature tabsFeature)
+    private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, TabsFeature tabsFeature)
     {
-        var customization = TabCustomizationFeature.GetCustomizationsForTab(tab.Id);
+        var customization = Window.GetFeature<TabCustomizationFeature>().GetCustomizationsForTab(tab.Id);
         var isBookmarked = IsTabBookmarked(tab.Id);
         var browserTab = tabsFeature.GetTabBrowserById(tab.Id);
         return new WorkspaceTabStateDtoV1(

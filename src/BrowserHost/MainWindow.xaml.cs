@@ -106,7 +106,7 @@ public partial class MainWindow : Window
             new FoldersFeature(this, TabsBrowserApi),
             new TabPaletteFeature(this, browserContext, TabPaletteBrowserApi),
             new FindTextFeature(this, FindTextBrowserApi),
-            new TabCustomizationFeature(this, browserContext, TabCustomizationBrowserApi),
+            new TabCustomizationFeature(this, browserContext, TabCustomizationBrowserApi, new TabCustomizationStateManager()),
             new DomainCustomizationFeature(this, DomainCustomizationBrowserApi),
             new AppStateFeature(this),
         ];

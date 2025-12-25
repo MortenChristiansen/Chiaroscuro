@@ -2,14 +2,18 @@
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
+using BrowserHost.Tests.Fakes;
+using BrowserHost.Tests.Fakes.StateManagers;
 using System.Windows.Input;
 
 namespace BrowserHost.Tests.Infrastructure;
 
 internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
 {
-    public TestTabPaletteBrowserApi TabPaletteBrowserApi { get; } = new();
-    public TestTabCustomizationBrowserApi TabCustomizationBrowserApi { get; } = new();
+    public FakeTabPaletteBrowserApi TabPaletteBrowserApi { get; } = new();
+    public FakeTabCustomizationBrowserApi TabCustomizationBrowserApi { get; } = new();
+
+    public FakeTabCustomizationStateManager TabCustomizationStateManager { get; } = new();
 
     public ITabBrowser? CurrentTab { get; private set; } = tab;
     public string? CurrentTabId => CurrentTab?.Id;
@@ -84,7 +88,7 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new TabCustomizationFeature(null!, context, context.TabCustomizationBrowserApi);
+            var feature = new TabCustomizationFeature(null!, context, context.TabCustomizationBrowserApi, context.TabCustomizationStateManager);
             feature.Configure();
             return feature;
         }

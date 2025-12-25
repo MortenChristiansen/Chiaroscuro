@@ -1,18 +1,18 @@
 ﻿using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.TabCustomization;
 
-namespace BrowserHost.Tests.Infrastructure;
+namespace BrowserHost.Tests.Fakes;
 
 public record BrowserApiInvocation(string Method, string? Arguments);
 
-public interface ITestBrowserApi
+public interface IFakeBrowserApi
 {
     public List<BrowserApiInvocation> Invocations { get; }
 }
 
 public static class TestBrowserApiExtensions
 {
-    extension(ITestBrowserApi api)
+    extension(IFakeBrowserApi api)
     {
         public void ClearInvocations() =>
             api.Invocations.Clear();
@@ -22,7 +22,7 @@ public static class TestBrowserApiExtensions
     }
 }
 
-public class TestTabPaletteBrowserApi() : TabPaletteBrowserApi(null!), ITestBrowserApi
+public class FakeTabPaletteBrowserApi() : TabPaletteBrowserApi(null!), IFakeBrowserApi
 {
     public List<BrowserApiInvocation> Invocations { get; } = [];
 
@@ -30,7 +30,7 @@ public class TestTabPaletteBrowserApi() : TabPaletteBrowserApi(null!), ITestBrow
         Invocations.Add(new(api, arguments));
 }
 
-public class TestTabCustomizationBrowserApi() : TabCustomizationBrowserApi(null!), ITestBrowserApi
+public class FakeTabCustomizationBrowserApi() : TabCustomizationBrowserApi(null!), IFakeBrowserApi
 {
     public List<BrowserApiInvocation> Invocations { get; } = [];
 

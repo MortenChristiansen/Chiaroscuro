@@ -104,7 +104,7 @@ public class PinnedTabsFeature(MainWindow window, TabsBrowserApi tabsApi, Pinned
         if (!IsTabPinned(tabId))
             return;
 
-        var customizations = TabCustomizationFeature.GetCustomizationsForTab(tabId);
+        var customizations = Window.GetFeature<TabCustomizationFeature>().GetCustomizationsForTab(tabId);
         if (customizations.DisableFixedAddress == true)
         {
             // By default, the persisted state for pinned tabs is not updated. However, if fixed addresses are disabled then we do want to update it.

@@ -5,25 +5,25 @@ using System.Linq;
 
 namespace BrowserHost.Features.TabPalette.TabCustomization;
 
-public class TabCustomizationFeature(MainWindow window, IBrowserContext browserContext, TabCustomizationBrowserApi tabCustomizationApi) : Feature(window)
+public class TabCustomizationFeature(MainWindow window, IBrowserContext browserContext, TabCustomizationBrowserApi tabCustomizationApi, TabCustomizationStateManager state) : Feature(window)
 {
     public override void Configure()
     {
         PubSub.Instance.Subscribe<TabPaletteRequestedEvent>((_) => InitializeCustomSettings());
         PubSub.Instance.Subscribe<TabCustomTitleChangedEvent>((e) =>
         {
-            var customization = TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { CustomTitle = e.CustomTitle });
+            var customization = state.SaveCustomization(e.TabId, c => c with { CustomTitle = e.CustomTitle });
             tabCustomizationApi.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
         });
         PubSub.Instance.Subscribe<TabDisableFixedAddressChangedEvent>((e) =>
         {
-            TabCustomizationStateManager.SaveCustomization(e.TabId, c => c with { DisableFixedAddress = e.IsDisabled });
+            state.SaveCustomization(e.TabId, c => c with { DisableFixedAddress = e.IsDisabled });
         });
-        PubSub.Instance.Subscribe<TabClosedEvent>((e) => TabCustomizationStateManager.DeleteCustomization(e.Tab.Id));
+        PubSub.Instance.Subscribe<TabClosedEvent>((e) => state.DeleteCustomization(e.Tab.Id));
         PubSub.Instance.Subscribe<EphemeralTabsExpiredEvent>((e) =>
         {
             foreach (var tabId in e.TabIds)
-                TabCustomizationStateManager.DeleteCustomization(tabId);
+                state.DeleteCustomization(tabId);
         });
 
         InitializeCustomizations();
@@ -31,7 +31,7 @@ public class TabCustomizationFeature(MainWindow window, IBrowserContext browserC
 
     private void InitializeCustomizations()
     {
-        var allCustomizations = TabCustomizationStateManager.GetAllCustomizations();
+        var allCustomizations = state.GetAllCustomizations();
         tabCustomizationApi.SetTabCustomizations([.. allCustomizations.Select(c => new TabCustomizationDto(c.TabId, c.CustomTitle))]);
     }
 
@@ -40,10 +40,10 @@ public class TabCustomizationFeature(MainWindow window, IBrowserContext browserC
         if (browserContext.CurrentTabId is not { } tabId)
             return;
 
-        var customization = TabCustomizationStateManager.GetCustomization(tabId);
+        var customization = state.GetCustomization(tabId);
         tabCustomizationApi.InitCustomSettings(customization);
     }
 
-    public static TabCustomizationDataV1 GetCustomizationsForTab(string tabId) =>
-        TabCustomizationStateManager.GetCustomization(tabId);
+    public TabCustomizationDataV1 GetCustomizationsForTab(string tabId) =>
+        state.GetCustomization(tabId);
 }
