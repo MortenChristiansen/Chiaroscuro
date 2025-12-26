@@ -20,7 +20,7 @@ internal class FakeTabWebBrowser(string tabId) : ITabWebBrowser
     public event DependencyPropertyChangedEventHandler? AddressChanged;
     public event EventHandler? PageLoadEnded;
 
-    public bool SupportsPromotionToFullTab => throw new NotImplementedException();
+    public bool SupportsPromotionToFullTab => throw new NotSupportedException();
     public void SetAddress(string address, bool setManualAddress) => throw new NotSupportedException();
     public void RegisterContentPageApi(BackendApi api, string name) => throw new NotSupportedException();
     public void Reload(bool ignoreCache = false) => throw new NotSupportedException();

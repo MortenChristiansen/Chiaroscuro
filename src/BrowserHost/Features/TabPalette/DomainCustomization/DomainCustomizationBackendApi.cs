@@ -1,7 +1,6 @@
 using BrowserHost.CefInfrastructure;
 using BrowserHost.Utilities;
 using System;
-using System.Diagnostics;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
@@ -37,16 +36,8 @@ public class DomainCustomizationBackendApi : BackendApi
     {
         var address = MainWindow.Instance.CurrentTab?.Address;
         if (string.IsNullOrWhiteSpace(address)) return null;
-        try
-        {
-            if (!Uri.TryCreate(address, UriKind.Absolute, out var uri)) return null;
-            if (uri.Scheme is not "http" and not "https") return null;
-            return string.IsNullOrEmpty(uri.Host) ? null : uri.Host;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to extract domain from address {address}: {ex}");
-            return null;
-        }
+        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri)) return null;
+        if (uri.Scheme is not "http" and not "https") return null;
+        return string.IsNullOrEmpty(uri.Host) ? null : uri.Host;
     }
 }

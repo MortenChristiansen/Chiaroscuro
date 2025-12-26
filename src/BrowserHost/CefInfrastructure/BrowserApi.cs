@@ -1,4 +1,5 @@
 ﻿using CefSharp;
+using System.Windows;
 
 namespace BrowserHost.CefInfrastructure;
 
@@ -26,11 +27,15 @@ public class BrowserApi(BaseBrowser browser)
             }
             else
             {
-                browser.IsBrowserInitializedChanged += (sender, e) =>
+                DependencyPropertyChangedEventHandler? handler = (sender, e) =>
                 {
                     if (!browser.IsDisposed)
+                    {
                         ExecuteScriptOnDispatcher(modifiedScript);
+                        browser.IsBrowserInitializedChanged -= handler;
+                    }
                 };
+                browser.IsBrowserInitializedChanged += handler;
             }
         });
     }

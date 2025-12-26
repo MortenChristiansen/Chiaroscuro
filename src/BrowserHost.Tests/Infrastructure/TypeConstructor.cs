@@ -1,7 +1,6 @@
 ﻿using BrowserHost.Tab;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.Serialization;
 using System.Windows.Input;
 
 namespace BrowserHost.Tests.Infrastructure;
@@ -28,12 +27,11 @@ internal static class TypeConstructor
 
     public static TabBrowser CreateTabBrowser(string? tabId = null)
     {
-#pragma warning disable SYSLIB0050 // GetUninitializedObject is acceptable for test-only construction.
-        var tab = (TabBrowser)FormatterServices.GetUninitializedObject(typeof(TabBrowser));
-#pragma warning restore SYSLIB0050
+        var tab = (TabBrowser)RuntimeHelpers.GetUninitializedObject(typeof(TabBrowser));
 
-        var browserField = typeof(TabBrowser).GetField("_browser", BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.NotNull(browserField);
+        var browserField = typeof(TabBrowser).GetField("_browser", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("TabBrowser._browser field not found - internal structure may have changed");
+
         tabId ??= Guid.NewGuid().ToString();
         browserField.SetValue(tab, new FakeTabWebBrowser(tabId));
         return tab;

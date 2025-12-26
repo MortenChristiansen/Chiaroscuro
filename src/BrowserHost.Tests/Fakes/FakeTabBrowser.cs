@@ -21,5 +21,6 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
     public void ResetZoomLevel()
     {
         ResetZoomCalled = true;
+        ZoomLevel = 1.0;
     }
 }
