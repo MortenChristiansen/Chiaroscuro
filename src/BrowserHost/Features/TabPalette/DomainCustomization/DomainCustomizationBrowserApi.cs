@@ -1,52 +1,19 @@
 using BrowserHost.CefInfrastructure;
 using BrowserHost.Utilities;
-using System;
-using System.Diagnostics;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
-public record DomainCustomizationChangedEvent(string Domain, bool CssEnabled);
-public record DomainCssEditRequestedEvent(string Domain);
-public record DomainCustomCssRemovedEvent(string Domain);
-
-public class DomainCustomizationBrowserApi : BrowserApi
+public class DomainCustomizationBrowserApi(BaseBrowser tabPaletteBrowser) : BrowserApi(tabPaletteBrowser)
 {
-    public void SetCssEnabled(bool enabled)
+    public void InitDomainSettings(string domain, bool cssEnabled, bool hasCustomCss)
     {
-        var domain = GetCurrentDomain();
-        if (domain != null)
-            PubSub.Publish(new DomainCustomizationChangedEvent(domain, enabled));
+        var args = $"{domain.ToJsonString()}, {cssEnabled.ToJsonBoolean()}, {hasCustomCss.ToJsonBoolean()}";
+        CallClientApi("initDomainSettings", args);
     }
 
-    public void EditCss()
+    public void UpdateDomainSettings(string domain, bool cssEnabled, bool hasCustomCss)
     {
-        var domain = GetCurrentDomain();
-        if (domain != null)
-            PubSub.Publish(new DomainCssEditRequestedEvent(domain));
-    }
-
-    public void RemoveCss()
-    {
-        var domain = GetCurrentDomain();
-        if (domain == null) return;
-
-        PubSub.Publish(new DomainCustomCssRemovedEvent(domain));
-    }
-
-    private static string? GetCurrentDomain()
-    {
-        var address = MainWindow.Instance.CurrentTab?.Address;
-        if (string.IsNullOrWhiteSpace(address)) return null;
-        try
-        {
-            if (!Uri.TryCreate(address, UriKind.Absolute, out var uri)) return null;
-            if (uri.Scheme is not "http" and not "https") return null;
-            return string.IsNullOrEmpty(uri.Host) ? null : uri.Host;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to extract domain from address {address}: {ex}");
-            return null;
-        }
+        var args = $"{domain.ToJsonString()}, {cssEnabled.ToJsonBoolean()}, {hasCustomCss.ToJsonBoolean()}";
+        CallClientApi("updateDomainSettings", args);
     }
 }

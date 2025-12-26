@@ -56,6 +56,18 @@ public partial class MainWindow : Window
         set => SetValue(WorkspaceColorProperty, value);
     }
 
+    public SettingsBrowserApi SettingsBrowserApi { get; }
+    public CustomWindowChromeBrowserApi CustomWindowChromeBrowserApi { get; }
+    public ActionDialogBrowserApi ActionDialogBrowserApi { get; }
+    public TabsBrowserApi TabsBrowserApi { get; }
+    public PinnedTabsBrowserApi PinnedTabsBrowserApi { get; }
+    public DownloadsBrowserApi DownloadsBrowserApi { get; }
+    public WorkspacesBrowserApi WorkspacesBrowserApi { get; }
+    public FindTextBrowserApi FindTextBrowserApi { get; }
+    public DomainCustomizationBrowserApi DomainCustomizationBrowserApi { get; }
+    public TabPaletteBrowserApi TabPaletteBrowserApi { get; }
+    public TabCustomizationBrowserApi TabCustomizationBrowserApi { get; }
+
     public MainWindow()
     {
         InitializeComponent();
@@ -64,24 +76,38 @@ public partial class MainWindow : Window
         // Queued at ContextIdle to avoid competing with startup work.
         Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, CheckForUpdates);
 
+        SettingsBrowserApi = new SettingsBrowserApi(() => CurrentTab);
+        CustomWindowChromeBrowserApi = new CustomWindowChromeBrowserApi(ChromeUI);
+        ActionDialogBrowserApi = new ActionDialogBrowserApi(ActionDialog);
+        TabsBrowserApi = new TabsBrowserApi(ActionContext);
+        PinnedTabsBrowserApi = new PinnedTabsBrowserApi(ActionContext);
+        DownloadsBrowserApi = new DownloadsBrowserApi(ActionContext);
+        WorkspacesBrowserApi = new WorkspacesBrowserApi(ActionContext);
+        FindTextBrowserApi = new FindTextBrowserApi(TabPaletteBrowserControl);
+        DomainCustomizationBrowserApi = new DomainCustomizationBrowserApi(TabPaletteBrowserControl);
+        TabPaletteBrowserApi = new TabPaletteBrowserApi(TabPaletteBrowserControl);
+        TabCustomizationBrowserApi = new TabCustomizationBrowserApi(TabPaletteBrowserControl);
+
+        var browserContext = new BrowserContext(this);
+
         _features =
         [
-            new SettingsFeature(this),
-            new CustomWindowChromeFeature(this),
+            new SettingsFeature(this, SettingsBrowserApi),
+            new CustomWindowChromeFeature(this, CustomWindowChromeBrowserApi),
             new ActionContextFeature(this),
-            new ActionDialogFeature(this),
-            new TabsFeature(this),
-            new PinnedTabsFeature(this),
+            new ActionDialogFeature(this, ActionDialogBrowserApi),
+            new TabsFeature(this, TabsBrowserApi),
+            new PinnedTabsFeature(this, TabsBrowserApi, PinnedTabsBrowserApi),
             new DevToolFeature(this),
-            new FileDownloadsFeature(this),
-            new ZoomFeature(this),
+            new FileDownloadsFeature(this, DownloadsBrowserApi),
+            new ZoomFeature(this, browserContext),
             new DragDropFeature(this),
-            new WorkspacesFeature(this),
-            new FoldersFeature(this),
-            new TabPaletteFeature(this),
-            new FindTextFeature(this),
-            new TabCustomizationFeature(this),
-            new DomainCustomizationFeature(this),
+            new WorkspacesFeature(this, WorkspacesBrowserApi, TabsBrowserApi),
+            new FoldersFeature(this, TabsBrowserApi),
+            new TabPaletteFeature(this, browserContext, TabPaletteBrowserApi),
+            new FindTextFeature(this, FindTextBrowserApi),
+            new TabCustomizationFeature(this, browserContext, TabCustomizationBrowserApi, new TabCustomizationStateManager()),
+            new DomainCustomizationFeature(this, DomainCustomizationBrowserApi),
             new AppStateFeature(this),
         ];
         _features.ForEach(f =>
@@ -229,7 +255,7 @@ public partial class MainWindow : Window
             CurrentTab.AddressChanged -= Tab_AddressChanged;
 
         WebContentBorder.Child = tab;
-        ChromeUI.ChangeAddress(GetAddressForPresentation(tab?.Address));
+        CustomWindowChromeBrowserApi.ChangeAddress(GetAddressForPresentation(tab?.Address));
 
         if (tab != null)
             tab.AddressChanged += Tab_AddressChanged;
@@ -237,7 +263,7 @@ public partial class MainWindow : Window
 
     private void Tab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        ChromeUI.ChangeAddress(GetAddressForPresentation($"{e.NewValue}"));
+        CustomWindowChromeBrowserApi.ChangeAddress(GetAddressForPresentation($"{e.NewValue}"));
     }
 
     private static string? GetAddressForPresentation(string? address)

@@ -7,15 +7,15 @@ namespace BrowserHost.Features.TabPalette;
 public record TabPaletteRequestedEvent();
 public record TabPaletteDismissedEvent();
 
-public class TabPaletteFeature(MainWindow window) : Feature(window)
+public class TabPaletteFeature(MainWindow window, IBrowserContext browserContext, TabPaletteBrowserApi tabPaletteApi) : Feature(window)
 {
     private bool _tabPaletteIsOpen;
 
     public override void Configure()
     {
-        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => OpenTabPalette());
-        PubSub.Subscribe<TabPaletteDismissedEvent>((_) => CloseTabPalette());
-        PubSub.Subscribe<TabDeactivatedEvent>((_) => CloseTabPalette());
+        PubSub.Instance.Subscribe<TabPaletteRequestedEvent>((_) => OpenTabPalette());
+        PubSub.Instance.Subscribe<TabPaletteDismissedEvent>((_) => CloseTabPalette());
+        PubSub.Instance.Subscribe<TabDeactivatedEvent>((_) => CloseTabPalette());
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -23,9 +23,9 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
         if (e.Key == Key.F1)
         {
             if (_tabPaletteIsOpen)
-                PubSub.Publish(new TabPaletteDismissedEvent());
+                PubSub.Instance.Publish(new TabPaletteDismissedEvent());
             else
-                PubSub.Publish(new TabPaletteRequestedEvent());
+                PubSub.Instance.Publish(new TabPaletteRequestedEvent());
 
             return true;
         }
@@ -36,8 +36,8 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
     public void OpenTabPalette()
     {
         _tabPaletteIsOpen = true;
-        Window.TabPaletteBrowserControl.Init();
-        Window.ShowTabPalette();
+        tabPaletteApi.Init();
+        browserContext.ShowTabPalette();
     }
 
     private void CloseTabPalette()
@@ -46,6 +46,6 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
             return;
 
         _tabPaletteIsOpen = false;
-        Window.HideTabPalette();
+        browserContext.HideTabPalette();
     }
 }

@@ -1,5 +1,4 @@
 ﻿using BrowserHost.CefInfrastructure;
-using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette.TabCustomization;
@@ -14,12 +13,12 @@ using System.Windows.Controls;
 
 namespace BrowserHost.Tab;
 
-public class TabBrowser : UserControl
+public class TabBrowser : UserControl, ITabBrowser
 {
     private record PersistableState(string Address, string? Favicon, string? Title);
 
     private ITabWebBrowser _browser;
-    private readonly ActionContextBrowser _actionContextBrowser;
+    private readonly TabsBrowserApi _tabsApi;
     private bool _isChildBrowser;
     private PersistableState? _persistableState;
 
@@ -47,9 +46,9 @@ public class TabBrowser : UserControl
     public bool HasDevTools => _browser.HasDevTools;
     public bool SupportsPromotionToFullTab => _isChildBrowser && _browser.SupportsPromotionToFullTab;
 
-    public TabBrowser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, bool isChildBrowser)
+    public TabBrowser(string id, string address, TabsBrowserApi tabsApi, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
-        _actionContextBrowser = actionContextBrowser;
+        _tabsApi = tabsApi;
         _isChildBrowser = isChildBrowser;
         favicon ??= FileFaviconProvider.TryGetFaviconForAddress(address);
         _browser = CreateBrowser(id, address, setManualAddress, favicon, isChildBrowser);
@@ -61,8 +60,8 @@ public class TabBrowser : UserControl
     {
         var isSsoDomain = ShouldUseWebView2(address);
         if (isSsoDomain)
-            return new WebView2Browser(id, address, _actionContextBrowser, setManualAddress, favicon, isChildBrowser);
-        return new CefSharpTabBrowserAdapter(id, address, _actionContextBrowser, setManualAddress, favicon, isChildBrowser);
+            return new WebView2Browser(id, address, _tabsApi, setManualAddress, favicon, isChildBrowser);
+        return new CefSharpTabBrowserAdapter(id, address, _tabsApi, setManualAddress, favicon, isChildBrowser);
     }
 
     public void SavePersistableState()
@@ -139,7 +138,7 @@ public class TabBrowser : UserControl
                 !ContentServer.IsContentServerUrl(oldAddress))
             {
                 UpgradeToWebView2(oldAddress);
-                PubSub.Publish(new SsoFlowStartedEvent(Id, oldUri.Host, oldAddress));
+                PubSub.Instance.Publish(new SsoFlowStartedEvent(Id, oldUri.Host, oldAddress));
                 return; // We restored the old address, so no further processing is needed
             }
         }
@@ -150,7 +149,7 @@ public class TabBrowser : UserControl
             var fileFav = FileFaviconProvider.TryGetFaviconForAddress(newAddr);
             if (!string.IsNullOrEmpty(fileFav))
             {
-                _actionContextBrowser.UpdateTabFavicon(Id, fileFav);
+                _tabsApi.UpdateTabFavicon(Id, fileFav);
             }
         }
     }
@@ -167,7 +166,7 @@ public class TabBrowser : UserControl
 
         DetachBrowserEvents();
         var old = _browser;
-        _browser = new WebView2Browser(id, targetAddress, _actionContextBrowser, setManualAddress: setManual, favicon, _isChildBrowser);
+        _browser = new WebView2Browser(id, targetAddress, _tabsApi, setManualAddress: setManual, favicon, _isChildBrowser);
         Content = _browser.AsUIElement();
         AttachBrowserEvents();
         old.Dispose();
@@ -180,7 +179,7 @@ public class TabBrowser : UserControl
     }
 
     public void SetAddress(string address, bool setManualAddress) => _browser.SetAddress(address, setManualAddress);
-    public void RegisterContentPageApi(BrowserApi api, string name) => _browser.RegisterContentPageApi(api, name);
+    public void RegisterContentPageApi(BackendApi api, string name) => _browser.RegisterContentPageApi(api, name);
     public void Reload(bool ignoreCache = false) => _browser.Reload(ignoreCache);
     public void Dispose()
     {

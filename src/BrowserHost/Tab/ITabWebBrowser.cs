@@ -5,6 +5,9 @@ using System.Windows;
 
 namespace BrowserHost.Tab;
 
+/// <summary>
+/// Abstracts the browser used by the TabBrowser.
+/// </summary>
 public interface ITabWebBrowser : IDisposable
 {
     string Id { get; }
@@ -23,7 +26,7 @@ public interface ITabWebBrowser : IDisposable
 
     void SetAddress(string address, bool setManualAddress);
     event EventHandler? PageLoadEnded;
-    void RegisterContentPageApi(BrowserApi api, string name);
+    void RegisterContentPageApi(BackendApi api, string name);
     void Reload(bool ignoreCache = false);
     void Back();
     void Forward();

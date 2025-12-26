@@ -11,7 +11,7 @@ using System.Windows.Media;
 
 namespace BrowserHost.Features.ActionContext.Workspaces;
 
-public class WorkspacesFeature(MainWindow window) : Feature(window)
+public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspacesApi, TabsBrowserApi tabsApi) : Feature(window)
 {
     private WorkspaceDtoV1[] _workspaces = [];
     private string _currentWorkspaceId = null!;
@@ -22,10 +22,10 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
     public override void Configure()
     {
         var tabsFeature = Window.GetFeature<TabsFeature>();
-        PubSub.Subscribe<TabsChangedEvent>(e =>
+        PubSub.Instance.Subscribe<TabsChangedEvent>(e =>
             _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
-                e.Tabs.Select((t, idx) => CreateTabState(t, idx, tabsFeature)),
+                e.Tabs.Select(t => CreateTabState(t, tabsFeature)),
                 e.EphemeralTabStartIndex,
                 e.Folders.Select(f => new FolderDtoV1(
                     f.Id,
@@ -35,10 +35,10 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 ))
             )
         );
-        PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
+        PubSub.Instance.Subscribe<WorkspaceActivatedEvent>(e =>
         {
             _currentWorkspaceId = e.WorkspaceId;
-            Window.ActionContext.WorkspaceActivated(e.WorkspaceId);
+            workspacesApi.WorkspaceActivated(e.WorkspaceId);
             Window.WorkspaceColor = GetCurrentWorkspaceColor();
 
             if (!_hasLoggedInitialWorkspaceTime)
@@ -47,7 +47,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 Measure.Event("Initial workspace loaded");
             }
         });
-        PubSub.Subscribe<WorkspaceCreatedEvent>(e =>
+        PubSub.Instance.Subscribe<WorkspaceCreatedEvent>(e =>
         {
             var newWorkspace = new WorkspaceDtoV1(
                 e.WorkspaceId,
@@ -60,9 +60,9 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             _workspaces = WorkspaceStateManager.CreateWorkspace(newWorkspace);
             NotifyFrontendOfUpdatedWorkspaces();
 
-            PubSub.Publish(new WorkspaceActivatedEvent(newWorkspace.WorkspaceId));
+            PubSub.Instance.Publish(new WorkspaceActivatedEvent(newWorkspace.WorkspaceId));
         });
-        PubSub.Subscribe<WorkspaceUpdatedEvent>(e =>
+        PubSub.Instance.Subscribe<WorkspaceUpdatedEvent>(e =>
         {
             var workspace = GetWorkspaceById(e.WorkspaceId);
             workspace = workspace with
@@ -79,7 +79,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
             NotifyFrontendOfUpdatedWorkspaces();
         });
-        PubSub.Subscribe<WorkspaceDeletedEvent>(e =>
+        PubSub.Instance.Subscribe<WorkspaceDeletedEvent>(e =>
         {
             if (_workspaces.Length == 1)
                 throw new InvalidOperationException("Cannot delete the last workspace.");
@@ -88,7 +88,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             NotifyFrontendOfUpdatedWorkspaces();
 
             if (e.WorkspaceId == _currentWorkspaceId)
-                PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[0].WorkspaceId));
+                PubSub.Instance.Publish(new WorkspaceActivatedEvent(_workspaces[0].WorkspaceId));
         });
     }
 
@@ -99,15 +99,15 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
         RestoreFrontendWorkspaces();
 
         Window.WorkspaceColor = GetCurrentWorkspaceColor();
-        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspaceId));
+        PubSub.Instance.Publish(new WorkspaceActivatedEvent(_currentWorkspaceId));
 
         if (App.Options.LaunchUrl != null)
-            PubSub.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+            PubSub.Instance.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
     }
 
-    private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, int tabIndex, TabsFeature tabsFeature)
+    private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, TabsFeature tabsFeature)
     {
-        var customization = TabCustomizationFeature.GetCustomizationsForTab(tab.Id);
+        var customization = Window.GetFeature<TabCustomizationFeature>().GetCustomizationsForTab(tab.Id);
         var isBookmarked = IsTabBookmarked(tab.Id);
         var browserTab = tabsFeature.GetTabBrowserById(tab.Id);
         return new WorkspaceTabStateDtoV1(
@@ -156,7 +156,7 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
                 }
                 else
                 {
-                    PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
+                    PubSub.Instance.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
                 }
             }
         }
@@ -173,11 +173,11 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             return;
 
         var tab = GetTabById(currentTab.Id);
-        Window.ActionContext.CloseTab(tab.TabId);
+        tabsApi.CloseTab(tab.TabId);
         RemoveTabFromWorkspace(tab.TabId);
 
-        PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
-        Window.ActionContext.AddTab(new(tab.TabId, tab.Title, tab.Favicon, tab.Created));
+        PubSub.Instance.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
+        tabsApi.AddTab(new(tab.TabId, tab.Title, tab.Favicon, tab.Created));
     }
 
     private void RemoveTabFromWorkspace(string tabId)
@@ -193,12 +193,12 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     private void NotifyFrontendOfUpdatedWorkspaces()
     {
-        Window.ActionContext.WorkspacesChanged([.. _workspaces.Select(ws => new WorkspaceDescriptionDto(ws.WorkspaceId, ws.Name, ws.Color, ws.Icon))]);
+        workspacesApi.WorkspacesChanged([.. _workspaces.Select(ws => new WorkspaceDescriptionDto(ws.WorkspaceId, ws.Name, ws.Color, ws.Icon))]);
     }
 
     private void RestoreFrontendWorkspaces()
     {
-        Window.ActionContext.SetWorkspaces(
+        workspacesApi.SetWorkspaces(
             [.. _workspaces.Select(ws => new WorkspaceDto(
                 ws.WorkspaceId,
                 ws.Name,

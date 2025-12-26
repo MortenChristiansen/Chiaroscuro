@@ -39,16 +39,16 @@ public class ChildBrowserWindow : OverlayWindow
 
     static ChildBrowserWindow()
     {
-        PubSub.Subscribe<TabActivatedEvent>(e =>
+        PubSub.Instance.Subscribe<TabActivatedEvent>(e =>
         {
             if (!string.IsNullOrEmpty(e.TabId)) ShowWindowsForTab(e.TabId);
             if (e.PreviousTab != null) HideWindowsForTab(e.PreviousTab.Id);
         });
-        PubSub.Subscribe<TabDeactivatedEvent>(e =>
+        PubSub.Instance.Subscribe<TabDeactivatedEvent>(e =>
         {
             if (!string.IsNullOrEmpty(e.TabId)) HideWindowsForTab(e.TabId);
         });
-        PubSub.Subscribe<TabClosedEvent>(e =>
+        PubSub.Instance.Subscribe<TabClosedEvent>(e =>
         {
             if (!string.IsNullOrEmpty(e.Tab.Id)) CloseWindowsForTab(e.Tab.Id);
         });
@@ -58,7 +58,7 @@ public class ChildBrowserWindow : OverlayWindow
     {
         Owner = MainWindow.Instance;
 
-        _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.ActionContext, setManualAddress: false, favicon: null, isChildBrowser: true);
+        _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.TabsBrowserApi, setManualAddress: false, favicon: null, isChildBrowser: true);
         _browser.PageLoadEnded += Browser_PageLoadEnded;
         _browser.Opacity = 0.0; // Keep child browser hidden until first load completes
         _browser.RenderTransformOrigin = new Point(0.5, 0.5);
@@ -132,21 +132,20 @@ public class ChildBrowserWindow : OverlayWindow
         convertBtn.Click += (_, __) =>
         {
             var address = _browser.Address;
-
             if (_browser.SupportsPromotionToFullTab)
             {
                 PrepareBrowserForPromotion();
                 // Trigger regular navigation (new tab)
                 contentGrid.Children.Remove(_browser);
                 _browser.PromoteToFullTab();
-                PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
+                PubSub.Instance.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
                 // Close this child window
                 BeginCloseWithFade();
                 AnimateContentOut(animateBrowser: false);
             }
             else
             {
-                PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+                PubSub.Instance.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
                 BeginCloseWithFade();
                 AnimateContentOut();
             }
