@@ -66,3 +66,4 @@ Feature tests follow a small set of conventions designed to keep tests readable,
 ## Verification
 
 - All tests must pass.
+- The tests must follow the above guidelines.

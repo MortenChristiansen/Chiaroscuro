@@ -1,10 +1,12 @@
-﻿using System.Reflection;
+﻿using BrowserHost.Tab;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using System.Windows.Input;
 
 namespace BrowserHost.Tests.Infrastructure;
 
-internal static class EventArgHelpers
+internal static class TypeConstructor
 {
     public static MouseWheelEventArgs CreateMouseWheelEventArgs(int delta)
     {
@@ -22,5 +24,18 @@ internal static class EventArgHelpers
         typeof(KeyEventArgs).GetField("_realKey", flags)!.SetValue(e, key);
 
         return e;
+    }
+
+    public static TabBrowser CreateTabBrowser(string? tabId = null)
+    {
+#pragma warning disable SYSLIB0050 // GetUninitializedObject is acceptable for test-only construction.
+        var tab = (TabBrowser)FormatterServices.GetUninitializedObject(typeof(TabBrowser));
+#pragma warning restore SYSLIB0050
+
+        var browserField = typeof(TabBrowser).GetField("_browser", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(browserField);
+        tabId ??= Guid.NewGuid().ToString();
+        browserField.SetValue(tab, new FakeTabWebBrowser(tabId));
+        return tab;
     }
 }

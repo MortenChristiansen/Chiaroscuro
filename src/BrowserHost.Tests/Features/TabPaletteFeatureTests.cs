@@ -2,7 +2,7 @@ using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Utilities;
 using System.Windows.Input;
-using static BrowserHost.Tests.Infrastructure.EventArgHelpers;
+using static BrowserHost.Tests.Infrastructure.TypeConstructor;
 
 namespace BrowserHost.Tests.Features;
 

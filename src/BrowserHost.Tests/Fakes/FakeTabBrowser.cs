@@ -1,10 +1,10 @@
 ﻿using BrowserHost.Tab;
 
-namespace BrowserHost.Tests.Infrastructure;
+namespace BrowserHost.Tests.Fakes;
 
-internal class TestTabBrowser : ITabBrowser
+internal class FakeTabBrowser(string? id = null) : ITabBrowser
 {
-    public string Id { get; set; } = $"{Guid.NewGuid()}";
+    public string Id { get; set; } = id ?? $"{Guid.NewGuid()}";
     public double ZoomLevel { get; set; }
 
     public bool SetZoomCalled { get; private set; }

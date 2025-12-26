@@ -1,5 +1,5 @@
 ﻿using System.Windows.Input;
-using static BrowserHost.Tests.Infrastructure.EventArgHelpers;
+using static BrowserHost.Tests.Infrastructure.TypeConstructor;
 
 namespace BrowserHost.Tests.Features;
 

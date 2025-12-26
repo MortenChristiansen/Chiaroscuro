@@ -5,6 +5,9 @@ using System.Windows;
 
 namespace BrowserHost.Tab;
 
+/// <summary>
+/// Abstracts the browser used by the TabBrowser.
+/// </summary>
 public interface ITabWebBrowser : IDisposable
 {
     string Id { get; }

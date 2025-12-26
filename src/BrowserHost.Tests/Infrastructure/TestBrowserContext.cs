@@ -2,7 +2,6 @@
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
-using BrowserHost.Tests.Fakes;
 using BrowserHost.Tests.Fakes.StateManagers;
 using System.Windows.Input;
 
@@ -40,9 +39,9 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
         private Action<TestBrowserContext>? _configureContext;
         private TestBrowserContext? _context;
 
-        public TestBrowserContextBuilder WithCurrentTab(out TestTabBrowser tab, Action<TestTabBrowser>? configureTab = null)
+        public TestBrowserContextBuilder WithCurrentTab(out FakeTabBrowser tab, Action<FakeTabBrowser>? configureTab = null)
         {
-            tab = new TestTabBrowser();
+            tab = new FakeTabBrowser();
             configureTab?.Invoke(tab);
             _tab = tab;
             return this;
