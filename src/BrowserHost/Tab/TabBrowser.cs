@@ -44,6 +44,7 @@ public class TabBrowser : UserControl, ITabBrowser
     public bool CanGoBack => _browser.CanGoBack;
     public bool CanGoForward => _browser.CanGoForward;
     public bool HasDevTools => _browser.HasDevTools;
+    public bool SupportsPromotionToFullTab => _isChildBrowser && _browser.SupportsPromotionToFullTab;
 
     public TabBrowser(string id, string address, TabsBrowserApi tabsApi, bool setManualAddress, string? favicon, bool isChildBrowser)
     {

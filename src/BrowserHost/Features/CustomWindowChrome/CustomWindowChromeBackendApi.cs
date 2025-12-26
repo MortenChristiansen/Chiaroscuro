@@ -54,6 +54,6 @@ public class CustomWindowChromeBackendApi : BackendApi
         if (rating == null)
             return null;
 
-        return new DomainTrustRating(rating.Source, rating.Score, rating.Stars, rating.FetchedAt);
+        return rating;
     }
 }

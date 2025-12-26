@@ -90,6 +90,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     public bool CanGoForward => RunOnUi(() => _core?.CanGoForward ?? false);
     public bool HasDevTools => false;
     public double DefaultZoomLevel => 1.0;
+    public bool SupportsPromotionToFullTab => false;
 
     private void HandleActionDialogShownEvent(ActionDialogShownEvent _)
     {

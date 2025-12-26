@@ -20,6 +20,7 @@ public interface ITabWebBrowser : IDisposable
     bool CanGoForward { get; }
     bool HasDevTools { get; }
     double DefaultZoomLevel { get; }
+    bool SupportsPromotionToFullTab { get; }
 
     event DependencyPropertyChangedEventHandler? AddressChanged;
 

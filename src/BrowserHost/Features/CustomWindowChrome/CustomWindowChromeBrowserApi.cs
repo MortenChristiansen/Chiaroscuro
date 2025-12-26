@@ -1,4 +1,4 @@
-﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.CefInfrastructure;
 using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.CustomWindowChrome;

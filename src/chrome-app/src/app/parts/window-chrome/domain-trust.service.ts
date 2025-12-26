@@ -1,15 +1,16 @@
 import { Injectable } from '@angular/core';
 import { Api, loadBackendApi } from '../interfaces/api';
+import { normalizeBackendModel } from '../../shared/utils';
 
 export type TrustStarScore = 1 | 2 | 3 | 4 | 5;
 
 export interface DomainTrustRating {
-  Source: 'trustpilot';
+  source: 'trustpilot';
   /** Raw 5-star score reported by the provider (0.0 - 5.0). */
-  Score: number;
+  score: number;
   /** Rounded star score used for smiley mapping. */
-  Stars: TrustStarScore;
-  FetchedAt: number;
+  stars: TrustStarScore;
+  fetchedAt: number;
 }
 
 type CacheEntry = {
@@ -37,7 +38,8 @@ export class DomainTrustService {
 
     const cached = this.readCache(normalized);
     if (cached !== undefined) {
-      return cached;
+      // We normalize in case we cached before the normalizeBackendModel was added.
+      return normalizeBackendModel(cached);
     }
 
     try {
@@ -115,7 +117,7 @@ export class DomainTrustService {
       return null;
     }
 
-    return rating;
+    return normalizeBackendModel(rating);
   }
 
   private throwIfAborted(signal?: AbortSignal): void {
