@@ -1,6 +1,5 @@
 using BrowserHost.CefInfrastructure;
 using BrowserHost.Utilities;
-using System;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
@@ -12,32 +11,22 @@ public class DomainCustomizationBackendApi : BackendApi
 {
     public void SetCssEnabled(bool enabled)
     {
-        var domain = GetCurrentDomain();
+        var domain = MainWindow.Instance.CurrentTab?.CurrentDomain;
         if (domain != null)
             PubSub.Instance.Publish(new DomainCustomizationChangedEvent(domain, enabled));
     }
 
     public void EditCss()
     {
-        var domain = GetCurrentDomain();
+        var domain = MainWindow.Instance.CurrentTab?.CurrentDomain;
         if (domain != null)
             PubSub.Instance.Publish(new DomainCssEditRequestedEvent(domain));
     }
 
     public void RemoveCss()
     {
-        var domain = GetCurrentDomain();
-        if (domain == null) return;
-
-        PubSub.Instance.Publish(new DomainCustomCssRemovedEvent(domain));
-    }
-
-    private static string? GetCurrentDomain()
-    {
-        var address = MainWindow.Instance.CurrentTab?.Address;
-        if (string.IsNullOrWhiteSpace(address)) return null;
-        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri)) return null;
-        if (uri.Scheme is not "http" and not "https") return null;
-        return string.IsNullOrEmpty(uri.Host) ? null : uri.Host;
+        var domain = MainWindow.Instance.CurrentTab?.CurrentDomain;
+        if (domain != null)
+            PubSub.Instance.Publish(new DomainCustomCssRemovedEvent(domain));
     }
 }

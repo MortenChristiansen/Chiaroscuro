@@ -5,7 +5,13 @@ using System.Linq;
 
 namespace BrowserHost.Features.TabPalette.TabCustomization;
 
-public class TabCustomizationFeature(MainWindow window, IBrowserContext browserContext, TabCustomizationBrowserApi tabCustomizationApi, TabCustomizationStateManager state) : Feature(window)
+public class TabCustomizationFeature(
+    MainWindow window,
+    IBrowserContext browserContext,
+    TabCustomizationBrowserApi tabCustomizationApi,
+    TabsBrowserApi tabsApi,
+    TabCustomizationStateManager state
+    ) : Feature(window)
 {
     public override void Configure()
     {
@@ -13,7 +19,7 @@ public class TabCustomizationFeature(MainWindow window, IBrowserContext browserC
         PubSub.Instance.Subscribe<TabCustomTitleChangedEvent>((e) =>
         {
             var customization = state.SaveCustomization(e.TabId, c => c with { CustomTitle = e.CustomTitle });
-            tabCustomizationApi.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
+            tabsApi.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
         });
         PubSub.Instance.Subscribe<TabDisableFixedAddressChangedEvent>((e) =>
         {
@@ -32,7 +38,7 @@ public class TabCustomizationFeature(MainWindow window, IBrowserContext browserC
     private void InitializeCustomizations()
     {
         var allCustomizations = state.GetAllCustomizations();
-        tabCustomizationApi.SetTabCustomizations([.. allCustomizations.Select(c => new TabCustomizationDto(c.TabId, c.CustomTitle))]);
+        tabsApi.SetTabCustomizations([.. allCustomizations.Select(c => new TabCustomizationDto(c.TabId, c.CustomTitle))]);
     }
 
     public void InitializeCustomSettings()

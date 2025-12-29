@@ -1,4 +1,5 @@
-﻿using BrowserHost.Features.TabPalette;
+﻿using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.TabCustomization;
 
 namespace BrowserHost.Tests.Fakes;
@@ -34,6 +35,13 @@ public class FakeTabCustomizationBrowserApi() : TabCustomizationBrowserApi(null!
 {
     public List<BrowserApiInvocation> Invocations { get; } = [];
 
+    public override void CallClientApi(string api, string? arguments = null) =>
+        Invocations.Add(new(api, arguments));
+}
+
+public class FakeTabsBrowserApi() : TabsBrowserApi(null!), IFakeBrowserApi
+{
+    public List<BrowserApiInvocation> Invocations { get; } = [];
     public override void CallClientApi(string api, string? arguments = null) =>
         Invocations.Add(new(api, arguments));
 }

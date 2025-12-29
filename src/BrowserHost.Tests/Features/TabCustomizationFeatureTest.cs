@@ -20,7 +20,7 @@ public class TabCustomizationFeatureTest
             })
             .BuildTabCustomizationFeature();
 
-        var invocation = Assert.Single(context.TabCustomizationBrowserApi.Invocations, i => i.Method == "setTabCustomizations");
+        var invocation = Assert.Single(context.TabsBrowserApi.Invocations, i => i.Method == "setTabCustomizations");
         Assert.Equal("""
             [{"tabId":"tab-1","customTitle":"One"},{"tabId":"tab-2","customTitle":"Two"}]
             """,
@@ -69,7 +69,7 @@ public class TabCustomizationFeatureTest
 
         PubSub.Instance.Publish(new TabCustomTitleChangedEvent("tab-1", "Custom"));
 
-        var invocation = Assert.Single(context.TabCustomizationBrowserApi.Invocations, i => i.Method == "updateTabCustomization");
+        var invocation = Assert.Single(context.TabsBrowserApi.Invocations, i => i.Method == "updateTabCustomization");
         Assert.Equal("""
             {"tabId":"tab-1","customTitle":"Custom"}
             """,

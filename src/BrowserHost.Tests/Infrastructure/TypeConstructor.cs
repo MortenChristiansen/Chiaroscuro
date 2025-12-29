@@ -19,8 +19,11 @@ internal static class TypeConstructor
         var e = (KeyEventArgs)RuntimeHelpers.GetUninitializedObject(typeof(KeyEventArgs));
 
         var flags = BindingFlags.Instance | BindingFlags.NonPublic;
-        typeof(KeyEventArgs).GetField("_key", flags)!.SetValue(e, key);
-        typeof(KeyEventArgs).GetField("_realKey", flags)!.SetValue(e, key);
+        var keyField = typeof(KeyEventArgs).GetField("_key", flags) ?? throw new InvalidOperationException("KeyEventArgs._key field not found - internal structure may have changed");
+        var realKeyField = typeof(KeyEventArgs).GetField("_realKey", flags) ?? throw new InvalidOperationException("KeyEventArgs._realKey field not found - internal structure may have changed");
+
+        keyField.SetValue(e, key);
+        realKeyField.SetValue(e, key);
 
         return e;
     }

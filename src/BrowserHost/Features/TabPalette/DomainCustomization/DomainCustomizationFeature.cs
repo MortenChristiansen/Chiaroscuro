@@ -57,7 +57,7 @@ public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBr
 
     public void InitializeDomainSettings()
     {
-        var domain = GetCurrentDomain();
+        var domain = Window.CurrentTab?.CurrentDomain;
         if (domain != null)
         {
             var customization = DomainCustomizationStateManager.GetCustomization(domain);
@@ -93,7 +93,7 @@ public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBr
 
     private void UpdateCurrentDomain()
     {
-        var newDomain = GetCurrentDomain();
+        var newDomain = Window.CurrentTab?.CurrentDomain;
         var domainChanged = newDomain != _currentDomain;
 
         _currentDomain = newDomain;
@@ -264,23 +264,6 @@ public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBr
         {
             var customization = DomainCustomizationStateManager.GetCustomization(domain);
             domainCustomizationApi.UpdateDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
-        }
-    }
-
-    private string? GetCurrentDomain()
-    {
-        var currentTab = Window.CurrentTab;
-        if (currentTab?.Address == null) return null;
-
-        try
-        {
-            var uri = new Uri(currentTab.Address);
-            return uri.Host;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to extract domain from address {currentTab.Address}: {ex.Message}");
-            return null;
         }
     }
 

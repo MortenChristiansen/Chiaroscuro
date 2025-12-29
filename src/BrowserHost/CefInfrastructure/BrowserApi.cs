@@ -23,11 +23,13 @@ public class BrowserApi(BaseBrowser browser)
         {
             if (browser.IsBrowserInitialized)
             {
-                browser.ExecuteScriptAsync(modifiedScript);
+                if (!browser.IsDisposed)
+                    browser.ExecuteScriptAsync(modifiedScript);
             }
             else
             {
-                DependencyPropertyChangedEventHandler? handler = (sender, e) =>
+                DependencyPropertyChangedEventHandler? handler = null;
+                handler = (sender, e) =>
                 {
                     if (!browser.IsDisposed)
                     {

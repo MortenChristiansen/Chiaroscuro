@@ -33,6 +33,17 @@ public class TabBrowser : UserControl, ITabBrowser
     public string? Favicon => _browser.Favicon;
     public string? ManualAddress => _browser.ManualAddress;
     public string Address => _browser.Address;
+    public string? CurrentDomain
+    {
+        get
+        {
+            var address = Address;
+            if (string.IsNullOrWhiteSpace(address)) return null;
+            if (!Uri.TryCreate(address, UriKind.Absolute, out var uri)) return null;
+            if (uri.Scheme is not "http" and not "https") return null;
+            return string.IsNullOrEmpty(uri.Host) ? null : uri.Host;
+        }
+    }
     public string Title
     {
         get => _browser.Title;

@@ -33,4 +33,10 @@ public class TabsBrowserApi(BaseBrowser actionContextBrowser) : BrowserApi(actio
 
     public void SetActiveTab(string? tabId) =>
         CallClientApi("setActiveTab", tabId.ToJsonString());
+
+    public void UpdateTabCustomization(TabCustomizationDto customization) =>
+        CallClientApi("updateTabCustomization", customization.ToJsonObject());
+
+    public void SetTabCustomizations(TabCustomizationDto[] customizations) =>
+        CallClientApi("setTabCustomizations", customizations.ToJsonObject());
 }
