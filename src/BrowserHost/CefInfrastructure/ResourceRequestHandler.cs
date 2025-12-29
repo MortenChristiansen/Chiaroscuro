@@ -10,7 +10,7 @@ public class ResourceRequestHandler(string tabId, bool isChildBrowser) : CefShar
     {
         var pageIsSuccessfullyLoaded = frame.IsMain && request.ResourceType == ResourceType.MainFrame && response.StatusCode == 200;
         if (pageIsSuccessfullyLoaded && !isChildBrowser)
-            PubSub.Publish(new TabUrlLoadedSuccessfullyEvent(tabId));
+            PubSub.Instance.Publish(new TabUrlLoadedSuccessfullyEvent(tabId));
 
         base.OnResourceLoadComplete(chromiumWebBrowser, browser, frame, request, response, status, receivedContentLength);
     }

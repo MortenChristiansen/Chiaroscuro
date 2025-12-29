@@ -10,6 +10,6 @@ public class FindHandler : CefSharp.Handler.FindHandler
     {
         base.OnFindResult(chromiumWebBrowser, browser, identifier, count, selectionRect, activeMatchOrdinal, finalUpdate);
 
-        PubSub.Publish(new FindStatusChangedEvent(count));
+        PubSub.Instance.Publish(new FindStatusChangedEvent(count));
     }
 }

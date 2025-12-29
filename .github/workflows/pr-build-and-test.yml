@@ -1,0 +1,58 @@
+name: PR build and test
+
+on:
+  pull_request:
+    branches:
+      - vnext
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build frontend + backend, run backend tests
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: src/chrome-app/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./src/chrome-app
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./src/chrome-app
+        run: npm run build
+
+      - name: Copy frontend output into host content
+        working-directory: ./src/BrowserHost
+        shell: pwsh
+        run: |
+          $chromeAppDist = "..\\chrome-app\\dist\\chrome-app\\browser"
+          $targetDir = "chrome-app"
+          if (Test-Path $targetDir) { Remove-Item $targetDir -Recurse -Force }
+          Copy-Item $chromeAppDist $targetDir -Recurse
+
+      - name: Build backend
+        working-directory: ./src
+        run: dotnet build ./Chiaroscuro.slnx -c Release
+
+      - name: Run backend tests
+        working-directory: ./src
+        run: dotnet test ./BrowserHost.Tests/BrowserHost.Tests.csproj -c Release

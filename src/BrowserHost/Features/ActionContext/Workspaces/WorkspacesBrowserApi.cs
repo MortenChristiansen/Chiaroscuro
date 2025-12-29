@@ -1,30 +1,22 @@
 ﻿using BrowserHost.CefInfrastructure;
-using BrowserHost.Logging;
 using BrowserHost.Utilities;
 using System;
 
 namespace BrowserHost.Features.ActionContext.Workspaces;
 
-public record WorkspaceActivatedEvent(string WorkspaceId);
-public record WorkspaceCreatedEvent(string WorkspaceId, string Name, string Icon, string Color);
-public record WorkspaceUpdatedEvent(string WorkspaceId, string Name, string Icon, string Color);
-public record WorkspaceDeletedEvent(string WorkspaceId);
-public record EphemeralTabsExpiredEvent(string[] TabIds);
+public record WorkspaceDescriptionDto(string Id, string Name, string Color, string Icon);
+public record WorkspaceDto(string Id, string Name, string Color, string Icon, TabDto[] Tabs, int EphemeralTabStartIndex, string? ActiveTabId, FolderDto[] Folders) : WorkspaceDescriptionDto(Id, Name, Color, Icon);
+public record TabDto(string Id, string? Title, string? Favicon, DateTimeOffset Created);
+public record FolderDto(string Id, string Name, int StartIndex, int EndIndex);
 
-public class WorkspacesBrowserApi() : BrowserApi
+public class WorkspacesBrowserApi(BaseBrowser actionContextBrowser) : BrowserApi(actionContextBrowser)
 {
-    public void ActivateWorkspace(string workspaceId) =>
-        PubSub.Publish(new WorkspaceActivatedEvent(workspaceId));
+    public void SetWorkspaces(WorkspaceDto[] workspaces) =>
+        CallClientApi("setWorkspaces", $"{workspaces.ToJsonObject()}");
 
-    public void CreateWorkspace(string name, string icon, string color) =>
-        PubSub.Publish(new WorkspaceCreatedEvent($"{Guid.NewGuid()}", name, icon, color));
+    public void WorkspacesChanged(WorkspaceDescriptionDto[] workspaces) =>
+        CallClientApi("workspacesChanged", $"{workspaces.ToJsonObject()}");
 
-    public void UpdateWorkspace(string workspaceId, string name, string icon, string color) =>
-        PubSub.Publish(new WorkspaceUpdatedEvent(workspaceId, name, icon, color));
-
-    public void DeleteWorkspace(string workspaceId) =>
-        PubSub.Publish(new WorkspaceDeletedEvent(workspaceId));
-
-    public void OnLoaded() =>
-        Measure.Event("Workspaces frontend loaded");
+    public void WorkspaceActivated(string activeWorkspaceId) =>
+        CallClientApi("workspaceActivated", $"{activeWorkspaceId.ToJsonString()}");
 }

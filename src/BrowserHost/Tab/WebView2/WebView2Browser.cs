@@ -1,5 +1,4 @@
 ﻿using BrowserHost.CefInfrastructure;
-using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
@@ -35,7 +34,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private CoreWebView2? _core;
 
     private const int CornerRadiusPx = 8; // Match CefSharp visual
-    private readonly ActionContextBrowser _actionContextBrowser;
+    private readonly TabsBrowserApi _tabsApi;
     private readonly Border _hostSurface = new()
     {
         Background = Brushes.Transparent,
@@ -59,7 +58,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     public event DependencyPropertyChangedEventHandler? AddressChanged;
     public event EventHandler? PageLoadEnded;
 
-    public WebView2Browser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, bool isChildBrowser)
+    public WebView2Browser(string id, string address, TabsBrowserApi tabsApi, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
         _id = id;
         _initialManualAddress = setManualAddress ? address : null;
@@ -67,7 +66,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _isChildBrowser = isChildBrowser;
         _manualAddress = _initialManualAddress;
         _pendingNavigateTo = NormalizeAddress(address);
-        _actionContextBrowser = actionContextBrowser;
+        _tabsApi = tabsApi;
 
         _hostSurface.Child = _snapshotOverlay.Visual;
 
@@ -77,8 +76,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _hostSurface.SizeChanged += (_, _) => { UpdateControllerBounds(); };
         _hostSurface.LayoutUpdated += (_, _) => { if (_hostSurface.IsVisible) UpdateControllerBounds(); };
 
-        PubSub.Subscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
-        PubSub.Subscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
+        PubSub.Instance.Subscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
+        PubSub.Instance.Subscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
     }
 
     public string Id => _id;
@@ -156,13 +155,13 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private void Core_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
         _isLoading = true;
-        PubSub.Publish(new TabLoadingStateChangedEvent(_id, true));
+        PubSub.Instance.Publish(new TabLoadingStateChangedEvent(_id, true));
     }
 
     private void Core_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
         _isLoading = false;
-        PubSub.Publish(new TabLoadingStateChangedEvent(_id, false));
+        PubSub.Instance.Publish(new TabLoadingStateChangedEvent(_id, false));
         var newAddress = _core?.Source;
         if (_lastAddressSnapshot != newAddress)
         {
@@ -177,14 +176,14 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     {
         if (_core == null) return;
         _title = _core.DocumentTitle;
-        _actionContextBrowser.UpdateTabTitle(_id, _title);
+        _tabsApi.UpdateTabTitle(_id, _title);
     }
 
     private void Core_FaviconChanged(object? sender, object e)
     {
         if (_core == null) return;
         _favicon = _core.FaviconUri;
-        _actionContextBrowser.UpdateTabFavicon(_id, _favicon);
+        _tabsApi.UpdateTabFavicon(_id, _favicon);
     }
 
     private void Core_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
@@ -198,7 +197,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         {
             // Ctrl+click or middle-click -> open in background tab
             e.Handled = true;
-            PubSub.Publish(new NavigationStartedEvent(uri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
+            PubSub.Instance.Publish(new NavigationStartedEvent(uri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
             return;
         }
         else
@@ -320,7 +319,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         else return Dispatcher.Invoke(action);
     }
 
-    public void RegisterContentPageApi(BrowserApi api, string name) => throw new InvalidOperationException("The WebView2Browser does not support content pages");
+    public void RegisterContentPageApi(BackendApi api, string name) => throw new InvalidOperationException("The WebView2Browser does not support content pages");
     public void Reload(bool ignoreCache = false) => RunOnUi(() => _core?.Reload());
     public void Back() { if (CanGoBack) RunOnUi(() => _core?.GoBack()); }
     public void Forward() { if (CanGoForward) RunOnUi(() => _core?.GoForward()); }
@@ -349,8 +348,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     {
         try
         {
-            PubSub.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
-            PubSub.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
+            PubSub.Instance.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
+            PubSub.Instance.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
             if (_core != null)
             {
                 _handlers.ForEach(h => h.Dispose());

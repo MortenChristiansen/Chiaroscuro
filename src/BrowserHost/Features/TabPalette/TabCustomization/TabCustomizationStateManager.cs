@@ -1,6 +1,6 @@
 using BrowserHost.Logging;
-using BrowserHost.Utilities;
 using BrowserHost.Serialization;
+using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,13 +12,13 @@ namespace BrowserHost.Features.TabPalette.TabCustomization;
 
 public record TabCustomizationDataV1(string TabId, string? CustomTitle, bool? DisableFixedAddress);
 
-public static class TabCustomizationStateManager
+public class TabCustomizationStateManager
 {
     private const int _currentVersion = 1;
-    private static readonly Lock _lock = new();
+    private readonly Lock _lock = new();
 
     // Cache customizations per tab on-demand only
-    private static readonly Dictionary<string, TabCustomizationDataV1> _cachedPerTab = [];
+    private readonly Dictionary<string, TabCustomizationDataV1> _cachedPerTab = [];
 
     private static string RootFolder => Path.Combine(AppDataPathManager.GetAppDataFolderPath(), "tab-customization");
     private static string GetTabFolder(string tabId) => Path.Combine(RootFolder, Sanitize(tabId));
@@ -32,7 +32,7 @@ public static class TabCustomizationStateManager
         return value;
     }
 
-    public static TabCustomizationDataV1 GetCustomization(string tabId)
+    public virtual TabCustomizationDataV1 GetCustomization(string tabId)
     {
         // We prepopulate the cache when loading all customizations, so if we miss here it means
         // that there is no customization saved for this tab.
@@ -46,7 +46,7 @@ public static class TabCustomizationStateManager
         }
     }
 
-    public static IReadOnlyCollection<TabCustomizationDataV1> GetAllCustomizations()
+    public virtual IReadOnlyCollection<TabCustomizationDataV1> GetAllCustomizations()
     {
         // This is not a very efficient implementation, but this is only called once.
         // We may want to optimize this later if needed.
@@ -97,7 +97,7 @@ public static class TabCustomizationStateManager
 
     private static TabCustomizationDataV1 CreateDefaultCustomization(string tabId) => new(tabId, null, false);
 
-    public static TabCustomizationDataV1? SaveCustomization(string tabId, Func<TabCustomizationDataV1, TabCustomizationDataV1> updateData)
+    public virtual TabCustomizationDataV1? SaveCustomization(string tabId, Func<TabCustomizationDataV1, TabCustomizationDataV1> updateData)
     {
         lock (_lock)
         {
@@ -150,7 +150,7 @@ public static class TabCustomizationStateManager
         }
     }
 
-    public static void DeleteCustomization(string tabId)
+    public virtual void DeleteCustomization(string tabId)
     {
         lock (_lock)
         {

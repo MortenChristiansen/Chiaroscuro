@@ -8,7 +8,7 @@ using System.Windows;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
-public class DomainCustomizationFeature(MainWindow window) : Feature(window)
+public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBrowserApi domainCustomizationApi) : Feature(window)
 {
     private string? _currentDomain;
     private TabBrowser? _currentTab;
@@ -17,8 +17,8 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 
     public override void Configure()
     {
-        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => InitializeDomainSettings());
-        PubSub.Subscribe<DomainCustomizationChangedEvent>((e) =>
+        PubSub.Instance.Subscribe<TabPaletteRequestedEvent>((_) => InitializeDomainSettings());
+        PubSub.Instance.Subscribe<DomainCustomizationChangedEvent>((e) =>
         {
             var customization = DomainCustomizationStateManager.GetCustomization(e.Domain);
             var updated = customization with { CssEnabled = e.CssEnabled };
@@ -31,7 +31,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 
             NotifyFrontendOfDomainUpdate(e.Domain);
         });
-        PubSub.Subscribe<DomainCustomCssRemovedEvent>((e) =>
+        PubSub.Instance.Subscribe<DomainCustomCssRemovedEvent>((e) =>
         {
             try
             {
@@ -47,21 +47,21 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
             if (Window.CurrentTab != null && e.Domain == _currentDomain)
                 RemoveCssFromTab(Window.CurrentTab);
 
-            PubSub.Publish(new DomainCustomizationChangedEvent(e.Domain, CssEnabled: false));
+            PubSub.Instance.Publish(new DomainCustomizationChangedEvent(e.Domain, CssEnabled: false));
         });
-        PubSub.Subscribe<DomainCssEditRequestedEvent>((e) => EditDomainCss(e.Domain));
+        PubSub.Instance.Subscribe<DomainCssEditRequestedEvent>((e) => EditDomainCss(e.Domain));
 
-        PubSub.Subscribe<TabActivatedEvent>((e) => OnTabChanged());
-        PubSub.Subscribe<TabDeactivatedEvent>((e) => OnTabChanged());
+        PubSub.Instance.Subscribe<TabActivatedEvent>((e) => OnTabChanged());
+        PubSub.Instance.Subscribe<TabDeactivatedEvent>((e) => OnTabChanged());
     }
 
     public void InitializeDomainSettings()
     {
-        var domain = GetCurrentDomain();
+        var domain = Window.CurrentTab?.CurrentDomain;
         if (domain != null)
         {
             var customization = DomainCustomizationStateManager.GetCustomization(domain);
-            Window.TabPaletteBrowserControl.InitDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
+            domainCustomizationApi.InitDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
         }
     }
 
@@ -93,7 +93,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
 
     private void UpdateCurrentDomain()
     {
-        var newDomain = GetCurrentDomain();
+        var newDomain = Window.CurrentTab?.CurrentDomain;
         var domainChanged = newDomain != _currentDomain;
 
         _currentDomain = newDomain;
@@ -263,24 +263,7 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
         if (domain != null)
         {
             var customization = DomainCustomizationStateManager.GetCustomization(domain);
-            Window.TabPaletteBrowserControl.UpdateDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
-        }
-    }
-
-    private string? GetCurrentDomain()
-    {
-        var currentTab = Window.CurrentTab;
-        if (currentTab?.Address == null) return null;
-
-        try
-        {
-            var uri = new Uri(currentTab.Address);
-            return uri.Host;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to extract domain from address {currentTab.Address}: {ex.Message}");
-            return null;
+            domainCustomizationApi.UpdateDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
         }
     }
 
@@ -384,6 +367,6 @@ public class DomainCustomizationFeature(MainWindow window) : Feature(window)
     {
         if (_currentDomain == null) return;
 
-        PubSub.Publish(new DomainCustomCssRemovedEvent(_currentDomain));
+        PubSub.Instance.Publish(new DomainCustomCssRemovedEvent(_currentDomain));
     }
 }

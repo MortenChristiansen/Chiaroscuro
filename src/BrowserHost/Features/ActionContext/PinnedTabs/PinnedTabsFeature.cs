@@ -7,7 +7,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.PinnedTabs;
 
-public class PinnedTabsFeature(MainWindow window) : Feature(window)
+public class PinnedTabsFeature(MainWindow window, TabsBrowserApi tabsApi, PinnedTabsBrowserApi pinnedTabsApi) : Feature(window)
 {
     private PinnedTabDataV1 _pinnedTabData = null!;
 
@@ -16,7 +16,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         _pinnedTabData = PinnedTabsStateManager.RestorePinnedTabsFromDisk();
         NotifyFrontendOfUpdatedPinnedTabs();
 
-        PubSub.Subscribe<TabActivatedEvent>(e =>
+        PubSub.Instance.Subscribe<TabActivatedEvent>(e =>
         {
             var newActiveTab = _pinnedTabData.PinnedTabs.FirstOrDefault(t => t.Id == e.TabId);
 
@@ -27,33 +27,33 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
             });
             NotifyFrontendOfUpdatedPinnedTabs();
         });
-        PubSub.Subscribe<TabPinnedEvent>(e =>
+        PubSub.Instance.Subscribe<TabPinnedEvent>(e =>
         {
             var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
             var activateTabId = Window.CurrentTab?.Id;
             AddPinnedTabToState(new PinnedTabDtoV1(e.TabId, tab.Title, tab.Favicon, tab.Address), activateTabId);
-            Window.ActionContext.CloseTab(e.TabId, activateNext: false);
+            tabsApi.CloseTab(e.TabId, activateNext: false);
             NotifyFrontendOfUpdatedPinnedTabs();
         });
-        PubSub.Subscribe<TabUnpinnedEvent>(e =>
+        PubSub.Instance.Subscribe<TabUnpinnedEvent>(e =>
         {
             var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
             RemovePinnedTabFromState(e.TabId);
             NotifyFrontendOfUpdatedPinnedTabs();
-            Window.ActionContext.AddTab(new(e.TabId, tab.Title, tab.Favicon, DateTimeOffset.UtcNow)); // We don't currently store creation info for pinned tabs
+            tabsApi.AddTab(new(e.TabId, tab.Title, tab.Favicon, DateTimeOffset.UtcNow)); // We don't currently store creation info for pinned tabs
         });
-        PubSub.Subscribe<TabClosedEvent>(e =>
+        PubSub.Instance.Subscribe<TabClosedEvent>(e =>
         {
             RemovePinnedTabFromState(e.Tab.Id);
             NotifyFrontendOfUpdatedPinnedTabs();
         });
-        PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => UpdatePinnedTabState(e.TabId));
-        PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => UpdatePinnedTabState(e.TabId));
+        PubSub.Instance.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => UpdatePinnedTabState(e.TabId));
+        PubSub.Instance.Subscribe<TabFaviconUrlChangedEvent>(e => UpdatePinnedTabState(e.TabId));
     }
 
     private void NotifyFrontendOfUpdatedPinnedTabs()
     {
-        Window.ActionContext.SetPinnedTabs(
+        pinnedTabsApi.SetPinnedTabs(
             [.. _pinnedTabData.PinnedTabs.Select(t => new PinnedTabDto(t.Id, t.Title, t.Favicon))],
             _pinnedTabData.ActiveTabId
         );
@@ -88,9 +88,9 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         if (e.Key == Key.P && Keyboard.Modifiers == ModifierKeys.Control && activeTabId != null)
         {
             if (_pinnedTabData.ActiveTabId != null)
-                PubSub.Publish(new TabUnpinnedEvent(_pinnedTabData.ActiveTabId));
+                PubSub.Instance.Publish(new TabUnpinnedEvent(_pinnedTabData.ActiveTabId));
             else
-                PubSub.Publish(new TabPinnedEvent(activeTabId));
+                PubSub.Instance.Publish(new TabPinnedEvent(activeTabId));
 
             return true;
         }
@@ -104,7 +104,7 @@ public class PinnedTabsFeature(MainWindow window) : Feature(window)
         if (!IsTabPinned(tabId))
             return;
 
-        var customizations = TabCustomizationFeature.GetCustomizationsForTab(tabId);
+        var customizations = Window.GetFeature<TabCustomizationFeature>().GetCustomizationsForTab(tabId);
         if (customizations.DisableFixedAddress == true)
         {
             // By default, the persisted state for pinned tabs is not updated. However, if fixed addresses are disabled then we do want to update it.

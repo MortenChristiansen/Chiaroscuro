@@ -50,7 +50,8 @@ public class WebContextMenuWindow : OverlayWindow
 
     public void Prepare(ContextMenuParameters parameters)
     {
-        _browser.SetParameters(parameters);
+        var api = new WebContextMenuBrowserApi(_browser);
+        api.SetParameters(parameters);
 
         _timer = new Timer(_ =>
         {

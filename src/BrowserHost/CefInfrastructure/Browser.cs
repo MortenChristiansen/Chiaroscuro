@@ -20,17 +20,17 @@ public abstract class BaseBrowser : ChromiumWebBrowser
     }
 }
 
-public abstract class Browser(string? uiAddress = null, bool disableContextMenu = false) : Browser<BrowserApi>(uiAddress, disableContextMenu)
+public abstract class Browser(string? uiAddress = null, bool disableContextMenu = false) : Browser<BackendApi>(uiAddress, disableContextMenu)
 {
-    public override BrowserApi Api { get; } = new BrowserApi();
+    public override BackendApi Api { get; } = new BackendApi();
 
-    protected void RegisterSecondaryApi<TApi>(TApi api, string name) where TApi : BrowserApi
+    protected void RegisterSecondaryApi<TApi>(TApi api, string name) where TApi : BackendApi
     {
         JavascriptObjectRepository.Register(name, api);
     }
 }
 
-public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : BrowserApi
+public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : BackendApi
 {
     private readonly string? _uiAddress;
     private readonly bool _disableContextMenu;
@@ -54,12 +54,12 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
         ConsoleMessage += (sender, e) =>
         {
             Debug.WriteLine($"{GetType().Name}: {e.Message}");
-            
+
             // Log console errors to the application log (only for non-TabBrowser browsers)
             if (e.Level == LogSeverity.Error)
             {
                 LoggingService.Instance.Log(LogType.ConsoleErrors, $"{GetType().Name}: {e.Message}");
-                
+
                 if (Debugger.IsAttached)
                     this.GetBrowserHost().ShowDevTools();
             }
@@ -70,47 +70,8 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bro
 
         base.BeginInit();
     }
-
-    public void CallClientApi(string api, string? arguments = null)
-    {
-        var modifiedScript =
-            $$"""
-               function tryRun_{{api}}() {
-                 if (window.angularApi && window.angularApi.{{api}}) {
-                    window.angularApi.{{api}}.call({{arguments}});
-                 } else {
-                   setTimeout(tryRun_{{api}}, 50);
-                 }
-               }
-               tryRun_{{api}}();
-               """;
-
-        Dispatcher.BeginInvoke(() =>
-        {
-            if (IsBrowserInitialized)
-            {
-                this.ExecuteScriptAsync(modifiedScript);
-            }
-            else
-            {
-                IsBrowserInitializedChanged += (sender, e) =>
-                {
-                    if (!IsDisposed)
-                        ExecuteScriptOnDispatcher(modifiedScript);
-                };
-            }
-        });
-    }
-
-    private void ExecuteScriptOnDispatcher(string script)
-    {
-        Dispatcher.BeginInvoke(() =>
-        {
-            this.ExecuteScriptAsync(script);
-        });
-    }
 }
 
-public class BrowserApi()
+public class BackendApi()
 {
 }

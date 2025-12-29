@@ -8,8 +8,8 @@ public record DownloadItemDto(int Id, string FileName, int Progress, bool IsComp
 public record DownloadCancelledEvent(int DownloadId);
 public record BackgroundDownloadStartedEvent(string DownloadSource, string FileName);
 
-public class FileDownloadsBrowserApi : BrowserApi
+public class FileDownloadsBackendApi : BackendApi
 {
     public void CancelDownload(int downloadId) =>
-        PubSub.Publish(new DownloadCancelledEvent(downloadId));
+        PubSub.Instance.Publish(new DownloadCancelledEvent(downloadId));
 }

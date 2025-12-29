@@ -4,20 +4,20 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.TabPalette.FindText;
 
-public class FindTextFeature(MainWindow window) : Feature(window)
+public class FindTextFeature(MainWindow window, FindTextBrowserApi findTextApi) : Feature(window)
 {
     private string? _findingTextTerm;
 
     public override void Configure()
     {
-        PubSub.Subscribe<FindTextEvent>((e) => StartFinding(e.Term));
-        PubSub.Subscribe<NextTextMatchEvent>((e) => FindNext(e.Term));
-        PubSub.Subscribe<PrevTextMatchEvent>((e) => FindPrevious(e.Term));
-        PubSub.Subscribe<StopFindingTextEvent>((_) => StopFinding());
-        PubSub.Subscribe<FindStatusChangedEvent>((e) => Window.TabPaletteBrowserControl.FindStatusChanged(e.Matches));
+        PubSub.Instance.Subscribe<FindTextEvent>((e) => StartFinding(e.Term));
+        PubSub.Instance.Subscribe<NextTextMatchEvent>((e) => FindNext(e.Term));
+        PubSub.Instance.Subscribe<PrevTextMatchEvent>((e) => FindPrevious(e.Term));
+        PubSub.Instance.Subscribe<StopFindingTextEvent>((_) => StopFinding());
+        PubSub.Instance.Subscribe<FindStatusChangedEvent>((e) => findTextApi.FindStatusChanged(e.Matches));
 
-        PubSub.Subscribe<TabPaletteDismissedEvent>((_) => PubSub.Publish(new StopFindingTextEvent()));
-        PubSub.Subscribe<TabDeactivatedEvent>((_) => PubSub.Publish(new StopFindingTextEvent()));
+        PubSub.Instance.Subscribe<TabPaletteDismissedEvent>((_) => PubSub.Instance.Publish(new StopFindingTextEvent()));
+        PubSub.Instance.Subscribe<TabDeactivatedEvent>((_) => PubSub.Instance.Publish(new StopFindingTextEvent()));
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -25,25 +25,25 @@ public class FindTextFeature(MainWindow window) : Feature(window)
         if (_findingTextTerm != null && e.Key == Key.Tab)
         {
             if (Keyboard.Modifiers == ModifierKeys.Shift)
-                PubSub.Publish(new PrevTextMatchEvent(_findingTextTerm));
+                PubSub.Instance.Publish(new PrevTextMatchEvent(_findingTextTerm));
             else
-                PubSub.Publish(new NextTextMatchEvent(_findingTextTerm));
+                PubSub.Instance.Publish(new NextTextMatchEvent(_findingTextTerm));
 
             return true;
         }
 
         if (_findingTextTerm != null && e.Key == Key.Escape)
         {
-            PubSub.Publish(new StopFindingTextEvent());
+            PubSub.Instance.Publish(new StopFindingTextEvent());
 
             return true;
         }
 
         if (_findingTextTerm == null && (e.Key == Key.F3 || (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)))
         {
-            PubSub.Publish(new TabPaletteRequestedEvent());
+            PubSub.Instance.Publish(new TabPaletteRequestedEvent());
             Window.TabPaletteBrowserControl.Focus();
-            Window.TabPaletteBrowserControl.FocusFindTextInput();
+            findTextApi.FocusFindTextInput();
 
             return true;
         }
@@ -70,7 +70,7 @@ public class FindTextFeature(MainWindow window) : Feature(window)
     private void StopFinding()
     {
         Window.CurrentTab?.StopFinding(true);
-        Window.TabPaletteBrowserControl.FindStatusChanged(null);
+        findTextApi.FindStatusChanged(null);
         _findingTextTerm = null;
     }
 }
