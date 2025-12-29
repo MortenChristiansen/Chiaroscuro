@@ -2,7 +2,8 @@ name: PR build and test
 
 on:
   pull_request:
-    branches: ["main"]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -50,8 +51,8 @@ jobs:
 
       - name: Build backend
         working-directory: ./src
-        run: dotnet build ./Chiaroscuro.slnx -c Release /p:Platform=x64
+        run: dotnet build ./Chiaroscuro.slnx -c Release
 
       - name: Run backend tests
         working-directory: ./src
-        run: dotnet test ./BrowserHost.Tests/BrowserHost.Tests.csproj -c Release /p:Platform=x64 --no-build
+        run: dotnet test ./BrowserHost.Tests/BrowserHost.Tests.csproj -c Release
