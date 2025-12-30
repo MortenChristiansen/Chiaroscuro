@@ -1,4 +1,5 @@
 ﻿using BrowserHost.Features.TabPalette;
+using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
@@ -10,6 +11,7 @@ namespace BrowserHost.Tests.Infrastructure;
 internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
 {
     public FakeTabPaletteBrowserApi TabPaletteBrowserApi { get; } = new();
+    public FakeFindTextBrowserApi FindTextBrowserApi { get; } = new();
     public FakeTabCustomizationBrowserApi TabCustomizationBrowserApi { get; } = new();
     public FakeTabsBrowserApi TabsBrowserApi { get; } = new();
 
@@ -22,9 +24,11 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
 
     public bool ShowTabPaletteCalled { get; private set; }
     public bool HideTabPaletteCalled { get; private set; }
+    public bool FocusTabPaletteCalled { get; private set; }
 
     public void ShowTabPalette() => ShowTabPaletteCalled = true;
     public void HideTabPalette() => HideTabPaletteCalled = true;
+    public void FocusTabPalette() => FocusTabPaletteCalled = true;
 
     public void SetCurrentTab(ITabBrowser? tab)
     {
@@ -89,6 +93,15 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
             var feature = new TabCustomizationFeature(null!, context, context.TabCustomizationBrowserApi, context.TabsBrowserApi, context.TabCustomizationStateManager);
+            feature.Configure();
+            return feature;
+        }
+
+        public FindTextFeature BuildFindTextFeature()
+        {
+            var context = _context ?? new TestBrowserContext(_tab);
+            _configureContext?.Invoke(context);
+            var feature = new FindTextFeature(null!, context, context.FindTextBrowserApi);
             feature.Configure();
             return feature;
         }

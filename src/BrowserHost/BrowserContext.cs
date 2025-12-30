@@ -11,4 +11,5 @@ public class BrowserContext(MainWindow window) : IBrowserContext
 
     public void ShowTabPalette() => window.ShowTabPalette();
     public void HideTabPalette() => window.HideTabPalette();
+    public void FocusTabPalette() => window.TabPaletteBrowserControl.Focus();
 }

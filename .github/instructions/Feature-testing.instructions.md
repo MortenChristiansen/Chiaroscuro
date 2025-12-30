@@ -23,7 +23,7 @@ Feature tests follow a small set of conventions designed to keep tests readable,
 
 ## Building features under test
 
-- Prefer using the builder helper `TestBrowserContext.CreateFeature` to construct the feature.
+- Prefer using the builder helper `TestBrowserContext.CreateFeature` to construct the feature (the type is globally included, so just use `CreateFeature`).
 - Use the builder to configure state:
   - `WithCurrentTab(out var tab, ...)` / `WithNoCurrentTab()`
   - `ConfigureContext(ctx => ...)` for keyboard modifiers and other context state

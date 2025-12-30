@@ -4,14 +4,14 @@ using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Utilities;
 
-namespace BrowserHost.Tests.Features;
+namespace BrowserHost.Tests.Features.TabPalette;
 
 public class TabCustomizationFeatureTest
 {
     [Fact]
     public void Configuring_the_feature_sends_all_existing_custom_titles_to_the_action_context()
     {
-        var feature = TestBrowserContext.CreateFeature
+        var feature = CreateFeature
             .CaptureContext(out var context)
             .ConfigureContext(ctx =>
             {
@@ -31,7 +31,7 @@ public class TabCustomizationFeatureTest
     [Fact]
     public void Publishing_a_TabPaletteRequestedEvent_initializes_custom_settings_when_there_is_a_current_tab()
     {
-        TestBrowserContext.CreateFeature
+        CreateFeature
             .WithCurrentTab(out var tab, t => t.Id = "tab-1")
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
@@ -50,7 +50,7 @@ public class TabCustomizationFeatureTest
     [Fact]
     public void Publishing_a_TabPaletteRequestedEvent_does_nothing_when_there_is_no_current_tab()
     {
-        TestBrowserContext.CreateFeature
+        CreateFeature
             .WithNoCurrentTab()
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
@@ -63,7 +63,7 @@ public class TabCustomizationFeatureTest
     [Fact]
     public void Publishing_a_TabCustomTitleChangedEvent_updates_action_context_and_persists_the_custom_title()
     {
-        TestBrowserContext.CreateFeature
+        CreateFeature
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
 
@@ -82,7 +82,7 @@ public class TabCustomizationFeatureTest
     [Fact]
     public void Publishing_a_TabDisableFixedAddressChangedEvent_persists_the_flag_value()
     {
-        TestBrowserContext.CreateFeature
+        CreateFeature
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
 
@@ -95,7 +95,7 @@ public class TabCustomizationFeatureTest
     [Fact]
     public void Publishing_a_TabClosedEvent_deletes_customizations_for_that_tab_id()
     {
-        TestBrowserContext.CreateFeature
+        CreateFeature
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
         context.TabCustomizationStateManager.SaveCustomization("tab-1", c => c with { CustomTitle = "A" });
@@ -112,7 +112,7 @@ public class TabCustomizationFeatureTest
     [Fact]
     public void Publishing_an_EphemeralTabsExpiredEvent_deletes_customizations_for_those_tab_ids()
     {
-        TestBrowserContext.CreateFeature
+        CreateFeature
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
         context.TabCustomizationStateManager.SaveCustomization("tab-1", c => c with { CustomTitle = "A" });
@@ -129,7 +129,7 @@ public class TabCustomizationFeatureTest
     [Fact]
     public void Getting_customizations_for_a_tab_returns_the_current_state_manager_value()
     {
-        var feature = TestBrowserContext.CreateFeature
+        var feature = CreateFeature
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
         context.TabCustomizationStateManager.SaveCustomization("tab-1", c => c with { CustomTitle = "X", DisableFixedAddress = true });

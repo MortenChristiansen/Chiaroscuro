@@ -11,4 +11,5 @@ public interface IBrowserContext
 
     void ShowTabPalette();
     void HideTabPalette();
+    void FocusTabPalette();
 }

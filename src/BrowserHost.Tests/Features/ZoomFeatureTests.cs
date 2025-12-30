@@ -8,7 +8,7 @@ public class ZoomFeatureTests
     [Fact]
     public void Scrolling_the_mouse_wheel_up_with_Ctrl_pressed_zooms_in_by_2_points()
     {
-        var feature = TestBrowserContext.CreateFeature
+        var feature = CreateFeature
             .WithCurrentTab(out var tab, t => t.ZoomLevel = 0)
             .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Control)
             .BuildZoomFeature();
@@ -23,7 +23,7 @@ public class ZoomFeatureTests
     [Fact]
     public void Scrolling_the_mouse_wheel_down_with_Ctrl_pressed_zooms_out_by_2_points()
     {
-        var feature = TestBrowserContext.CreateFeature
+        var feature = CreateFeature
             .WithCurrentTab(out var tab, t => t.ZoomLevel = 0)
             .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Control)
             .BuildZoomFeature();
@@ -38,7 +38,7 @@ public class ZoomFeatureTests
     [Fact]
     public void Scrolling_the_mouse_wheel_up_with_Ctrl_pressed_does_not_zoom_in_past_the_maximum_level()
     {
-        var feature = TestBrowserContext.CreateFeature
+        var feature = CreateFeature
             .WithCurrentTab(out var tab, t => t.ZoomLevel = 10)
             .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Control)
             .BuildZoomFeature();
@@ -53,7 +53,7 @@ public class ZoomFeatureTests
     [Fact]
     public void Scrolling_the_mouse_wheel_down_with_Ctrl_pressed_does_not_zoom_out_past_the_minimum_level()
     {
-        var feature = TestBrowserContext.CreateFeature
+        var feature = CreateFeature
             .WithCurrentTab(out var tab, t => t.ZoomLevel = -10)
             .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Control)
             .BuildZoomFeature();
@@ -68,7 +68,7 @@ public class ZoomFeatureTests
     [Fact]
     public void Scrolling_the_mouse_wheel_without_Ctrl_pressed_is_not_handled_and_does_not_change_zoom()
     {
-        var feature = TestBrowserContext.CreateFeature
+        var feature = CreateFeature
             .WithCurrentTab(out var tab, t => t.ZoomLevel = 0)
             .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.None)
             .BuildZoomFeature();
@@ -82,7 +82,7 @@ public class ZoomFeatureTests
     [Fact]
     public void Pressing_Ctrl_and_Delete_with_a_current_tab_resets_the_zoom_and_is_handled()
     {
-        var feature = TestBrowserContext.CreateFeature
+        var feature = CreateFeature
             .WithCurrentTab(out var tab)
             .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Control)
             .BuildZoomFeature();
