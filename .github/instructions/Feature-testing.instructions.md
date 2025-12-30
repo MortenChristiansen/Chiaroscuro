@@ -43,6 +43,7 @@ Feature tests follow a small set of conventions designed to keep tests readable,
 - The assembly applies a per-test PubSub scope automatically via `PerTestPubSubContextAttribute`, ensuring:
   - Isolation between tests (no subscriber leakage)
   - A direct dispatch strategy (no UI thread/Dispatcher requirement)
+- Use `PubSubMessages.OfType<TEvent>()` to capture published events for the current test.
 
 ## Event argument creation
 
