@@ -115,8 +115,8 @@ public class TabCustomizationFeatureTest
         CreateFeature
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
-        context.TabCustomizationStateManager.SaveCustomization("tab-1", c => c with { CustomTitle = "A" });
-        context.TabCustomizationStateManager.SaveCustomization("tab-2", c => c with { CustomTitle = "B" });
+        context.TabCustomizationStateManager.SaveCustomization("tab-1", c => c with { CustomTitle = "A", DisableFixedAddress = true });
+        context.TabCustomizationStateManager.SaveCustomization("tab-2", c => c with { CustomTitle = "B", DisableFixedAddress = true });
 
         PubSub.Instance.Publish(new EphemeralTabsExpiredEvent(["tab-1", "tab-2"]));
 
@@ -124,6 +124,10 @@ public class TabCustomizationFeatureTest
         var after2 = context.TabCustomizationStateManager.GetCustomization("tab-2");
         Assert.Null(after1.CustomTitle);
         Assert.Null(after2.CustomTitle);
+        Assert.False(after1.DisableFixedAddress);
+        Assert.False(after2.DisableFixedAddress);
+        Assert.Contains("tab-1", context.TabCustomizationStateManager.DeletedTabIds);
+        Assert.Contains("tab-2", context.TabCustomizationStateManager.DeletedTabIds);
     }
 
     [Fact]
