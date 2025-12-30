@@ -18,6 +18,8 @@ public sealed class PerTestPubSubContextAttribute : BeforeAfterTestAttribute{
             DispatchStrategy = new DirectPubSubDispatchStrategy(),
         };
 
+        PubSubMessages.AttachTo(context);
+
         _scope.Value = PubSub.PushContext(context);
     }
 
@@ -30,6 +32,7 @@ public sealed class PerTestPubSubContextAttribute : BeforeAfterTestAttribute{
         finally
         {
             _scope.Value = null;
+            PubSubMessages.Detach();
         }
     }
 }

@@ -82,13 +82,11 @@ public class FindTextFeatureTest
             .CaptureContext(out var context)
             .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Control)
             .BuildFindTextFeature();
-        var tabPaletteWasRequested = false;
-        PubSub.Instance.Subscribe<TabPaletteRequestedEvent>(_ => tabPaletteWasRequested = true);
 
         var handled = feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.F));
 
         Assert.True(handled);
-        Assert.True(tabPaletteWasRequested);
+        Assert.Single(PubSubMessages.OfType<TabPaletteRequestedEvent>());
         Assert.True(context.FocusTabPaletteCalled);
         Assert.True(context.FindTextBrowserApi.WasCalledWith("focusFindTextInput"));
     }
