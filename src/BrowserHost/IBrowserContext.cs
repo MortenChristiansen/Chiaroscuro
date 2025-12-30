@@ -1,4 +1,5 @@
 ﻿using BrowserHost.Tab;
+using System;
 using System.Windows.Input;
 
 namespace BrowserHost;
@@ -11,4 +12,8 @@ public interface IBrowserContext
 
     void ShowTabPalette();
     void HideTabPalette();
+    void FocusTabPalette();
+
+    bool ActionRequiresDispatch { get; }
+    void Dispatch(Action action);
 }

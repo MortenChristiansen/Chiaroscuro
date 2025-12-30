@@ -9,7 +9,7 @@ internal class FakeTabWebBrowser(string tabId) : ITabWebBrowser
     public string Id { get; } = tabId;
     public string? Favicon => null;
     public string? ManualAddress => null;
-    public string Address => "about:blank";
+    public string Address { get; private set; } = "about:blank";
     public string Title { get; set; } = "";
     public bool IsLoading => false;
     public bool CanGoBack => false;
@@ -17,17 +17,28 @@ internal class FakeTabWebBrowser(string tabId) : ITabWebBrowser
     public bool HasDevTools => false;
     public double DefaultZoomLevel => 0;
 
+    public List<string> ExecutedScripts { get; } = [];
+
     public event DependencyPropertyChangedEventHandler? AddressChanged;
     public event EventHandler? PageLoadEnded;
 
     public bool SupportsPromotionToFullTab => throw new NotSupportedException();
-    public void SetAddress(string address, bool setManualAddress) => throw new NotSupportedException();
+    public void SetAddress(string address, bool setManualAddress)
+    {
+        var old = Address;
+        Address = address;
+        AddressChanged?.Invoke(this, new DependencyPropertyChangedEventArgs(null!, old, address));
+    }
     public void RegisterContentPageApi(BackendApi api, string name) => throw new NotSupportedException();
     public void Reload(bool ignoreCache = false) => throw new NotSupportedException();
     public void Back() => throw new NotSupportedException();
     public void Forward() => throw new NotSupportedException();
     public Task CallClientApi(string api, string? arguments = null) => throw new NotSupportedException();
-    public Task ExecuteScriptAsync(string script) => throw new NotSupportedException();
+    public Task ExecuteScriptAsync(string script)
+    {
+        ExecutedScripts.Add(script);
+        return Task.CompletedTask;
+    }
     public Task<double> GetZoomLevelAsync() => throw new NotSupportedException();
     public void SetZoomLevel(double level) => throw new NotSupportedException();
     public void Find(string searchText, bool forward, bool matchCase, bool findNext) => throw new NotSupportedException();
@@ -36,4 +47,22 @@ internal class FakeTabWebBrowser(string tabId) : ITabWebBrowser
     public void ShowDevTools() => throw new NotSupportedException();
     public void CloseDevTools() => throw new NotSupportedException();
     public void Dispose() { }
+}
+
+internal static class TabBrowserExtensions
+{
+    extension(TabBrowser tabBrowser)
+    {
+        public void SetTabAddress(string address)
+        {
+            tabBrowser.GetTabWebBrowser().SetAddress(address, setManualAddress: false);
+        }
+
+        public FakeTabWebBrowser GetTabWebBrowser()
+        {
+            var browserField = typeof(TabBrowser).GetField("_browser", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?? throw new InvalidOperationException("TabBrowser._browser field not found - internal structure may have changed");
+            return (FakeTabWebBrowser)browserField.GetValue(tabBrowser)!;
+        }
+    }
 }

@@ -11,7 +11,7 @@ public class TabPaletteFeatureTests
     [Fact]
     public void Pressing_F1_when_the_tab_palette_is_closed_opens_it()
     {
-        var feature = TestBrowserContext.CreateFeature
+        var feature = CreateFeature
             .WithNoCurrentTab()
             .CaptureContext(out var context)
             .BuildTabPaletteFeature();
@@ -27,7 +27,7 @@ public class TabPaletteFeatureTests
     [Fact]
     public void Pressing_F1_when_the_tab_palette_is_open_closes_it()
     {
-        var feature = TestBrowserContext.CreateFeature
+        var feature = CreateFeature
             .CaptureContext(out var context)
             .BuildTabPaletteFeature();
 
@@ -42,7 +42,7 @@ public class TabPaletteFeatureTests
     [Fact]
     public void Publishing_a_TabPaletteDismissedEvent_does_not_hide_tab_palette_when_it_is_already_closed()
     {
-        TestBrowserContext.CreateFeature
+        CreateFeature
             .CaptureContext(out var context)
             .BuildTabPaletteFeature();
 
@@ -54,7 +54,7 @@ public class TabPaletteFeatureTests
     [Fact]
     public void Publishing_a_TabDeactivatedEvent_closes_tab_palette_if_it_is_open()
     {
-        var feature = TestBrowserContext.CreateFeature
+        var feature = CreateFeature
             .CaptureContext(out var context)
             .BuildTabPaletteFeature();
         feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.F1));

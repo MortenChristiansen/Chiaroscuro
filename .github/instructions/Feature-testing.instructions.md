@@ -23,7 +23,7 @@ Feature tests follow a small set of conventions designed to keep tests readable,
 
 ## Building features under test
 
-- Prefer using the builder helper `TestBrowserContext.CreateFeature` to construct the feature.
+- Prefer using the builder helper `TestBrowserContext.CreateFeature` to construct the feature (the type is globally included, so just use `CreateFeature`).
 - Use the builder to configure state:
   - `WithCurrentTab(out var tab, ...)` / `WithNoCurrentTab()`
   - `ConfigureContext(ctx => ...)` for keyboard modifiers and other context state
@@ -31,7 +31,7 @@ Feature tests follow a small set of conventions designed to keep tests readable,
 
 ## `IBrowserContext` is the MainWindow abstraction
 
-- Features should avoid talking directly to `MainWindow` for environment state and UI operations.
+- Features should avoid talking directly to `Window` / `MainWindow` for environment state and UI operations (update the production code if needed).
 - Instead, treat `IBrowserContext` as the abstraction over `MainWindow`:
   - In production, `BrowserContext` delegates to `MainWindow` and other WPF primitives.
   - In tests, `TestBrowserContext` is used to precisely control inputs and capture outputs.
@@ -43,6 +43,7 @@ Feature tests follow a small set of conventions designed to keep tests readable,
 - The assembly applies a per-test PubSub scope automatically via `PerTestPubSubContextAttribute`, ensuring:
   - Isolation between tests (no subscriber leakage)
   - A direct dispatch strategy (no UI thread/Dispatcher requirement)
+- Use `PubSubMessages.OfType<TEvent>()` to capture published events for the current test.
 
 ## Event argument creation
 
@@ -50,10 +51,13 @@ Feature tests follow a small set of conventions designed to keep tests readable,
   - `CreateMouseWheelEventArgs(delta: ...)`
   - `CreateKeyEventArgs(Key. ...)`
 
-## Managing persistent state
+## Managing persistent state and file access
 
-- Create a test version of state managers (e.g., `TestTabCustomizationStateManager`) when persistent state
-  is needed. These are available via the `TestBrowserContext`.
+- Create a test version of state managers (e.g., `FakeTabCustomizationStateManager`) when persistent state
+  is needed. These are available via the `TestBrowserContext`. They are located in `BrowserHost.Tests/Infrastructure/Fakes/StateManagers`.
+- Use virtual/override methods on the fake state managers to control behavior as needed.
+- Inject the fake state manager into the feature under test via the `CreateFeature` builder, through the constructor.
+- ALL file system access must be done via the state manager abstraction. Features must not access the file system directly.
 
 ## Assertions
 

@@ -105,9 +105,9 @@ public partial class MainWindow : Window
             new WorkspacesFeature(this, WorkspacesBrowserApi, TabsBrowserApi),
             new FoldersFeature(this, TabsBrowserApi),
             new TabPaletteFeature(this, browserContext, TabPaletteBrowserApi),
-            new FindTextFeature(this, FindTextBrowserApi),
+            new FindTextFeature(this, browserContext, FindTextBrowserApi),
             new TabCustomizationFeature(this, browserContext, TabCustomizationBrowserApi, TabsBrowserApi, new TabCustomizationStateManager()),
-            new DomainCustomizationFeature(this, DomainCustomizationBrowserApi),
+            new DomainCustomizationFeature(this, browserContext, DomainCustomizationBrowserApi, new DomainCustomizationStateManager()),
             new AppStateFeature(this),
         ];
         _features.ForEach(f =>
