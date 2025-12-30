@@ -3,26 +3,39 @@ using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Windows;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
-public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBrowserApi domainCustomizationApi) : Feature(window)
+public class DomainCustomizationFeature : Feature
 {
+    private readonly IBrowserContext _browserContext;
+    private readonly DomainCustomizationBrowserApi _domainCustomizationApi;
+    private readonly DomainCustomizationStateManager _stateManager;
+
     private string? _currentDomain;
-    private TabBrowser? _currentTab;
-    private FileSystemWatcher? _cssFileWatcher;
-    private string? _watchedCssPath;
+    private ITabBrowser? _currentTab;
+    private IDisposable? _cssWatcherSubscription;
+
+    public DomainCustomizationFeature(
+        MainWindow window,
+        IBrowserContext browserContext,
+        DomainCustomizationBrowserApi domainCustomizationApi,
+        DomainCustomizationStateManager stateManager) : base(window)
+    {
+        _browserContext = browserContext ?? throw new ArgumentNullException(nameof(browserContext));
+        _domainCustomizationApi = domainCustomizationApi ?? throw new ArgumentNullException(nameof(domainCustomizationApi));
+        _stateManager = stateManager ?? throw new ArgumentNullException(nameof(stateManager));
+    }
 
     public override void Configure()
     {
         PubSub.Instance.Subscribe<TabPaletteRequestedEvent>((_) => InitializeDomainSettings());
         PubSub.Instance.Subscribe<DomainCustomizationChangedEvent>((e) =>
         {
-            var customization = DomainCustomizationStateManager.GetCustomization(e.Domain);
+            var customization = _stateManager.GetCustomization(e.Domain);
             var updated = customization with { CssEnabled = e.CssEnabled };
-            DomainCustomizationStateManager.SaveCustomization(updated);
+            _stateManager.SaveCustomization(updated);
 
             if (e.Domain == _currentDomain)
             {
@@ -33,19 +46,11 @@ public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBr
         });
         PubSub.Instance.Subscribe<DomainCustomCssRemovedEvent>((e) =>
         {
-            try
-            {
-                var cssPath = DomainCustomizationStateManager.GetCustomCssPath(e.Domain);
-                if (File.Exists(cssPath))
-                    File.Delete(cssPath);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to remove CSS for domain {e.Domain}: {ex.Message}");
-            }
+            _stateManager.RemoveCustomCss(e.Domain);
 
-            if (Window.CurrentTab != null && e.Domain == _currentDomain)
-                RemoveCssFromTab(Window.CurrentTab);
+            var tab = _browserContext.CurrentTab;
+            if (tab != null && e.Domain == _currentDomain)
+                RemoveCssFromTab(tab);
 
             PubSub.Instance.Publish(new DomainCustomizationChangedEvent(e.Domain, CssEnabled: false));
         });
@@ -57,17 +62,17 @@ public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBr
 
     public void InitializeDomainSettings()
     {
-        var domain = Window.CurrentTab?.CurrentDomain;
+        var domain = _browserContext.CurrentTab?.CurrentDomain;
         if (domain != null)
         {
-            var customization = DomainCustomizationStateManager.GetCustomization(domain);
-            domainCustomizationApi.InitDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
+            var customization = _stateManager.GetCustomization(domain);
+            _domainCustomizationApi.InitDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
         }
     }
 
     private void OnTabChanged()
     {
-        var newTab = Window.CurrentTab;
+        var newTab = _browserContext.CurrentTab;
         if (newTab != _currentTab)
         {
             if (_currentTab != null)
@@ -93,7 +98,7 @@ public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBr
 
     private void UpdateCurrentDomain()
     {
-        var newDomain = Window.CurrentTab?.CurrentDomain;
+        var newDomain = _browserContext.CurrentTab?.CurrentDomain;
         var domainChanged = newDomain != _currentDomain;
 
         _currentDomain = newDomain;
@@ -102,38 +107,31 @@ public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBr
 
         if (domainChanged)
         {
-            UpdateCssFileWatcher();
+            UpdateCssWatcher();
             NotifyFrontendOfDomainUpdate(newDomain);
         }
     }
 
     private void ApplyCssToCurrentTab()
     {
-        var currentTab = Window.CurrentTab;
+        var currentTab = _browserContext.CurrentTab;
         if (currentTab == null || _currentDomain == null) return;
 
-        try
+        var customization = _stateManager.GetCustomization(_currentDomain);
+        if (customization.CssEnabled && customization.HasCustomCss)
         {
-            var customization = DomainCustomizationStateManager.GetCustomization(_currentDomain);
-            if (customization.CssEnabled && customization.HasCustomCss)
+            var css = _stateManager.GetCustomCss(_currentDomain);
+            if (!string.IsNullOrEmpty(css))
             {
-                var css = DomainCustomizationStateManager.GetCustomCss(_currentDomain);
-                if (!string.IsNullOrEmpty(css))
-                {
-                    InjectCssIntoTab(currentTab, css);
-                    return;
-                }
+                InjectCssIntoTab(currentTab, css);
+                return;
             }
+        }
 
-            RemoveCssFromTab(currentTab);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to apply CSS to tab for domain {_currentDomain}: {ex.Message}");
-        }
+        RemoveCssFromTab(currentTab);
     }
 
-    private static void InjectCssIntoTab(TabBrowser tab, string css)
+    private static void InjectCssIntoTab(ITabBrowser tab, string css)
     {
         try
         {
@@ -192,7 +190,7 @@ public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBr
         }
     }
 
-    private static void RemoveCssFromTab(TabBrowser tab)
+    private static void RemoveCssFromTab(ITabBrowser tab)
     {
         try
         {
@@ -215,158 +213,61 @@ public class DomainCustomizationFeature(MainWindow window, DomainCustomizationBr
 
     private void EditDomainCss(string domain)
     {
-        try
-        {
-            var cssPath = DomainCustomizationStateManager.GetCustomCssPath(domain);
-            var domainFolder = Path.GetDirectoryName(cssPath)!;
+        if (!_stateManager.EnsureCustomCssExistsAndOpenInEditor(domain))
+            return;
 
-            Directory.CreateDirectory(domainFolder);
-            var isNewCssFile = !File.Exists(cssPath);
+        UpdateCssWatcher();
+        NotifyFrontendOfDomainUpdate(domain);
 
-            if (isNewCssFile)
-            {
-                File.WriteAllText(cssPath, $"/* Custom CSS for {domain} */\n\n");
-            }
-
-            // Open the CSS file with the default editor
-            var processStartInfo = new ProcessStartInfo(cssPath)
-            {
-                UseShellExecute = true
-            };
-            Process.Start(processStartInfo);
-
-            // Refresh cache after potential edit
-            DomainCustomizationStateManager.RefreshCacheForDomain(domain);
-
-            UpdateCssFileWatcher();
-            NotifyFrontendOfDomainUpdate(domain);
-
-            var customization = DomainCustomizationStateManager.GetCustomization(domain);
-            if (customization == null)
-            {
-                customization = new DomainCustomizationDataV1(domain, true, true);
-            }
-            else
-            {
-                customization = customization with { CssEnabled = true, HasCustomCss = true };
-            }
-            DomainCustomizationStateManager.SaveCustomization(customization);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to open CSS editor for domain {domain}: {ex.Message}");
-        }
+        var customization = _stateManager.GetCustomization(domain);
+        _stateManager.SaveCustomization(customization with { CssEnabled = true });
     }
 
     private void NotifyFrontendOfDomainUpdate(string? domain)
     {
         if (domain != null)
         {
-            var customization = DomainCustomizationStateManager.GetCustomization(domain);
-            domainCustomizationApi.UpdateDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
+            var customization = _stateManager.GetCustomization(domain);
+            _domainCustomizationApi.UpdateDomainSettings(domain, customization.CssEnabled, customization.HasCustomCss);
         }
     }
 
-    private void UpdateCssFileWatcher()
+    private void UpdateCssWatcher()
     {
-        _cssFileWatcher?.Dispose();
-        _cssFileWatcher = null;
-        _watchedCssPath = null;
+        _cssWatcherSubscription?.Dispose();
+        _cssWatcherSubscription = null;
 
-        if (_currentDomain == null) return;
+        if (_currentDomain == null)
+            return;
 
-        try
-        {
-            var cssPath = DomainCustomizationStateManager.GetCustomCssPath(_currentDomain);
-            var directory = Path.GetDirectoryName(cssPath);
-            var fileName = Path.GetFileName(cssPath);
-
-            if (directory != null && Directory.Exists(directory))
-            {
-                _cssFileWatcher = new FileSystemWatcher(directory, fileName)
-                {
-                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName,
-                    EnableRaisingEvents = true
-                };
-
-                _cssFileWatcher.Changed += OnCssFileChanged;
-                _cssFileWatcher.Deleted += OnCssFileDeleted;
-                _cssFileWatcher.Renamed += OnCssFileRenamed;
-                _watchedCssPath = cssPath;
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to setup CSS file watcher for domain {_currentDomain}: {ex.Message}");
-        }
+        _cssWatcherSubscription = _stateManager.WatchCustomCss(_currentDomain, OnCustomCssWatchEvent);
     }
 
-    private void OnCssFileChanged(object sender, FileSystemEventArgs e)
+    private void OnCustomCssWatchEvent(DomainCustomizationStateManager.CustomCssWatchEventKind kind)
     {
-        try
+        if (_currentDomain == null)
+            return;
+
+        if (kind == DomainCustomizationStateManager.CustomCssWatchEventKind.Removed)
         {
-            if (_currentDomain == null || e.FullPath != _watchedCssPath) return;
+            PubSub.Instance.Publish(new DomainCustomCssRemovedEvent(_currentDomain));
+            return;
+        }
 
-            // Small delay to ensure file write is complete
-            System.Threading.Thread.Sleep(100);
+        _stateManager.RefreshCacheForDomain(_currentDomain);
 
-            // If the file was actually removed between change and now, handle as removal
-            if (!File.Exists(_watchedCssPath))
-            {
-                HandleCssFileRemoved();
-                return;
-            }
-
-            // Refresh cache and reapply CSS
-            DomainCustomizationStateManager.RefreshCacheForDomain(_currentDomain);
-
-            // Apply CSS to current tab on UI thread
-            Window.Dispatcher.Invoke(() =>
+        if (_browserContext.ActionRequiresDispatch)
+        {
+            _browserContext.Dispatch(() =>
             {
                 ApplyCssToCurrentTab();
                 NotifyFrontendOfDomainUpdate(_currentDomain);
             });
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to handle CSS file change: {ex.Message}");
-        }
-    }
 
-    private void OnCssFileDeleted(object sender, FileSystemEventArgs e)
-    {
-        try
-        {
-            if (_currentDomain == null || e.FullPath != _watchedCssPath) return;
-            HandleCssFileRemoved();
+            return;
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to handle CSS file deletion: {ex.Message}");
-        }
-    }
 
-    private void OnCssFileRenamed(object sender, RenamedEventArgs e)
-    {
-        try
-        {
-            if (_currentDomain == null) return;
-            // Treat any rename of the watched file as a removal (old path matches)
-            if (e.OldFullPath == _watchedCssPath && e.FullPath != _watchedCssPath)
-            {
-                HandleCssFileRemoved();
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to handle CSS file rename: {ex.Message}");
-        }
-    }
-
-    private void HandleCssFileRemoved()
-    {
-        if (_currentDomain == null) return;
-
-        PubSub.Instance.Publish(new DomainCustomCssRemovedEvent(_currentDomain));
+        ApplyCssToCurrentTab();
+        NotifyFrontendOfDomainUpdate(_currentDomain);
     }
 }

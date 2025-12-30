@@ -1,5 +1,6 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.TabPalette;
+using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
 
@@ -49,6 +50,14 @@ public class FakeTabsBrowserApi() : TabsBrowserApi(null!), IFakeBrowserApi
 }
 
 public class FakeFindTextBrowserApi() : FindTextBrowserApi(null!), IFakeBrowserApi
+{
+    public List<BrowserApiInvocation> Invocations { get; } = [];
+
+    public override void CallClientApi(string api, string? arguments = null) =>
+        Invocations.Add(new(api, arguments));
+}
+
+public class FakeDomainCustomizationBrowserApi() : DomainCustomizationBrowserApi(null!), IFakeBrowserApi
 {
     public List<BrowserApiInvocation> Invocations { get; } = [];
 

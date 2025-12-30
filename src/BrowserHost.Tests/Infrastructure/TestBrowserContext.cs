@@ -1,4 +1,5 @@
 ﻿using BrowserHost.Features.TabPalette;
+using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
@@ -14,8 +15,10 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
     public FakeFindTextBrowserApi FindTextBrowserApi { get; } = new();
     public FakeTabCustomizationBrowserApi TabCustomizationBrowserApi { get; } = new();
     public FakeTabsBrowserApi TabsBrowserApi { get; } = new();
+    public FakeDomainCustomizationBrowserApi DomainCustomizationBrowserApi { get; } = new();
 
     public FakeTabCustomizationStateManager TabCustomizationStateManager { get; } = new();
+    public FakeDomainCustomizationStateManager DomainCustomizationStateManager { get; } = new();
 
     public ITabBrowser? CurrentTab { get; private set; } = tab;
     public string? CurrentTabId => CurrentTab?.Id;
@@ -33,6 +36,16 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
     public void SetCurrentTab(ITabBrowser? tab)
     {
         CurrentTab = tab;
+    }
+
+    public bool ActionRequiresDispatch { get; set; } = false;
+
+    public void Dispatch(Action action)
+    {
+        if (!ActionRequiresDispatch)
+            throw new InvalidOperationException("Cannot dispatch");
+
+        action();
     }
 
     public static TestBrowserContextBuilder CreateFeature =>
@@ -55,6 +68,14 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
         public TestBrowserContextBuilder WithNoCurrentTab()
         {
             _tab = null;
+            return this;
+        }
+
+        public TestBrowserContextBuilder WithCurrentDomainTab(out TabBrowser tab, string address, string? tabId = null)
+        {
+            tab = TypeConstructor.CreateTabBrowser(tabId);
+            tab.SetTabAddress(address);
+            _tab = tab;
             return this;
         }
 
@@ -102,6 +123,15 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
             var feature = new FindTextFeature(null!, context, context.FindTextBrowserApi);
+            feature.Configure();
+            return feature;
+        }
+
+        public DomainCustomizationFeature BuildDomainCustomizationFeature()
+        {
+            var context = _context ?? new TestBrowserContext(_tab);
+            _configureContext?.Invoke(context);
+            var feature = new DomainCustomizationFeature(null!, context, context.DomainCustomizationBrowserApi, context.DomainCustomizationStateManager);
             feature.Configure();
             return feature;
         }

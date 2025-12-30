@@ -1,4 +1,5 @@
 ﻿using BrowserHost.Tab;
+using System.Windows;
 
 namespace BrowserHost.Tests.Fakes;
 
@@ -6,8 +7,12 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
 {
     public string Id { get; set; } = id ?? $"{Guid.NewGuid()}";
     public double ZoomLevel { get; set; }
+    public string? CurrentDomain => null;
 
-    public record FindInvocation(string SearchText, bool Forward, bool MatchCase, bool FindNext);
+    public event DependencyPropertyChangedEventHandler? AddressChanged;
+
+    public List<string> ExecutedScripts { get; } = [];
+
     public List<FindInvocation> FindInvocations { get; } = [];
     public bool StopFindingCalled { get; private set; }
     public bool StopFindingClearSelection { get; private set; }
@@ -37,4 +42,12 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
         StopFindingCalled = true;
         StopFindingClearSelection = clearSelection;
     }
+
+    public Task ExecuteScriptAsync(string script)
+    {
+        ExecutedScripts.Add(script);
+        return Task.CompletedTask;
+    }
+
+    public record FindInvocation(string SearchText, bool Forward, bool MatchCase, bool FindNext);
 }

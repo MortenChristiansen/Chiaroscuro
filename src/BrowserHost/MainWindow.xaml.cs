@@ -107,7 +107,7 @@ public partial class MainWindow : Window
             new TabPaletteFeature(this, browserContext, TabPaletteBrowserApi),
             new FindTextFeature(this, browserContext, FindTextBrowserApi),
             new TabCustomizationFeature(this, browserContext, TabCustomizationBrowserApi, TabsBrowserApi, new TabCustomizationStateManager()),
-            new DomainCustomizationFeature(this, DomainCustomizationBrowserApi),
+            new DomainCustomizationFeature(this, browserContext, DomainCustomizationBrowserApi, new DomainCustomizationStateManager()),
             new AppStateFeature(this),
         ];
         _features.ForEach(f =>
