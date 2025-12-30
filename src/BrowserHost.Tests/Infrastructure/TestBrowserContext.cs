@@ -40,11 +40,14 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
 
     public bool ActionRequiresDispatch { get; set; } = false;
 
+    public bool DispatchCalled { get; private set; }
+
     public void Dispatch(Action action)
     {
         if (!ActionRequiresDispatch)
             throw new InvalidOperationException("Cannot dispatch");
 
+        DispatchCalled = true;
         action();
     }
 

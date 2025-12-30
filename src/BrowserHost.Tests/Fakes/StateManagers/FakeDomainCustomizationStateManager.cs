@@ -6,6 +6,11 @@ internal sealed class FakeDomainCustomizationStateManager : DomainCustomizationS
 {
     private readonly Dictionary<string, DomainCustomizationDataV1> _customizations = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _cssByDomain = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Action<CustomCssWatchEventKind>> _watchCallbacksByDomain = new(StringComparer.OrdinalIgnoreCase);
+
+    public List<string> RefreshCacheInvocations { get; } = [];
+    public List<string> WatchCustomCssInvocations { get; } = [];
+    public List<WatchSubscription> WatchSubscriptions { get; } = [];
 
     public override DomainCustomizationDataV1 GetCustomization(string domain)
     {
@@ -29,8 +34,11 @@ internal sealed class FakeDomainCustomizationStateManager : DomainCustomizationS
     public override string? GetCustomCss(string domain) =>
         _cssByDomain.TryGetValue(domain, out var css) ? css : null;
 
-    public override void RefreshCacheForDomain(string domain) =>
+    public override void RefreshCacheForDomain(string domain)
+    {
+        RefreshCacheInvocations.Add(domain);
         _customizations.Remove(domain);
+    }
 
     public override void RemoveCustomCss(string domain)
     {
@@ -58,8 +66,23 @@ internal sealed class FakeDomainCustomizationStateManager : DomainCustomizationS
         return true;
     }
 
-    public override IDisposable WatchCustomCss(string domain, Action<CustomCssWatchEventKind> onEvent) =>
-        NoopWatchSubscription.Instance;
+    public override IDisposable WatchCustomCss(string domain, Action<CustomCssWatchEventKind> onEvent)
+    {
+        WatchCustomCssInvocations.Add(domain);
+        _watchCallbacksByDomain[domain] = onEvent;
+
+        var subscription = new WatchSubscription(domain);
+        WatchSubscriptions.Add(subscription);
+        return subscription;
+    }
+
+    public void TriggerWatchEvent(string domain, CustomCssWatchEventKind kind)
+    {
+        if (_watchCallbacksByDomain.TryGetValue(domain, out var callback))
+        {
+            callback(kind);
+        }
+    }
 
     public void SetCustomCss(string domain, string css)
     {
@@ -71,9 +94,12 @@ internal sealed class FakeDomainCustomizationStateManager : DomainCustomizationS
         }
     }
 
-    private sealed class NoopWatchSubscription : IDisposable
+    public sealed class WatchSubscription(string domain) : IDisposable
     {
-        public static NoopWatchSubscription Instance { get; } = new();
-        public void Dispose() { }
+        public string Domain { get; } = domain;
+        public bool IsDisposed { get; private set; }
+
+        public void Dispose() =>
+            IsDisposed = true;
     }
 }
