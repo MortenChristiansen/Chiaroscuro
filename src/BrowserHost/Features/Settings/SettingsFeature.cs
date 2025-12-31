@@ -6,13 +6,13 @@ using System.Threading;
 
 namespace BrowserHost.Features.Settings;
 
-public class SettingsFeature(MainWindow window, SettingsBrowserApi settingsApi) : Feature(window)
+public class SettingsFeature(MainWindow window, SettingsBrowserApi settingsApi, SettingsStateManager settingsStateManager) : Feature(window)
 {
     private readonly SettingsBackendApi _backendApi = new();
     private readonly Lock _autoAddSsoLock = new();
 
     // These are the settings for the current execution, loaded from disk.
-    public static SettingsDataV1 ExecutionSettings { get; private set; } = SettingsStateManager.RestoreSettingsFromDisk();
+    public SettingsDataV1 ExecutionSettings { get; private set; } = settingsStateManager.RestoreSettingsFromDisk();
 
     public override void Configure()
     {
@@ -29,7 +29,7 @@ public class SettingsFeature(MainWindow window, SettingsBrowserApi settingsApi) 
         PubSub.Instance.Subscribe<SettingsSavedEvent>(e =>
         {
             var mappedSettings = new SettingsDataV1(e.Settings.UserAgent, e.Settings.SsoEnabledDomains, e.Settings.AutoAddSsoDomains);
-            ExecutionSettings = SettingsStateManager.SaveSettings(mappedSettings);
+            ExecutionSettings = settingsStateManager.SaveSettings(mappedSettings);
         });
         PubSub.Instance.Subscribe<SsoFlowStartedEvent>(e =>
         {

@@ -1,4 +1,5 @@
-﻿using BrowserHost.Features.TabPalette;
+﻿using BrowserHost.Features.Settings;
+using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
@@ -16,9 +17,11 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
     public FakeTabCustomizationBrowserApi TabCustomizationBrowserApi { get; } = new();
     public FakeTabsBrowserApi TabsBrowserApi { get; } = new();
     public FakeDomainCustomizationBrowserApi DomainCustomizationBrowserApi { get; } = new();
+    public FakeSettingsBrowserApi SettingsBrowserApi { get; } = new();
 
     public FakeTabCustomizationStateManager TabCustomizationStateManager { get; } = new();
     public FakeDomainCustomizationStateManager DomainCustomizationStateManager { get; } = new();
+    public FakeSettingsStateManager SettingsStateManager { get; } = new();
 
     public ITabBrowser? CurrentTab { get; private set; } = tab;
     public string? CurrentTabId => CurrentTab?.Id;
@@ -135,6 +138,15 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
             var feature = new DomainCustomizationFeature(null!, context, context.DomainCustomizationBrowserApi, context.DomainCustomizationStateManager);
+            feature.Configure();
+            return feature;
+        }
+
+        public SettingsFeature BuildSettingsFeature()
+        {
+            var context = _context ?? new TestBrowserContext(_tab);
+            _configureContext?.Invoke(context);
+            var feature = new SettingsFeature(null!, context.SettingsBrowserApi, context.SettingsStateManager);
             feature.Configure();
             return feature;
         }

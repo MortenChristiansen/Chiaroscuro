@@ -55,6 +55,13 @@ static class ContentServer
 
     public static bool IsContentPage(string url, [NotNullWhen(true)] out ContentPage? contentPage, ContentPageUrlMode urlMode = ContentPageUrlMode.Relative)
     {
+        // Make sure that other /settings pages are not matched
+        if (!url.StartsWith('/') && !url.StartsWith(_host + "/"))
+        {
+            contentPage = null;
+            return false;
+        }
+
         var adjustedUrl = urlMode switch
         {
             ContentPageUrlMode.Relative => url.Trim(),

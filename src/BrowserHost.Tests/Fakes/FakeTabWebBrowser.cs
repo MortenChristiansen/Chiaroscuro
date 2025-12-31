@@ -17,6 +17,9 @@ internal class FakeTabWebBrowser(string tabId) : ITabWebBrowser
     public bool HasDevTools => false;
     public double DefaultZoomLevel => 0;
 
+    public List<ClientApiInvocation> ClientApiInvocations { get; } = [];
+    public List<RegisteredContentPageApi> RegisteredContentPageApis { get; } = [];
+
     public List<string> ExecutedScripts { get; } = [];
 
     public event DependencyPropertyChangedEventHandler? AddressChanged;
@@ -29,11 +32,16 @@ internal class FakeTabWebBrowser(string tabId) : ITabWebBrowser
         Address = address;
         AddressChanged?.Invoke(this, new DependencyPropertyChangedEventArgs(null!, old, address));
     }
-    public void RegisterContentPageApi(BackendApi api, string name) => throw new NotSupportedException();
+    public void RegisterContentPageApi(BackendApi api, string name) =>
+        RegisteredContentPageApis.Add(new RegisteredContentPageApi(name, api));
     public void Reload(bool ignoreCache = false) => throw new NotSupportedException();
     public void Back() => throw new NotSupportedException();
     public void Forward() => throw new NotSupportedException();
-    public Task CallClientApi(string api, string? arguments = null) => throw new NotSupportedException();
+    public Task CallClientApi(string api, string? arguments = null)
+    {
+        ClientApiInvocations.Add(new ClientApiInvocation(api, arguments));
+        return Task.CompletedTask;
+    }
     public Task ExecuteScriptAsync(string script)
     {
         ExecutedScripts.Add(script);
@@ -47,22 +55,7 @@ internal class FakeTabWebBrowser(string tabId) : ITabWebBrowser
     public void ShowDevTools() => throw new NotSupportedException();
     public void CloseDevTools() => throw new NotSupportedException();
     public void Dispose() { }
-}
 
-internal static class TabBrowserExtensions
-{
-    extension(TabBrowser tabBrowser)
-    {
-        public void SetTabAddress(string address)
-        {
-            tabBrowser.GetTabWebBrowser().SetAddress(address, setManualAddress: false);
-        }
-
-        public FakeTabWebBrowser GetTabWebBrowser()
-        {
-            var browserField = typeof(TabBrowser).GetField("_browser", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?? throw new InvalidOperationException("TabBrowser._browser field not found - internal structure may have changed");
-            return (FakeTabWebBrowser)browserField.GetValue(tabBrowser)!;
-        }
-    }
+    public record ClientApiInvocation(string Api, string? Arguments);
+    public record RegisteredContentPageApi(string Name, BackendApi Api);
 }
