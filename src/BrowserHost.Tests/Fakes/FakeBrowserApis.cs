@@ -71,7 +71,8 @@ public class FakeSettingsBrowserApi() : SettingsBrowserApi(() => null), IFakeBro
 {
     public List<BrowserApiInvocation> Invocations { get; } = [];
 
-    // This is special because it forwards the arguments to the current tab browser CallClientApi method.
+    // This is different from the other fake apis because the implementation forwards the arguments to
+    // the current tab browser CallClientApi method rather than calling CallClientApi directly.
     public override void SettingsLoaded(SettingUiStateDto settings) =>
         Invocations.Add(new("settingsLoaded", settings.ToJsonObject()));
 }

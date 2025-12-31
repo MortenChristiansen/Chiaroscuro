@@ -16,8 +16,6 @@ public class SettingsFeature(MainWindow window, SettingsBrowserApi settingsApi, 
 
     public override void Configure()
     {
-        ExecutionSettings = settingsStateManager.RestoreSettingsFromDisk();
-
         PubSub.Instance.Subscribe<TabBrowserCreatedEvent>(e =>
         {
             if (ContentServer.IsSettingsPage(e.TabBrowser.Address))
