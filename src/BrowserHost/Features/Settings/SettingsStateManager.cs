@@ -1,5 +1,5 @@
-﻿using BrowserHost.Utilities;
-using BrowserHost.Serialization;
+﻿using BrowserHost.Serialization;
+using BrowserHost.Utilities;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -10,14 +10,14 @@ namespace BrowserHost.Features.Settings;
 
 public record SettingsDataV1(string? UserAgent, string[]? SsoEnabledDomains, bool? AutoAddSsoDomains);
 
-public static class SettingsStateManager
+public class SettingsStateManager
 {
     private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("settings.json");
     private const int _currentVersion = 1;
-    private static SettingsDataV1? _lastSavedSettingsData = null;
-    private static readonly Lock _lock = new();
+    private SettingsDataV1? _lastSavedSettingsData = null;
+    private readonly Lock _lock = new();
 
-    public static SettingsDataV1 SaveSettings(SettingsDataV1 settings)
+    public virtual SettingsDataV1 SaveSettings(SettingsDataV1 settings)
     {
         lock (_lock)
         {
@@ -45,7 +45,7 @@ public static class SettingsStateManager
         }
     }
 
-    public static SettingsDataV1 RestoreSettingsFromDisk()
+    public virtual SettingsDataV1 RestoreSettingsFromDisk()
     {
         lock (_lock)
         {

@@ -1,4 +1,5 @@
-﻿using BrowserHost.Logging;
+﻿using BrowserHost.Features.Settings;
+using BrowserHost.Logging;
 using CefSharp;
 using CefSharp.Wpf;
 using System;
@@ -13,6 +14,7 @@ public partial class App : Application
 {
     public static UpdateManager UpdateManager { get; } = new(new GithubSource("https://github.com/MortenChristiansen/Chiaroscuro", accessToken: null, prerelease: false, downloader: null));
     public static Options Options { get; } = Options.Parse(Environment.GetCommandLineArgs());
+    public static SettingsFeature SettingsFeature => ProgramPublishSingleFile.SettingsFeature;
 
     public App()
     {

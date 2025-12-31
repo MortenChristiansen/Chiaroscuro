@@ -10,7 +10,6 @@ using BrowserHost.Features.AppState;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
-using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
@@ -56,7 +55,6 @@ public partial class MainWindow : Window
         set => SetValue(WorkspaceColorProperty, value);
     }
 
-    public SettingsBrowserApi SettingsBrowserApi { get; }
     public CustomWindowChromeBrowserApi CustomWindowChromeBrowserApi { get; }
     public ActionDialogBrowserApi ActionDialogBrowserApi { get; }
     public TabsBrowserApi TabsBrowserApi { get; }
@@ -76,7 +74,6 @@ public partial class MainWindow : Window
         // Queued at ContextIdle to avoid competing with startup work.
         Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, CheckForUpdates);
 
-        SettingsBrowserApi = new SettingsBrowserApi(() => CurrentTab);
         CustomWindowChromeBrowserApi = new CustomWindowChromeBrowserApi(ChromeUI);
         ActionDialogBrowserApi = new ActionDialogBrowserApi(ActionDialog);
         TabsBrowserApi = new TabsBrowserApi(ActionContext);
@@ -92,7 +89,7 @@ public partial class MainWindow : Window
 
         _features =
         [
-            new SettingsFeature(this, SettingsBrowserApi),
+            App.SettingsFeature,
             new CustomWindowChromeFeature(this, CustomWindowChromeBrowserApi),
             new ActionContextFeature(this),
             new ActionDialogFeature(this, ActionDialogBrowserApi),

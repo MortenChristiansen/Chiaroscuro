@@ -51,3 +51,21 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
 
     public record FindInvocation(string SearchText, bool Forward, bool MatchCase, bool FindNext);
 }
+
+internal static class TabBrowserExtensions
+{
+    extension(TabBrowser tabBrowser)
+    {
+        public void SetTabAddress(string address)
+        {
+            tabBrowser.GetTabWebBrowser().SetAddress(address, setManualAddress: false);
+        }
+
+        public FakeTabWebBrowser GetTabWebBrowser()
+        {
+            var browserField = typeof(TabBrowser).GetField("_browser", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?? throw new InvalidOperationException("TabBrowser._browser field not found - internal structure may have changed");
+            return (FakeTabWebBrowser)browserField.GetValue(tabBrowser)!;
+        }
+    }
+}

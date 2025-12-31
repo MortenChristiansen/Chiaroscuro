@@ -92,7 +92,7 @@ public class TabBrowser : UserControl, ITabBrowser
     private static bool ShouldUseWebView2(string address)
     {
         if (ContentServer.IsContentServerUrl(address)) return false;
-        return SettingsFeature.ExecutionSettings.SsoEnabledDomains?.Any(domain => HasDomain(address, domain)) == true;
+        return App.SettingsFeature.ExecutionSettings.SsoEnabledDomains?.Any(domain => HasDomain(address, domain)) == true;
     }
 
     public void PromoteToFullTab()
@@ -141,7 +141,7 @@ public class TabBrowser : UserControl, ITabBrowser
                 UpgradeToWebView2(newAddress);
             }
             else if (
-                SettingsFeature.ExecutionSettings.AutoAddSsoDomains == true &&
+                App.SettingsFeature.ExecutionSettings.AutoAddSsoDomains == true &&
                 IsSsoLoginPage(newAddress) &&
                 e.OldValue is string oldAddress &&
                 Uri.TryCreate(oldAddress, UriKind.Absolute, out var oldUri) &&

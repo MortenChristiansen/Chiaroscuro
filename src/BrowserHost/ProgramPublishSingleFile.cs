@@ -20,6 +20,8 @@ namespace BrowserHost;
 /// </summary>
 public class ProgramPublishSingleFile
 {
+    public static SettingsFeature SettingsFeature { get; private set; } = null!;
+
     [STAThread]
     [SupportedOSPlatform("windows")]
     public static int Main(string[] args)
@@ -53,7 +55,7 @@ public class ProgramPublishSingleFile
         if (App.Options.ForceAppRegistration)
             WindowsRegistrator.RegisterApplication(new SemanticVersion(0, 0, 0));
 
-        var appSettings = SettingsFeature.ExecutionSettings;
+        SettingsFeature = new SettingsFeature(null!, new SettingsBrowserApi(() => MainWindow.Instance.CurrentTab), new SettingsStateManager());
 
         var cacheFolder = Debugger.IsAttached ? "CefSharp\\DevCache" : "CefSharp\\Cache";
 
@@ -62,7 +64,7 @@ public class ProgramPublishSingleFile
             //By default CefSharp will use an in-memory cache, you need to specify a Cache Folder to persist data
             CachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), cacheFolder),
             BrowserSubprocessPath = Process.GetCurrentProcess().MainModule!.FileName,
-            UserAgent = appSettings.UserAgent ?? "",
+            UserAgent = SettingsFeature.ExecutionSettings.UserAgent ?? "",
         };
 
         //Example of setting a command line argument

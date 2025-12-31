@@ -1,8 +1,10 @@
 ﻿using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
+using BrowserHost.Utilities;
 
 namespace BrowserHost.Tests.Fakes;
 
@@ -63,4 +65,13 @@ public class FakeDomainCustomizationBrowserApi() : DomainCustomizationBrowserApi
 
     public override void CallClientApi(string api, string? arguments = null) =>
         Invocations.Add(new(api, arguments));
+}
+
+public class FakeSettingsBrowserApi() : SettingsBrowserApi(() => null), IFakeBrowserApi
+{
+    public List<BrowserApiInvocation> Invocations { get; } = [];
+
+    // This is special because it forwards the arguments to the current tab browser CallClientApi method.
+    public override void SettingsLoaded(SettingUiStateDto settings) =>
+        Invocations.Add(new("settingsLoaded", settings.ToJsonObject()));
 }

@@ -6,6 +6,6 @@ namespace BrowserHost.Features.Settings;
 
 public class SettingsBrowserApi(Func<TabBrowser?> getCurrentTabBrowser)
 {
-    public void SettingsLoaded(SettingUiStateDto settings) =>
+    public virtual void SettingsLoaded(SettingUiStateDto settings) =>
         getCurrentTabBrowser()?.CallClientApi("settingsLoaded", settings.ToJsonObject());
 }
