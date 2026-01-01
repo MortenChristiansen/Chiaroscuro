@@ -4,7 +4,7 @@ using BrowserHost.Utilities;
 using System.Windows.Input;
 using static BrowserHost.Tests.Infrastructure.TypeConstructor;
 
-namespace BrowserHost.Tests.Features;
+namespace BrowserHost.Tests.Features.TabPalette;
 
 public class TabPaletteFeatureTests
 {

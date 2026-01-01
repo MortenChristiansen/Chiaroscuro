@@ -1,7 +1,7 @@
 ﻿using System.Windows.Input;
 using static BrowserHost.Tests.Infrastructure.TypeConstructor;
 
-namespace BrowserHost.Tests.Features;
+namespace BrowserHost.Tests.Features.Zoom;
 
 public class ZoomFeatureTests
 {

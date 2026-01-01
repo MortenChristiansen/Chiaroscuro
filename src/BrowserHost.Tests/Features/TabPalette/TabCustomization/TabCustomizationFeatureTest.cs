@@ -4,7 +4,7 @@ using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Utilities;
 
-namespace BrowserHost.Tests.Features.TabPalette;
+namespace BrowserHost.Tests.Features.TabPalette.TabCustomization;
 
 public class TabCustomizationFeatureTest
 {

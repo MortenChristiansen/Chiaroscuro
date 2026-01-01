@@ -6,7 +6,7 @@ using System.Windows.Input;
 using static BrowserHost.Tests.Fakes.TestBrowserApiExtensions;
 using static BrowserHost.Tests.Infrastructure.TypeConstructor;
 
-namespace BrowserHost.Tests.Features.TabPalette;
+namespace BrowserHost.Tests.Features.TabPalette.FindText;
 
 public class FindTextFeatureTest
 {

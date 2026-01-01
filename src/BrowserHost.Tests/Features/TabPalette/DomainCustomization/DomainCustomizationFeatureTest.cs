@@ -3,7 +3,7 @@ using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Utilities;
 
-namespace BrowserHost.Tests.Features.TabPalette;
+namespace BrowserHost.Tests.Features.TabPalette.DomainCustomization;
 
 public class DomainCustomizationFeatureTest
 {
