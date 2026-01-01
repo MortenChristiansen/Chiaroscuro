@@ -7,7 +7,7 @@ namespace BrowserHost.Tests.Features.TabPalette.DomainCustomization;
 
 public class DomainCustomizationFeatureTest
 {
-    private static readonly string _domain = $"{Guid.NewGuid():N}.example";
+    private readonly string _domain = $"{Guid.NewGuid():N}.example";
 
     [Fact]
     public void Publishing_a_TabPaletteRequestedEvent_initializes_domain_settings_when_the_current_tab_has_a_domain()
@@ -45,13 +45,13 @@ public class DomainCustomizationFeatureTest
             .WithCurrentDomainTab(out var tab, $"https://{_domain}/", tabId: "tab-1")
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
-        context.DomainCustomizationStateManager.SetCustomCss(_domain, "body { background: red; }");
-        context.DomainCustomizationStateManager.SaveCustomization(new DomainCustomizationDataV1(_domain, CssEnabled: true, HasCustomCss: true));
+        Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(_domain));
+        PubSub.Instance.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
         PubSub.Instance.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
 
         PubSub.Instance.Publish(new DomainCustomCssRemovedEvent(_domain));
 
-        var disabledEvent = Assert.Single(PubSubMessages.OfType<DomainCustomizationChangedEvent>());
+        var disabledEvent = Assert.Single(PubSubMessages.OfType<DomainCustomizationChangedEvent>(), e => !e.CssEnabled);
         Assert.Equal(_domain, disabledEvent.Domain);
         Assert.False(disabledEvent.CssEnabled);
         var customization = context.DomainCustomizationStateManager.GetCustomization(_domain);
@@ -62,7 +62,7 @@ public class DomainCustomizationFeatureTest
     }
 
     [Fact]
-    public void Publishing_a_DomainCssEditRequestedEvent_creates_CSS_enables_it_and_starts_watching_for_changes()
+    public void Publishing_a_DomainCssEditRequestedEvent_creates_CSS_and_enables_it()
     {
         CreateFeature
             .WithCurrentDomainTab(out var tab, $"https://{_domain}/", tabId: "tab-1")
@@ -75,7 +75,8 @@ public class DomainCustomizationFeatureTest
         var customization = context.DomainCustomizationStateManager.GetCustomization(_domain);
         Assert.True(customization.CssEnabled);
         Assert.True(customization.HasCustomCss);
-        Assert.Contains(_domain, context.DomainCustomizationStateManager.WatchCustomCssInvocations);
+        var cssFile = GetCustomCssFilePath(context, _domain);
+        Assert.True(context.FileSystem.File.Exists(cssFile));
     }
 
     [Fact]
@@ -86,16 +87,16 @@ public class DomainCustomizationFeatureTest
             .CaptureContext(out var context)
             .ConfigureContext(ctx => ctx.ActionRequiresDispatch = true)
             .BuildDomainCustomizationFeature();
-        context.DomainCustomizationStateManager.SetCustomCss(_domain, "body { background: red; }");
-        context.DomainCustomizationStateManager.SaveCustomization(new DomainCustomizationDataV1(_domain, CssEnabled: true, HasCustomCss: true));
+        Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(_domain));
+        PubSub.Instance.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
         PubSub.Instance.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
+        var cssFile = GetCustomCssFilePath(context, _domain);
 
-        context.DomainCustomizationStateManager.TriggerWatchEvent(_domain, DomainCustomizationStateManager.CustomCssWatchEventKind.Changed);
+        context.FileSystem.File.WriteAllText(cssFile, "body { background: green; } /* token:green */");
 
-        Assert.True(context.DispatchCalled);
-        Assert.Contains(_domain, context.DomainCustomizationStateManager.RefreshCacheInvocations);
+        context.WaitForDispatch();
         Assert.Contains(context.DomainCustomizationBrowserApi.Invocations, i => i.Method == "updateDomainSettings");
-        Assert.Contains(tab.GetTabWebBrowser().ExecutedScripts, s => s.Contains("chiaroscuro-domain-css") && s.Contains("expectedCss"));
+        Assert.Contains(tab.GetTabWebBrowser().ExecutedScripts, s => s.Contains("chiaroscuro-domain-css") && s.Contains("expectedCss") && s.Contains("token:green"));
     }
 
     [Fact]
@@ -106,19 +107,22 @@ public class DomainCustomizationFeatureTest
             .CaptureContext(out var context)
             .ConfigureContext(ctx => ctx.ActionRequiresDispatch = true)
             .BuildDomainCustomizationFeature();
+        Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(_domain));
+        PubSub.Instance.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
         PubSub.Instance.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
+        var cssFile = GetCustomCssFilePath(context, _domain);
 
-        context.DomainCustomizationStateManager.TriggerWatchEvent(_domain, DomainCustomizationStateManager.CustomCssWatchEventKind.Removed);
+        context.FileSystem.File.Delete(cssFile);
 
+        context.WaitUntil(() => PubSubMessages.OfType<DomainCustomCssRemovedEvent>().Any());
         var removedEvent = Assert.Single(PubSubMessages.OfType<DomainCustomCssRemovedEvent>());
         Assert.Equal(_domain, removedEvent.Domain);
         Assert.False(context.DispatchCalled);
-        Assert.DoesNotContain(_domain, context.DomainCustomizationStateManager.RefreshCacheInvocations);
         Assert.Contains(tab.GetTabWebBrowser().ExecutedScripts, s => s.Contains("chiaroscuro-domain-css") && s.Contains("remove"));
     }
 
     [Fact]
-    public void When_the_current_domain_changes_the_previous_CSS_watcher_is_disposed_and_a_new_one_is_created()
+    public void When_the_current_domain_changes_we_no_longer_watch_for_changes_to_the_previous_domain_CSS_file()
     {
         var domain1 = $"{Guid.NewGuid():N}.example";
         var domain2 = $"{Guid.NewGuid():N}.example";
@@ -126,17 +130,26 @@ public class DomainCustomizationFeatureTest
             .WithCurrentDomainTab(out var tab1, $"https://{domain1}/", tabId: "tab-1")
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
+        Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(domain1));
+        PubSub.Instance.Publish(new DomainCustomizationChangedEvent(domain1, CssEnabled: true));
         PubSub.Instance.Publish(new TabActivatedEvent(tab1.Id, PreviousTab: null));
-        var firstSubscription = Assert.Single(context.DomainCustomizationStateManager.WatchSubscriptions);
-        Assert.False(firstSubscription.IsDisposed);
+        var cssFile1 = GetCustomCssFilePath(context, domain1);
 
         var tab2 = TypeConstructor.CreateTabBrowser("tab-2");
         tab2.SetTabAddress($"https://{domain2}/");
         context.SetCurrentTab(tab2);
-        PubSub.Instance.Publish(new TabActivatedEvent(tab2.Id, PreviousTab: tab1));
 
-        Assert.True(firstSubscription.IsDisposed);
-        Assert.Contains(domain2, context.DomainCustomizationStateManager.WatchCustomCssInvocations);
-        Assert.Equal(2, context.DomainCustomizationStateManager.WatchSubscriptions.Count);
+        var scriptsBefore = tab2.GetTabWebBrowser().ExecutedScripts.Count;
+        var invocationsBefore = context.DomainCustomizationBrowserApi.Invocations.Count(i => i.Method == "updateDomainSettings");
+        context.FileSystem.File.WriteAllText(cssFile1, "body { background: blue; } /* token:domain1 */");
+        Assert.Equal(scriptsBefore, tab2.GetTabWebBrowser().ExecutedScripts.Count);
+        Assert.Equal(invocationsBefore, context.DomainCustomizationBrowserApi.Invocations.Count(i => i.Method == "updateDomainSettings"));
+    }
+
+    private static string GetCustomCssFilePath(TestBrowserContext context, string domain)
+    {
+        var appDataRoot = AppDataPathManager.GetAppDataFolderPath();
+        var files = context.FileSystem.Directory.EnumerateFiles(appDataRoot, "custom.css", SearchOption.AllDirectories).ToList();
+        return files.Single(f => f.Contains(domain.ToLowerInvariant(), StringComparison.OrdinalIgnoreCase));
     }
 }

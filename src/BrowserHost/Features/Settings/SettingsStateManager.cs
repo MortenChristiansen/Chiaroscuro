@@ -2,9 +2,9 @@
 using BrowserHost.Utilities;
 using System;
 using System.Diagnostics;
+using System.IO.Abstractions;
 using System.Text.Json;
 using System.Threading;
-using System.IO.Abstractions;
 using Testably.Abstractions;
 
 namespace BrowserHost.Features.Settings;
@@ -13,8 +13,9 @@ public record SettingsDataV1(string? UserAgent, string[]? SsoEnabledDomains, boo
 
 public class SettingsStateManager
 {
+    public static string PersistedStatePath { get; } = AppDataPathManager.GetAppDataFilePath("settings.json");
+
     private readonly IFileSystem _fileSystem;
-    private readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("settings.json");
     private const int _currentVersion = 1;
     private SettingsDataV1? _lastSavedSettingsData = null;
     private readonly Lock _lock = new();
@@ -40,7 +41,7 @@ public class SettingsStateManager
 
             try
             {
-                var stateDirectoryPath = _fileSystem.Path.GetDirectoryName(_persistedStatePath);
+                var stateDirectoryPath = _fileSystem.Path.GetDirectoryName(PersistedStatePath);
                 if (!string.IsNullOrWhiteSpace(stateDirectoryPath))
                 {
                     _fileSystem.Directory.CreateDirectory(stateDirectoryPath);
@@ -51,7 +52,7 @@ public class SettingsStateManager
                     Version = _currentVersion,
                     Data = settings
                 };
-                _fileSystem.File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versionedData, BrowserHostJsonContext.Default.PersistentDataSettingsDataV1));
+                _fileSystem.File.WriteAllText(PersistedStatePath, JsonSerializer.Serialize(versionedData, BrowserHostJsonContext.Default.PersistentDataSettingsDataV1));
                 _lastSavedSettingsData = settings;
             }
             catch (Exception e) when (!Debugger.IsAttached)
@@ -68,9 +69,9 @@ public class SettingsStateManager
         {
             try
             {
-                if (_fileSystem.File.Exists(_persistedStatePath))
+                if (_fileSystem.File.Exists(PersistedStatePath))
                 {
-                    var json = _fileSystem.File.ReadAllText(_persistedStatePath);
+                    var json = _fileSystem.File.ReadAllText(PersistedStatePath);
                     var versionedData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                     if (versionedData?.Version == _currentVersion)
                     {

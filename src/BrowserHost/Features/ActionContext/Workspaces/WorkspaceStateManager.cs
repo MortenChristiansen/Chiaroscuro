@@ -1,13 +1,13 @@
-﻿using BrowserHost.Logging;
+using BrowserHost.Logging;
 using BrowserHost.Serialization;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
-using System.IO.Abstractions;
 using Testably.Abstractions;
 
 namespace BrowserHost.Features.ActionContext.Workspaces;
@@ -22,8 +22,9 @@ public record FolderDtoV1(string Id, string Name, int StartIndex, int EndIndex);
 
 public class WorkspaceStateManager
 {
+    public static string PersistedStatePath { get; } = AppDataPathManager.GetAppDataFilePath("workspaces.json");
+
     private readonly IFileSystem _fileSystem;
-    private readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("workspaces.json");
     private const int _currentVersion = 1;
     private const int _ephemeralTabExpirationHours = 16;
     private readonly WorkspaceDtoV1 _defaultWorkspace = new($"{Guid.NewGuid()}", "Browse", "#202634", "🌐", [], 0);
@@ -80,7 +81,7 @@ public class WorkspaceStateManager
     {
         try
         {
-            var stateDirectoryPath = _fileSystem.Path.GetDirectoryName(_persistedStatePath);
+            var stateDirectoryPath = _fileSystem.Path.GetDirectoryName(PersistedStatePath);
             if (!string.IsNullOrWhiteSpace(stateDirectoryPath))
             {
                 _fileSystem.Directory.CreateDirectory(stateDirectoryPath);
@@ -92,7 +93,7 @@ public class WorkspaceStateManager
                 Version = _currentVersion,
                 Data = newWorkspacesData
             };
-            _fileSystem.File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versionedData, BrowserHostJsonContext.Default.PersistentDataWorkspacesDataDtoV1));
+            _fileSystem.File.WriteAllText(PersistedStatePath, JsonSerializer.Serialize(versionedData, BrowserHostJsonContext.Default.PersistentDataWorkspacesDataDtoV1));
 
             // Update the cache after successful save
             _lastSavedWorkspaceData = newWorkspacesData;
@@ -113,9 +114,9 @@ public class WorkspaceStateManager
 
                 try
                 {
-                    if (_fileSystem.File.Exists(_persistedStatePath))
+                    if (_fileSystem.File.Exists(PersistedStatePath))
                     {
-                        var json = _fileSystem.File.ReadAllText(_persistedStatePath);
+                        var json = _fileSystem.File.ReadAllText(PersistedStatePath);
 
                         try
                         {

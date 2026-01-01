@@ -1,5 +1,4 @@
 using BrowserHost.Features.ActionDialog;
-using BrowserHost.Utilities;
 using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.ActionDialog;
@@ -24,7 +23,7 @@ public class NavigationHistoryStateManagerTest
     {
         var fileSystem = new MockFileSystem();
         var manager = new NavigationHistoryStateManager(fileSystem);
-        var historyPath = AppDataPathManager.GetAppDataFilePath("navigationHistory.json");
+        var historyPath = NavigationHistoryStateManager.NavigationHistoryPath;
 
         manager.SaveNavigationEntry("file://c:/temp/a.txt", "A", null);
 

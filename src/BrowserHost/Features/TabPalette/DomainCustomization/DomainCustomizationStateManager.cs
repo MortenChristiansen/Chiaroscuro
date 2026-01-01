@@ -5,9 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Abstractions;
 using System.Text.Json;
 using System.Threading;
-using System.IO.Abstractions;
 using Testably.Abstractions;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
@@ -21,13 +21,14 @@ public record DomainCustomizationSettingsV2(string Domain, bool CssEnabled);
 public class DomainCustomizationStateManager
 {
     private readonly IFileSystem _fileSystem;
+    private readonly IFileOpener _fileOpener;
     private const int _currentVersion = 2;
     private readonly Lock _lock = new();
 
     // Cache customizations per domain on-demand only
     private readonly Dictionary<string, DomainCustomizationDataV1> _cachedPerDomain = [];
 
-    private static string RootFolder => Path.Combine(AppDataPathManager.GetAppDataFolderPath(), "domain-settings");
+    public static string RootFolder => Path.Combine(AppDataPathManager.GetAppDataFolderPath(), "domain-settings");
     private static string GetDomainFolder(string domain) => Path.Combine(RootFolder, SanitizeDomainName(domain));
     private static string GetCustomizationFilePath(string domain) => Path.Combine(GetDomainFolder(domain), "settings.json");
     private static string GetCssFilePath(string domain) => Path.Combine(GetDomainFolder(domain), "custom.css");
@@ -44,13 +45,14 @@ public class DomainCustomizationStateManager
 
     private static string CacheKey(string domain) => SanitizeDomainName(domain);
 
-    public DomainCustomizationStateManager() : this(new RealFileSystem())
+    public DomainCustomizationStateManager() : this(new RealFileSystem(), new ShellFileOpener())
     {
     }
 
-    public DomainCustomizationStateManager(IFileSystem fileSystem)
+    public DomainCustomizationStateManager(IFileSystem fileSystem, IFileOpener fileOpener)
     {
         _fileSystem = fileSystem;
+        _fileOpener = fileOpener;
     }
 
     public virtual DomainCustomizationDataV1 GetCustomization(string domain)
@@ -193,11 +195,7 @@ public class DomainCustomizationStateManager
                 _fileSystem.File.WriteAllText(cssPath, $"/* Custom CSS for {domain} */\n\n");
             }
 
-            var processStartInfo = new ProcessStartInfo(cssPath)
-            {
-                UseShellExecute = true
-            };
-            Process.Start(processStartInfo);
+            _fileOpener.OpenFile(cssPath);
 
             RefreshCacheForDomain(domain);
             return true;

@@ -1,10 +1,10 @@
-using BrowserHost.Utilities;
 using BrowserHost.Serialization;
+using BrowserHost.Utilities;
 using System;
 using System.Diagnostics;
+using System.IO.Abstractions;
 using System.Text.Json;
 using System.Threading;
-using System.IO.Abstractions;
 using Testably.Abstractions;
 
 namespace BrowserHost.Features.AppState;
@@ -13,8 +13,9 @@ public record AppStateDataV1(double ActionContextWidth, double TabPaletteWidth);
 
 public class AppStateStateManager
 {
+    public static string PersistedStatePath { get; } = AppDataPathManager.GetAppDataFilePath("appState.json");
+
     private readonly IFileSystem _fileSystem;
-    private readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("appState.json");
     private const int _currentVersion = 1;
     private AppStateDataV1? _lastSavedState;
     private readonly Lock _lock = new();
@@ -36,9 +37,9 @@ public class AppStateStateManager
         {
             try
             {
-                if (_fileSystem.File.Exists(_persistedStatePath))
+                if (_fileSystem.File.Exists(PersistedStatePath))
                 {
-                    var json = _fileSystem.File.ReadAllText(_persistedStatePath);
+                    var json = _fileSystem.File.ReadAllText(PersistedStatePath);
                     var versioned = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                     if (versioned?.Version == _currentVersion)
                     {
@@ -92,7 +93,7 @@ public class AppStateStateManager
 
         try
         {
-            var stateDirectoryPath = _fileSystem.Path.GetDirectoryName(_persistedStatePath);
+            var stateDirectoryPath = _fileSystem.Path.GetDirectoryName(PersistedStatePath);
             if (!string.IsNullOrWhiteSpace(stateDirectoryPath))
             {
                 _fileSystem.Directory.CreateDirectory(stateDirectoryPath);
@@ -103,7 +104,7 @@ public class AppStateStateManager
                 Version = _currentVersion,
                 Data = updated
             };
-            _fileSystem.File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versioned, BrowserHostJsonContext.Default.PersistentDataAppStateDataV1));
+            _fileSystem.File.WriteAllText(PersistedStatePath, JsonSerializer.Serialize(versioned, BrowserHostJsonContext.Default.PersistentDataAppStateDataV1));
             _lastSavedState = updated;
         }
         catch (Exception e) when (!Debugger.IsAttached)

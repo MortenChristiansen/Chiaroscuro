@@ -5,13 +5,25 @@ using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
-using BrowserHost.Tests.Fakes.StateManagers;
 using System.Windows.Input;
+using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Infrastructure;
 
-internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
+internal class TestBrowserContext : IBrowserContext
 {
+    public TestBrowserContext(ITabBrowser? tab)
+    {
+        FileSystem = new MockFileSystem();
+        CurrentTab = tab;
+
+        TabCustomizationStateManager = new TabCustomizationStateManager(FileSystem);
+        DomainCustomizationStateManager = new DomainCustomizationStateManager(FileSystem, new NoopFileOpener());
+        SettingsStateManager = new SettingsStateManager(FileSystem);
+    }
+
+    public MockFileSystem FileSystem { get; }
+
     public FakeTabPaletteBrowserApi TabPaletteBrowserApi { get; } = new();
     public FakeFindTextBrowserApi FindTextBrowserApi { get; } = new();
     public FakeTabCustomizationBrowserApi TabCustomizationBrowserApi { get; } = new();
@@ -19,11 +31,11 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
     public FakeDomainCustomizationBrowserApi DomainCustomizationBrowserApi { get; } = new();
     public FakeSettingsBrowserApi SettingsBrowserApi { get; } = new();
 
-    public FakeTabCustomizationStateManager TabCustomizationStateManager { get; } = new();
-    public FakeDomainCustomizationStateManager DomainCustomizationStateManager { get; } = new();
-    public FakeSettingsStateManager SettingsStateManager { get; } = new();
+    public TabCustomizationStateManager TabCustomizationStateManager { get; }
+    public DomainCustomizationStateManager DomainCustomizationStateManager { get; }
+    public SettingsStateManager SettingsStateManager { get; }
 
-    public ITabBrowser? CurrentTab { get; private set; } = tab;
+    public ITabBrowser? CurrentTab { get; private set; }
     public string? CurrentTabId => CurrentTab?.Id;
 
     public ModifierKeys CurrentKeyboardModifiers { get; set; }
@@ -44,6 +56,16 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
     public bool ActionRequiresDispatch { get; set; } = false;
 
     public bool DispatchCalled { get; private set; }
+
+    public void WaitForDispatch()
+    {
+        WaitUntil(() => DispatchCalled);
+    }
+
+    public void WaitUntil(Func<bool> condition)
+    {
+        Assert.True(SpinWait.SpinUntil(condition, TimeSpan.FromSeconds(2)));
+    }
 
     public void Dispatch(Action action)
     {

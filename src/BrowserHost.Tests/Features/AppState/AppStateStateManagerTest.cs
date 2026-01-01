@@ -1,5 +1,4 @@
 using BrowserHost.Features.AppState;
-using BrowserHost.Utilities;
 using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.AppState;
@@ -24,7 +23,7 @@ public class AppStateStateManagerTest
     {
         var fileSystem = new MockFileSystem();
         var manager = new AppStateStateManager(fileSystem);
-        var statePath = AppDataPathManager.GetAppDataFilePath("appState.json");
+        var statePath = AppStateStateManager.PersistedStatePath;
         manager.SaveTabPaletteWidth(400);
         var expectedWriteTime = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         fileSystem.File.SetLastWriteTimeUtc(statePath, expectedWriteTime);

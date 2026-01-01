@@ -53,10 +53,10 @@ Feature tests follow a small set of conventions designed to keep tests readable,
 
 ## Managing persistent state and file access
 
-- Create a test version of state managers (e.g., `FakeTabCustomizationStateManager`) when persistent state
-  is needed. These are available via the `TestBrowserContext`. They are located in `BrowserHost.Tests/Infrastructure/Fakes/StateManagers`.
-- Do not use an interface. Inherit from the non-fake state manager class and use virtual/override methods on the fake state managers to control behavior as needed.
-- Inject the fake state manager into the feature under test via the `CreateFeature` builder, through the constructor.
+- Use the real state manager classes, backed by a `MockFileSystem`.
+  - The per-test `MockFileSystem` instance is exposed by `TestBrowserContext.FileSystem`.
+  - `TestBrowserContext` constructs state managers using that fake filesystem.
+- Seed state by writing the expected persisted files into the fake filesystem (or by calling the state manager APIs).
 - ALL file system access must be done via the state manager abstraction. Features must not access the file system directly.
 
 ## Assertions

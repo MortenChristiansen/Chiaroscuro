@@ -1,5 +1,4 @@
 using BrowserHost.Features.ActionContext.PinnedTabs;
-using BrowserHost.Utilities;
 using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.ActionContext.PinnedTabs;
@@ -40,7 +39,7 @@ public class PinnedTabsStateManagerTest
     public void Restoring_pinned_tabs_ignores_the_state_file_when_the_version_does_not_match()
     {
         var fileSystem = new MockFileSystem();
-        var statePath = AppDataPathManager.GetAppDataFilePath("pinned_tabs.json");
+        var statePath = PinnedTabsStateManager.PersistedStatePath;
         fileSystem.Directory.CreateDirectory(fileSystem.Path.GetDirectoryName(statePath)!);
         fileSystem.File.WriteAllText(statePath, "{\"Version\":0,\"Data\":{\"PinnedTabs\":[{\"Id\":\"tab-1\",\"Title\":\"Example\",\"Favicon\":null,\"Address\":\"https://example.com/\"}],\"ActiveTabId\":\"tab-1\"}}");
 
@@ -55,7 +54,7 @@ public class PinnedTabsStateManagerTest
     {
         var fileSystem = new MockFileSystem();
         var manager = new PinnedTabsStateManager(fileSystem);
-        var statePath = AppDataPathManager.GetAppDataFilePath("pinned_tabs.json");
+        var statePath = PinnedTabsStateManager.PersistedStatePath;
         var initialState = new PinnedTabDataV1(
             [new PinnedTabDtoV1("tab-1", "Example", null, "https://example.com/")],
             ActiveTabId: "tab-1"

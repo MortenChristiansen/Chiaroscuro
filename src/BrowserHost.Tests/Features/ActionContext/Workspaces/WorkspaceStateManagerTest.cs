@@ -1,5 +1,4 @@
 using BrowserHost.Features.ActionContext.Workspaces;
-using BrowserHost.Utilities;
 using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.ActionContext.Workspaces;
@@ -31,7 +30,7 @@ public class WorkspaceStateManagerTest
     {
         var fileSystem = new MockFileSystem();
         var manager = new WorkspaceStateManager(fileSystem);
-        var statePath = AppDataPathManager.GetAppDataFilePath("workspaces.json");
+        var statePath = WorkspaceStateManager.PersistedStatePath;
         var initialWorkspaces = manager.RestoreWorkspacesFromDisk();
         var workspaceId = initialWorkspaces[0].WorkspaceId;
         var now = DateTimeOffset.UtcNow;

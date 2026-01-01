@@ -1,5 +1,4 @@
 using BrowserHost.Features.Settings;
-using BrowserHost.Utilities;
 using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.Settings;
@@ -26,7 +25,7 @@ public class SettingsStateManagerTest
     {
         var fileSystem = new MockFileSystem();
         var manager = new SettingsStateManager(fileSystem);
-        var settingsPath = AppDataPathManager.GetAppDataFilePath("settings.json");
+        var settingsPath = SettingsStateManager.PersistedStatePath;
         var settings = new SettingsDataV1("UA", ["a.com"], false);
         manager.SaveSettings(settings);
         var expectedWriteTime = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);

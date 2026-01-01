@@ -1,5 +1,4 @@
 using BrowserHost.Features.TabPalette.TabCustomization;
-using BrowserHost.Utilities;
 using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.TabPalette.TabCustomization;
@@ -25,9 +24,8 @@ public class TabCustomizationStateManagerTest
     {
         var fileSystem = new MockFileSystem();
         var manager = new TabCustomizationStateManager(fileSystem);
-        var rootFolder = Path.Combine(AppDataPathManager.GetAppDataFolderPath(), "tab-customization");
         manager.SaveCustomization("tab-1", c => c with { CustomTitle = "Hello" });
-        var file = Assert.Single(fileSystem.Directory.EnumerateFiles(rootFolder, "customization.json", System.IO.SearchOption.AllDirectories));
+        var file = Assert.Single(fileSystem.Directory.EnumerateFiles(TabCustomizationStateManager.RootFolder, "customization.json", SearchOption.AllDirectories));
         var expectedWriteTime = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         fileSystem.File.SetLastWriteTimeUtc(file, expectedWriteTime);
         var expectedContents = fileSystem.File.ReadAllText(file);

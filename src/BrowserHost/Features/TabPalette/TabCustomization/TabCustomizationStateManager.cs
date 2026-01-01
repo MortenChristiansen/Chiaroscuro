@@ -5,9 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Abstractions;
 using System.Text.Json;
 using System.Threading;
-using System.IO.Abstractions;
 using Testably.Abstractions;
 
 namespace BrowserHost.Features.TabPalette.TabCustomization;
@@ -23,7 +23,7 @@ public class TabCustomizationStateManager
     // Cache customizations per tab on-demand only
     private readonly Dictionary<string, TabCustomizationDataV1> _cachedPerTab = [];
 
-    private static string RootFolder => Path.Combine(AppDataPathManager.GetAppDataFolderPath(), "tab-customization");
+    public static string RootFolder => Path.Combine(AppDataPathManager.GetAppDataFolderPath(), "tab-customization");
     private static string GetTabFolder(string tabId) => Path.Combine(RootFolder, Sanitize(tabId));
     private static string GetCustomizationFilePath(string tabId) => Path.Combine(GetTabFolder(tabId), "customization.json");
 

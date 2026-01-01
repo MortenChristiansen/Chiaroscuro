@@ -11,7 +11,7 @@ public class TabCustomizationFeatureTest
     [Fact]
     public void Configuring_the_feature_sends_all_existing_custom_titles_to_the_action_context()
     {
-        var feature = CreateFeature
+        CreateFeature
             .CaptureContext(out var context)
             .ConfigureContext(ctx =>
             {
@@ -105,7 +105,7 @@ public class TabCustomizationFeatureTest
         var customization = context.TabCustomizationStateManager.GetCustomization("tab-1");
         Assert.Null(customization.CustomTitle);
         Assert.False(customization.DisableFixedAddress);
-        Assert.Contains("tab-1", context.TabCustomizationStateManager.DeletedTabIds);
+        Assert.DoesNotContain(context.TabCustomizationStateManager.GetAllCustomizations(), c => c.TabId == "tab-1");
     }
 
     [Fact]
@@ -125,8 +125,7 @@ public class TabCustomizationFeatureTest
         Assert.Null(after2.CustomTitle);
         Assert.False(after1.DisableFixedAddress);
         Assert.False(after2.DisableFixedAddress);
-        Assert.Contains("tab-1", context.TabCustomizationStateManager.DeletedTabIds);
-        Assert.Contains("tab-2", context.TabCustomizationStateManager.DeletedTabIds);
+        Assert.DoesNotContain(context.TabCustomizationStateManager.GetAllCustomizations(), c => c.TabId is "tab-1" or "tab-2");
     }
 
     [Fact]
