@@ -4,10 +4,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
+using System.IO.Abstractions;
+using Testably.Abstractions;
 
 namespace BrowserHost.Features.ActionDialog;
 
@@ -15,11 +16,21 @@ public record NavigationHistoryEntry(string Title, string? Favicon);
 
 public class NavigationHistoryStateManager
 {
+    private readonly IFileSystem _fileSystem;
     private readonly string _navigationHistoryPath = AppDataPathManager.GetAppDataFilePath("navigationHistory.json");
 
     // In-memory cache for navigation history
     private Dictionary<string, NavigationHistoryEntry>? _cachedHistory = null;
     private readonly Lock _cacheLock = new();
+
+    public NavigationHistoryStateManager() : this(new RealFileSystem())
+    {
+    }
+
+    public NavigationHistoryStateManager(IFileSystem fileSystem)
+    {
+        _fileSystem = fileSystem;
+    }
 
     public virtual void SaveNavigationEntry(string address, string? title, string? favicon)
     {
@@ -49,7 +60,12 @@ public class NavigationHistoryStateManager
                     }
 
                     _cachedHistory[normalizedAddress] = newValue;
-                    File.WriteAllText(_navigationHistoryPath, JsonSerializer.Serialize(_cachedHistory, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry));
+                    var stateDirectoryPath = _fileSystem.Path.GetDirectoryName(_navigationHistoryPath);
+                    if (!string.IsNullOrWhiteSpace(stateDirectoryPath))
+                    {
+                        _fileSystem.Directory.CreateDirectory(stateDirectoryPath);
+                    }
+                    _fileSystem.File.WriteAllText(_navigationHistoryPath, JsonSerializer.Serialize(_cachedHistory, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry));
                 }
             });
         }
@@ -90,9 +106,9 @@ public class NavigationHistoryStateManager
     {
         try
         {
-            if (File.Exists(_navigationHistoryPath))
+            if (_fileSystem.File.Exists(_navigationHistoryPath))
             {
-                var json = File.ReadAllText(_navigationHistoryPath);
+                var json = _fileSystem.File.ReadAllText(_navigationHistoryPath);
                 return JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry) ?? new Dictionary<string, NavigationHistoryEntry>();
             }
         }

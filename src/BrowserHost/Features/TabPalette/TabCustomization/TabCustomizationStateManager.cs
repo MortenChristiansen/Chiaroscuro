@@ -7,6 +7,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
+using System.IO.Abstractions;
+using Testably.Abstractions;
 
 namespace BrowserHost.Features.TabPalette.TabCustomization;
 
@@ -14,6 +16,7 @@ public record TabCustomizationDataV1(string TabId, string? CustomTitle, bool? Di
 
 public class TabCustomizationStateManager
 {
+    private readonly IFileSystem _fileSystem;
     private const int _currentVersion = 1;
     private readonly Lock _lock = new();
 
@@ -30,6 +33,15 @@ public class TabCustomizationStateManager
         foreach (var c in Path.GetInvalidFileNameChars())
             value = value.Replace(c, '_');
         return value;
+    }
+
+    public TabCustomizationStateManager() : this(new RealFileSystem())
+    {
+    }
+
+    public TabCustomizationStateManager(IFileSystem fileSystem)
+    {
+        _fileSystem = fileSystem;
     }
 
     public virtual TabCustomizationDataV1 GetCustomization(string tabId)
@@ -59,16 +71,16 @@ public class TabCustomizationStateManager
 
                 try
                 {
-                    if (Directory.Exists(RootFolder))
+                    if (_fileSystem.Directory.Exists(RootFolder))
                     {
-                        foreach (var dir in Directory.EnumerateDirectories(RootFolder))
+                        foreach (var dir in _fileSystem.Directory.EnumerateDirectories(RootFolder))
                         {
                             var file = Path.Combine(dir, "customization.json");
-                            if (!File.Exists(file))
+                            if (!_fileSystem.File.Exists(file))
                                 continue;
                             try
                             {
-                                var json = File.ReadAllText(file);
+                                var json = _fileSystem.File.ReadAllText(file);
                                 var versioned = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                                 if (versioned?.Version == _currentVersion)
                                 {
@@ -129,7 +141,7 @@ public class TabCustomizationStateManager
 
             try
             {
-                Directory.CreateDirectory(folder);
+                _fileSystem.Directory.CreateDirectory(folder);
 
                 var versioned = new PersistentData<TabCustomizationDataV1>
                 {
@@ -137,7 +149,7 @@ public class TabCustomizationStateManager
                     Data = data
                 };
 
-                File.WriteAllText(file, JsonSerializer.Serialize(versioned, BrowserHostJsonContext.Default.PersistentDataTabCustomizationDataV1));
+                _fileSystem.File.WriteAllText(file, JsonSerializer.Serialize(versioned, BrowserHostJsonContext.Default.PersistentDataTabCustomizationDataV1));
                 _cachedPerTab[tabId] = data;
             }
             catch (Exception e) when (!Debugger.IsAttached)
@@ -159,9 +171,9 @@ public class TabCustomizationStateManager
             var folder = GetTabFolder(tabId);
             try
             {
-                if (Directory.Exists(folder))
+                if (_fileSystem.Directory.Exists(folder))
                 {
-                    Directory.Delete(folder, true);
+                    _fileSystem.Directory.Delete(folder, true);
                 }
             }
             catch (Exception e) when (!Debugger.IsAttached)
