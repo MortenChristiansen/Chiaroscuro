@@ -24,6 +24,7 @@ public class WorkspaceStateManager
 {
     public static string PersistedStatePath { get; } = AppDataPathManager.GetAppDataFilePath("workspaces.json");
 
+    private readonly PubSub _pubSub;
     private readonly IFileSystem _fileSystem;
     private const int _currentVersion = 1;
     private const int _ephemeralTabExpirationHours = 16;
@@ -31,12 +32,13 @@ public class WorkspaceStateManager
     private WorkspacesDataDtoV1? _lastSavedWorkspaceData;
     private readonly Lock _lock = new();
 
-    public WorkspaceStateManager() : this(new RealFileSystem())
+    public WorkspaceStateManager(PubSub pubSub) : this(pubSub, new RealFileSystem())
     {
     }
 
-    public WorkspaceStateManager(IFileSystem fileSystem)
+    public WorkspaceStateManager(PubSub pubSub, IFileSystem fileSystem)
     {
+        _pubSub = pubSub;
         _fileSystem = fileSystem;
     }
 
@@ -150,7 +152,7 @@ public class WorkspaceStateManager
         }
     }
 
-    private static WorkspacesDataDtoV1 FilterExpiredEphemeralTabs(WorkspacesDataDtoV1 workspaceData)
+    private WorkspacesDataDtoV1 FilterExpiredEphemeralTabs(WorkspacesDataDtoV1 workspaceData)
     {
         var now = DateTimeOffset.UtcNow;
 
@@ -160,7 +162,7 @@ public class WorkspaceStateManager
             var persistentTabs = ephemeralTabStartIndex > 0 ? tabsData.Tabs[..ephemeralTabStartIndex] : [];
             var ephemeralTabs = ephemeralTabStartIndex < tabsData.Tabs.Length ? tabsData.Tabs[ephemeralTabStartIndex..] : [];
             var expiredTabs = ephemeralTabs.Where(t => (now - t.Created).TotalHours >= _ephemeralTabExpirationHours).ToArray();
-            PubSub.Instance.Publish(new EphemeralTabsExpiredEvent([.. expiredTabs.Select(t => t.TabId)]));
+            _pubSub.Publish(new EphemeralTabsExpiredEvent([.. expiredTabs.Select(t => t.TabId)]));
             ephemeralTabs = [.. ephemeralTabs.Except(expiredTabs)];
             return tabsData with { Tabs = [.. persistentTabs, .. ephemeralTabs], EphemeralTabStartIndex = ephemeralTabStartIndex };
         }

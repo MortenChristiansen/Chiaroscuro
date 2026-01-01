@@ -11,7 +11,7 @@ using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.WebContextMenu;
 
-public class WebContextMenuBackendApi : BackendApi
+public class WebContextMenuBackendApi(PubSub pubSub) : BackendApi
 {
     public void DismissContextMenu()
     {
@@ -35,7 +35,7 @@ public class WebContextMenuBackendApi : BackendApi
         Application.Current.Dispatcher.Invoke(() =>
         {
             var evt = new BackgroundDownloadStartedEvent(imageUrl, Path.GetFileName(uri.LocalPath));
-            PubSub.Instance.Publish(evt);
+            pubSub.Publish(evt);
         });
     }
 

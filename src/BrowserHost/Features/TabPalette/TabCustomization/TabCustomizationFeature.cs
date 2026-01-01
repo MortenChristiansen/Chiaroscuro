@@ -7,26 +7,27 @@ namespace BrowserHost.Features.TabPalette.TabCustomization;
 
 public class TabCustomizationFeature(
     MainWindow window,
+    PubSub pubSub,
     IBrowserContext browserContext,
     TabCustomizationBrowserApi tabCustomizationApi,
     TabsBrowserApi tabsApi,
     TabCustomizationStateManager state
-    ) : Feature(window)
+    ) : Feature(window, pubSub)
 {
     public override void Configure()
     {
-        PubSub.Instance.Subscribe<TabPaletteRequestedEvent>((_) => InitializeCustomSettings());
-        PubSub.Instance.Subscribe<TabCustomTitleChangedEvent>((e) =>
+        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => InitializeCustomSettings());
+        PubSub.Subscribe<TabCustomTitleChangedEvent>((e) =>
         {
             var customization = state.SaveCustomization(e.TabId, c => c with { CustomTitle = e.CustomTitle });
             tabsApi.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
         });
-        PubSub.Instance.Subscribe<TabDisableFixedAddressChangedEvent>((e) =>
+        PubSub.Subscribe<TabDisableFixedAddressChangedEvent>((e) =>
         {
             state.SaveCustomization(e.TabId, c => c with { DisableFixedAddress = e.IsDisabled });
         });
-        PubSub.Instance.Subscribe<TabClosedEvent>((e) => state.DeleteCustomization(e.Tab.Id));
-        PubSub.Instance.Subscribe<EphemeralTabsExpiredEvent>((e) =>
+        PubSub.Subscribe<TabClosedEvent>((e) => state.DeleteCustomization(e.Tab.Id));
+        PubSub.Subscribe<EphemeralTabsExpiredEvent>((e) =>
         {
             foreach (var tabId in e.TabIds)
                 state.DeleteCustomization(tabId);

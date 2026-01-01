@@ -18,17 +18,19 @@ namespace BrowserHost.Tab.CefSharp;
 public class CefSharpTabBrowser : Browser
 {
     private readonly TabsBrowserApi _tabsBrowserApi;
+    private readonly PubSub _pubSub;
     private readonly bool _isChildBrowser;
 
     public string Id { get; }
     public string? Favicon { get; private set; }
     public string? ManualAddress { get; private set; }
 
-    public CefSharpTabBrowser(string id, string address, TabsBrowserApi tabsBrowserApi, bool setManualAddress, string? favicon, bool isChildBrowser)
+    public CefSharpTabBrowser(string id, string address, TabsBrowserApi tabsBrowserApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
         Id = id;
         Favicon = favicon;
         _isChildBrowser = isChildBrowser;
+        _pubSub = pubSub;
         SetAddress(address, setManualAddress);
 
         TitleChanged += OnTitleChanged;
@@ -39,9 +41,9 @@ public class CefSharpTabBrowser : Browser
 
         var downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         DownloadHandler = new DownloadHandler(downloadsPath);
-        RequestHandler = new RequestHandler(Id, isChildBrowser);
-        LifeSpanHandler = new PopupLifeSpanHandler(this);
-        FindHandler = new FindHandler();
+        RequestHandler = new RequestHandler(Id, isChildBrowser, pubSub);
+        LifeSpanHandler = new PopupLifeSpanHandler(this, pubSub);
+        FindHandler = new FindHandler(pubSub);
         PermissionHandler = new CefSharpPermissionHandler();
         MenuHandler = new WebContentContextMenuHandler();
 
@@ -59,14 +61,14 @@ public class CefSharpTabBrowser : Browser
         Favicon = addresses.FirstOrDefault();
         if (!_isChildBrowser && !IsNavigationBlocked)
         {
-            PubSub.Instance.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
+            _pubSub.Publish(new TabFaviconUrlChangedEvent(Id, Favicon));
             Dispatcher.BeginInvoke(() => _tabsBrowserApi.UpdateTabFavicon(Id, Favicon));
         }
     }
 
     private void OnLoadingStateChanged(object? sender, LoadingStateChangedEventArgs e)
     {
-        PubSub.Instance.Publish(new TabLoadingStateChangedEvent(Id, e.IsLoading));
+        _pubSub.Publish(new TabLoadingStateChangedEvent(Id, e.IsLoading));
     }
 
     public void SetAddress(string address, bool setManualAddress)

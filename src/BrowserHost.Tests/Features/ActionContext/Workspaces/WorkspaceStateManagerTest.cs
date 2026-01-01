@@ -1,4 +1,6 @@
 using BrowserHost.Features.ActionContext.Workspaces;
+using BrowserHost.Tests.Infrastructure;
+using BrowserHost.Utilities;
 using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.ActionContext.Workspaces;
@@ -9,13 +11,14 @@ public class WorkspaceStateManagerTest
     public void Saving_workspace_tabs_persists_them_and_they_can_be_restored_in_a_new_instance()
     {
         var fileSystem = new MockFileSystem();
-        var manager = new WorkspaceStateManager(fileSystem);
+        var pubSub = new PubSub(new DirectPubSubDispatchStrategy());
+        var manager = new WorkspaceStateManager(pubSub, fileSystem);
         var initialWorkspaces = manager.RestoreWorkspacesFromDisk();
         var workspaceId = initialWorkspaces[0].WorkspaceId;
         var tabs = new[] { new WorkspaceTabStateDtoV1("tab-1", "https://example.com/", "Example", null, IsActive: true, Created: DateTimeOffset.UtcNow) };
 
         manager.SaveWorkspaceTabs(workspaceId, tabs, ephemeralTabStartIndex: 1, folders: []);
-        var restoredWorkspaces = new WorkspaceStateManager(fileSystem).RestoreWorkspacesFromDisk();
+        var restoredWorkspaces = new WorkspaceStateManager(pubSub, fileSystem).RestoreWorkspacesFromDisk();
 
         var restored = Assert.Single(restoredWorkspaces, w => w.WorkspaceId == workspaceId);
         var tab = Assert.Single(restored.Tabs);
@@ -29,7 +32,8 @@ public class WorkspaceStateManagerTest
     public void Saving_workspace_tabs_with_no_changes_does_not_modify_the_persisted_file()
     {
         var fileSystem = new MockFileSystem();
-        var manager = new WorkspaceStateManager(fileSystem);
+        var pubSub = new PubSub(new DirectPubSubDispatchStrategy());
+        var manager = new WorkspaceStateManager(pubSub, fileSystem);
         var statePath = WorkspaceStateManager.PersistedStatePath;
         var initialWorkspaces = manager.RestoreWorkspacesFromDisk();
         var workspaceId = initialWorkspaces[0].WorkspaceId;

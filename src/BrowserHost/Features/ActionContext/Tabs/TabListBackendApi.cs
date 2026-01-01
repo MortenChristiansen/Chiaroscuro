@@ -18,16 +18,16 @@ public record TabBrowserCreatedEvent(TabBrowser TabBrowser);
 public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 public record FolderUiStateDto(string Id, string Name, int StartIndex, int EndIndex);
 
-public class TabListBackendApi : BackendApi
+public class TabListBackendApi(PubSub pubSub) : BackendApi
 {
     public void ActivateTab(string tabId) =>
-        PubSub.Instance.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
+        pubSub.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
 
     public void CloseTab(string tabId) =>
-        PubSub.Instance.Publish(new TabClosedEvent(MainWindow.Instance.GetFeature<TabsFeature>().GetTabBrowserById(tabId)));
+        pubSub.Publish(new TabClosedEvent(MainWindow.Instance.GetFeature<TabsFeature>().GetTabBrowserById(tabId)));
 
     public void TabsChanged(List<object> tabs, int ephemeralTabStartIndex, List<object> folders) =>
-        PubSub.Instance.Publish(new TabsChangedEvent(
+        pubSub.Publish(new TabsChangedEvent(
             [.. tabs.Select((dynamic tab) => new TabUiStateDto(tab.Id, tab.Title, tab.Favicon, tab.IsActive, DateTimeOffset.Parse(tab.Created)))],
             ephemeralTabStartIndex,
             [.. folders.Select((dynamic folder) => new FolderUiStateDto(folder.Id, folder.Name, folder.StartIndex, folder.EndIndex))]

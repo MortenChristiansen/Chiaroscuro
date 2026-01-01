@@ -7,12 +7,12 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.DevTool;
 
-public class DevToolFeature(MainWindow window) : Feature(window)
+public class DevToolFeature(MainWindow window, PubSub pubSub) : Feature(window, pubSub)
 {
     public override void Configure()
     {
-        PubSub.Instance.Subscribe<TabClosedEvent>(e => e.Tab.CloseDevTools());
-        PubSub.Instance.Subscribe<TabActivatedEvent>(e => e.PreviousTab?.CloseDevTools());
+        PubSub.Subscribe<TabClosedEvent>(e => e.Tab.CloseDevTools());
+        PubSub.Subscribe<TabActivatedEvent>(e => e.PreviousTab?.CloseDevTools());
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)

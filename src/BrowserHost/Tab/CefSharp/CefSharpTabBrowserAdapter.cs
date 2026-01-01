@@ -1,5 +1,6 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Utilities;
 using CefSharp;
 using System;
 using System.Threading.Tasks;
@@ -12,9 +13,9 @@ public class CefSharpTabBrowserAdapter : ITabWebBrowser
     private readonly CefSharpTabBrowser _cefBrowser;
     private readonly BrowserApi _browserApi;
 
-    public CefSharpTabBrowserAdapter(string id, string address, TabsBrowserApi tabsApi, bool setManualAddress, string? favicon, bool isChildBrowser)
+    public CefSharpTabBrowserAdapter(string id, string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
-        _cefBrowser = new(id, address, tabsApi, setManualAddress, favicon, isChildBrowser);
+        _cefBrowser = new(id, address, tabsApi, pubSub, setManualAddress, favicon, isChildBrowser);
         _cefBrowser.LoadingStateChanged += OnPageLoadEnded;
         _browserApi = new BrowserApi(_cefBrowser);
     }

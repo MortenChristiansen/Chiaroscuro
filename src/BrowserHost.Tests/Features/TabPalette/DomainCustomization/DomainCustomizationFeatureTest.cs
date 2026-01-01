@@ -17,7 +17,7 @@ public class DomainCustomizationFeatureTest
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
 
-        PubSub.Instance.Publish(new TabPaletteRequestedEvent());
+        context.PubSub.Publish(new TabPaletteRequestedEvent());
 
         var invocation = Assert.Single(context.DomainCustomizationBrowserApi.Invocations, i => i.Method == "initDomainSettings");
         Assert.Equal($"'{_domain}', false, false", invocation.Arguments);
@@ -30,7 +30,7 @@ public class DomainCustomizationFeatureTest
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
 
-        PubSub.Instance.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
+        context.PubSub.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
 
         var customization = context.DomainCustomizationStateManager.GetCustomization(_domain);
         Assert.True(customization.CssEnabled);
@@ -46,10 +46,10 @@ public class DomainCustomizationFeatureTest
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
         Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(_domain));
-        PubSub.Instance.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
-        PubSub.Instance.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
+        context.PubSub.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
+        context.PubSub.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
 
-        PubSub.Instance.Publish(new DomainCustomCssRemovedEvent(_domain));
+        context.PubSub.Publish(new DomainCustomCssRemovedEvent(_domain));
 
         var disabledEvent = Assert.Single(PubSubMessages.OfType<DomainCustomizationChangedEvent>(), e => !e.CssEnabled);
         Assert.Equal(_domain, disabledEvent.Domain);
@@ -68,9 +68,9 @@ public class DomainCustomizationFeatureTest
             .WithCurrentDomainTab(out var tab, $"https://{_domain}/", tabId: "tab-1")
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
-        PubSub.Instance.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
+        context.PubSub.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
 
-        PubSub.Instance.Publish(new DomainCssEditRequestedEvent(_domain));
+        context.PubSub.Publish(new DomainCssEditRequestedEvent(_domain));
 
         var customization = context.DomainCustomizationStateManager.GetCustomization(_domain);
         Assert.True(customization.CssEnabled);
@@ -88,8 +88,8 @@ public class DomainCustomizationFeatureTest
             .ConfigureContext(ctx => ctx.ActionRequiresDispatch = true)
             .BuildDomainCustomizationFeature();
         Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(_domain));
-        PubSub.Instance.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
-        PubSub.Instance.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
+        context.PubSub.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
+        context.PubSub.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
         var cssFile = GetCustomCssFilePath(context, _domain);
 
         context.FileSystem.File.WriteAllText(cssFile, "body { background: green; } /* token:green */");
@@ -108,8 +108,8 @@ public class DomainCustomizationFeatureTest
             .ConfigureContext(ctx => ctx.ActionRequiresDispatch = true)
             .BuildDomainCustomizationFeature();
         Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(_domain));
-        PubSub.Instance.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
-        PubSub.Instance.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
+        context.PubSub.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
+        context.PubSub.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
         var cssFile = GetCustomCssFilePath(context, _domain);
 
         context.FileSystem.File.Delete(cssFile);
@@ -131,8 +131,8 @@ public class DomainCustomizationFeatureTest
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
         Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(domain1));
-        PubSub.Instance.Publish(new DomainCustomizationChangedEvent(domain1, CssEnabled: true));
-        PubSub.Instance.Publish(new TabActivatedEvent(tab1.Id, PreviousTab: null));
+        context.PubSub.Publish(new DomainCustomizationChangedEvent(domain1, CssEnabled: true));
+        context.PubSub.Publish(new TabActivatedEvent(tab1.Id, PreviousTab: null));
         var cssFile1 = GetCustomCssFilePath(context, domain1);
 
         var tab2 = TypeConstructor.CreateTabBrowser("tab-2");

@@ -8,10 +8,10 @@ namespace BrowserHost.Features.ActionContext;
 
 public class ActionContextBrowser : Browser
 {
-    public TabListBackendApi TabListApi { get; } = new();
-    public FileDownloadsBackendApi FileDownloadsApi { get; } = new();
-    public WorkspacesBackendApi WorkspacesApi { get; } = new();
-    public PinnedTabsBackendApi PinnedTabsApi { get; } = new();
+    public TabListBackendApi TabListApi { get; } = new(App.PubSub);
+    public FileDownloadsBackendApi FileDownloadsApi { get; } = new(App.PubSub);
+    public WorkspacesBackendApi WorkspacesApi { get; } = new(App.PubSub);
+    public PinnedTabsBackendApi PinnedTabsApi { get; } = new(App.PubSub);
 
     public ActionContextBrowser()
         : base("/action-context", disableContextMenu: true)

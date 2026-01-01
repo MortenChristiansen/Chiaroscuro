@@ -15,12 +15,12 @@ public static class PubSubMessages
 
     public static IEnumerable<T> OfType<T>() => MessagesSnapshot().OfType<T>();
 
-    internal static void AttachTo(PubSubContext context)
+    internal static void AttachTo(PubSub pubSub)
     {
         _messages.Value = new ConcurrentQueue<object?>();
 
         foreach (var type in _cachedMessageTypes.Value)
-            SubscribeRecorder(context, type);
+            SubscribeRecorder(pubSub, type);
     }
 
     internal static void Detach()
@@ -31,7 +31,7 @@ public static class PubSubMessages
     private static IReadOnlyCollection<object?> MessagesSnapshot() =>
         _messages.Value?.ToArray() ?? [];
 
-    private static void SubscribeRecorder(PubSubContext context, Type messageType)
+    private static void SubscribeRecorder(PubSub pubSub, Type messageType)
     {
         var subscribeMethod = _cachedSubscribeMethod.Value;
 
@@ -43,7 +43,7 @@ public static class PubSubMessages
         var action = Delegate.CreateDelegate(actionType, recordMethod);
 
         var genericSubscribe = subscribeMethod.MakeGenericMethod(messageType);
-        genericSubscribe.Invoke(context, [action]);
+        genericSubscribe.Invoke(pubSub, [action]);
     }
 
     private static IEnumerable<Type> GetCandidateMessageTypes() =>
@@ -55,10 +55,10 @@ public static class PubSubMessages
             .Where(t => !t.IsGenericTypeDefinition);
 
     private static MethodInfo GetSubscribeMethod() =>
-        typeof(PubSubContext)
+        typeof(PubSub)
             .GetMethods(BindingFlags.Instance | BindingFlags.Public)
             .Single(m =>
-                m.Name == nameof(PubSubContext.Subscribe) &&
+                m.Name == nameof(PubSub.Subscribe) &&
                 m.IsGenericMethodDefinition &&
                 m.GetParameters().Length == 1 &&
                 m.GetParameters()[0].ParameterType.IsGenericType &&

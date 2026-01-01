@@ -1,9 +1,10 @@
 using System.Windows;
 using System.Windows.Controls;
+using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.AppState;
 
-public class AppStateFeature(MainWindow window, AppStateStateManager stateManager) : Feature(window)
+public class AppStateFeature(MainWindow window, PubSub pubSub, AppStateStateManager stateManager) : Feature(window, pubSub)
 {
     private ColumnDefinition? _actionContextColumn;
 

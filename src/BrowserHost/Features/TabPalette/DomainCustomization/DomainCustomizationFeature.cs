@@ -19,9 +19,10 @@ public class DomainCustomizationFeature : Feature
 
     public DomainCustomizationFeature(
         MainWindow window,
+        PubSub pubSub,
         IBrowserContext browserContext,
         DomainCustomizationBrowserApi domainCustomizationApi,
-        DomainCustomizationStateManager stateManager) : base(window)
+        DomainCustomizationStateManager stateManager) : base(window, pubSub)
     {
         _browserContext = browserContext ?? throw new ArgumentNullException(nameof(browserContext));
         _domainCustomizationApi = domainCustomizationApi ?? throw new ArgumentNullException(nameof(domainCustomizationApi));
@@ -30,8 +31,8 @@ public class DomainCustomizationFeature : Feature
 
     public override void Configure()
     {
-        PubSub.Instance.Subscribe<TabPaletteRequestedEvent>((_) => InitializeDomainSettings());
-        PubSub.Instance.Subscribe<DomainCustomizationChangedEvent>((e) =>
+        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => InitializeDomainSettings());
+        PubSub.Subscribe<DomainCustomizationChangedEvent>((e) =>
         {
             var customization = _stateManager.GetCustomization(e.Domain);
             var updated = customization with { CssEnabled = e.CssEnabled };
@@ -44,7 +45,7 @@ public class DomainCustomizationFeature : Feature
 
             NotifyFrontendOfDomainUpdate(e.Domain);
         });
-        PubSub.Instance.Subscribe<DomainCustomCssRemovedEvent>((e) =>
+        PubSub.Subscribe<DomainCustomCssRemovedEvent>((e) =>
         {
             _stateManager.RemoveCustomCss(e.Domain);
 
@@ -52,12 +53,12 @@ public class DomainCustomizationFeature : Feature
             if (tab != null && e.Domain == _currentDomain)
                 RemoveCssFromTab(tab);
 
-            PubSub.Instance.Publish(new DomainCustomizationChangedEvent(e.Domain, CssEnabled: false));
+            PubSub.Publish(new DomainCustomizationChangedEvent(e.Domain, CssEnabled: false));
         });
-        PubSub.Instance.Subscribe<DomainCssEditRequestedEvent>((e) => EditDomainCss(e.Domain));
+        PubSub.Subscribe<DomainCssEditRequestedEvent>((e) => EditDomainCss(e.Domain));
 
-        PubSub.Instance.Subscribe<TabActivatedEvent>((e) => OnTabChanged());
-        PubSub.Instance.Subscribe<TabDeactivatedEvent>((e) => OnTabChanged());
+        PubSub.Subscribe<TabActivatedEvent>((e) => OnTabChanged());
+        PubSub.Subscribe<TabDeactivatedEvent>((e) => OnTabChanged());
     }
 
     public void InitializeDomainSettings()
@@ -250,7 +251,7 @@ public class DomainCustomizationFeature : Feature
 
         if (kind == DomainCustomizationStateManager.CustomCssWatchEventKind.Removed)
         {
-            PubSub.Instance.Publish(new DomainCustomCssRemovedEvent(_currentDomain));
+            PubSub.Publish(new DomainCustomCssRemovedEvent(_currentDomain));
             return;
         }
 

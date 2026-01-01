@@ -7,9 +7,9 @@ namespace BrowserHost.Features.TabPalette;
 
 public class TabPaletteBrowser : Browser
 {
-    public FindTextBackendApi FindTextApi { get; } = new();
-    public TabCustomizationBackendApi TabCustomizationApi { get; } = new();
-    public DomainCustomizationBackendApi DomainCustomizationApi { get; } = new();
+    public FindTextBackendApi FindTextApi { get; } = new(App.PubSub);
+    public TabCustomizationBackendApi TabCustomizationApi { get; } = new(App.PubSub);
+    public DomainCustomizationBackendApi DomainCustomizationApi { get; } = new(App.PubSub);
 
     public TabPaletteBrowser()
         : base("/tab-palette", disableContextMenu: true)

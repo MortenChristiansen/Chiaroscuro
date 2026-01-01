@@ -2,10 +2,11 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.ActionContext;
 
-public class ActionContextFeature(MainWindow window) : Feature(window)
+public class ActionContextFeature(MainWindow window, PubSub pubSub) : Feature(window, pubSub)
 {
     private bool _isHidden;
     private bool _initialized;

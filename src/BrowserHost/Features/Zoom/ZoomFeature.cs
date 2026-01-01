@@ -1,8 +1,9 @@
-﻿using System.Windows.Input;
+﻿using BrowserHost.Utilities;
+using System.Windows.Input;
 
 namespace BrowserHost.Features.Zoom;
 
-public class ZoomFeature(MainWindow window, IBrowserContext browserContext) : Feature(window)
+public class ZoomFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext) : Feature(window, pubSub)
 {
     public override bool HandleOnPreviewMouseWheel(MouseWheelEventArgs e)
     {

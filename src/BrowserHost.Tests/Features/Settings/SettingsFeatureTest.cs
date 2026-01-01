@@ -24,10 +24,11 @@ public class SettingsFeatureTest
     public void Publishing_a_TabBrowserCreatedEvent_registers_the_settings_backend_api_for_the_settings_page()
     {
         CreateFeature
-           .WithCurrentDomainTab(out var tab, "/settings")
-           .BuildSettingsFeature();
+            .WithCurrentDomainTab(out var tab, "/settings")
+            .CaptureContext(out var context)
+            .BuildSettingsFeature();
 
-        PubSub.Instance.Publish(new TabBrowserCreatedEvent(tab));
+        context.PubSub.Publish(new TabBrowserCreatedEvent(tab));
 
         var registration = Assert.Single(tab.GetTabWebBrowser().RegisteredContentPageApis);
         Assert.Equal("settingsApi", registration.Name);
@@ -39,9 +40,10 @@ public class SettingsFeatureTest
     {
         CreateFeature
             .WithCurrentDomainTab(out var tab, "https://other.com/settings")
+            .CaptureContext(out var context)
             .BuildSettingsFeature();
 
-        PubSub.Instance.Publish(new TabBrowserCreatedEvent(tab));
+        context.PubSub.Publish(new TabBrowserCreatedEvent(tab));
 
         Assert.Empty(tab.GetTabWebBrowser().RegisteredContentPageApis);
     }
@@ -54,7 +56,7 @@ public class SettingsFeatureTest
             .ConfigureContext(c => SeedSettings(c, new("UA", ["a.com", "b.com"], true)))
             .BuildSettingsFeature();
 
-        PubSub.Instance.Publish(new SettingsPageLoadingEvent());
+        context.PubSub.Publish(new SettingsPageLoadingEvent());
 
         var invocation = Assert.Single(context.SettingsBrowserApi.Invocations);
         Assert.Equal("settingsLoaded", invocation.Method);
@@ -72,7 +74,7 @@ public class SettingsFeatureTest
             .CaptureContext(out var context)
             .BuildSettingsFeature();
 
-        PubSub.Instance.Publish(new SettingsSavedEvent(new SettingUiStateDto("UA2", ["a.com"], true)));
+        context.PubSub.Publish(new SettingsSavedEvent(new SettingUiStateDto("UA2", ["a.com"], true)));
 
         Assert.Equal("UA2", feature.ExecutionSettings.UserAgent);
         Assert.Equal(["a.com"], feature.ExecutionSettings.SsoEnabledDomains!);
@@ -88,9 +90,10 @@ public class SettingsFeatureTest
     {
         CreateFeature
             .ConfigureContext(c => SeedSettings(c, new("UA", [], AutoAddSsoDomains: false)))
+            .CaptureContext(out var context)
             .BuildSettingsFeature();
 
-        PubSub.Instance.Publish(new SsoFlowStartedEvent("tab-1", "example.com", "https://example.com/"));
+        context.PubSub.Publish(new SsoFlowStartedEvent("tab-1", "example.com", "https://example.com/"));
 
         Assert.Empty(PubSubMessages.OfType<SettingsSavedEvent>());
     }
@@ -100,9 +103,10 @@ public class SettingsFeatureTest
     {
         CreateFeature
             .ConfigureContext(c => SeedSettings(c, new("UA", [], AutoAddSsoDomains: true)))
+            .CaptureContext(out var context)
             .BuildSettingsFeature();
 
-        PubSub.Instance.Publish(new SsoFlowStartedEvent("tab-1", "example.com", "https://example.com/"));
+        context.PubSub.Publish(new SsoFlowStartedEvent("tab-1", "example.com", "https://example.com/"));
 
         var saved = Assert.Single(PubSubMessages.OfType<SettingsSavedEvent>());
         Assert.Equal(["example.com"], saved.Settings.SsoEnabledDomains);
@@ -114,9 +118,10 @@ public class SettingsFeatureTest
     {
         CreateFeature
             .ConfigureContext(c => SeedSettings(c, new("UA", ["example.com"], AutoAddSsoDomains: true)))
+            .CaptureContext(out var context)
             .BuildSettingsFeature();
 
-        PubSub.Instance.Publish(new SsoFlowStartedEvent("tab-1", "example.com", "https://example.com/"));
+        context.PubSub.Publish(new SsoFlowStartedEvent("tab-1", "example.com", "https://example.com/"));
 
         Assert.Empty(PubSubMessages.OfType<SettingsSavedEvent>());
     }

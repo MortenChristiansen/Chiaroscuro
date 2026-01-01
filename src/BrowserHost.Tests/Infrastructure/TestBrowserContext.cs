@@ -5,6 +5,7 @@ using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
+using BrowserHost.Utilities;
 using System.Windows.Input;
 using Testably.Abstractions.Testing;
 
@@ -17,12 +18,17 @@ internal class TestBrowserContext : IBrowserContext
         FileSystem = new MockFileSystem();
         CurrentTab = tab;
 
+        PubSub = new PubSub(new DirectPubSubDispatchStrategy());
+        PubSubMessages.AttachTo(PubSub);
+
         TabCustomizationStateManager = new TabCustomizationStateManager(FileSystem);
         DomainCustomizationStateManager = new DomainCustomizationStateManager(FileSystem, new NoopFileOpener());
         SettingsStateManager = new SettingsStateManager(FileSystem);
     }
 
     public MockFileSystem FileSystem { get; }
+
+    public PubSub PubSub { get; }
 
     public FakeTabPaletteBrowserApi TabPaletteBrowserApi { get; } = new();
     public FakeFindTextBrowserApi FindTextBrowserApi { get; } = new();
@@ -117,7 +123,7 @@ internal class TestBrowserContext : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new ZoomFeature(null!, context);
+            var feature = new ZoomFeature(null!, context.PubSub, context);
             feature.Configure();
             return feature;
         }
@@ -126,7 +132,7 @@ internal class TestBrowserContext : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new TabPaletteFeature(null!, context, context.TabPaletteBrowserApi);
+            var feature = new TabPaletteFeature(null!, context.PubSub, context, context.TabPaletteBrowserApi);
             feature.Configure();
             return feature;
         }
@@ -135,7 +141,7 @@ internal class TestBrowserContext : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new TabCustomizationFeature(null!, context, context.TabCustomizationBrowserApi, context.TabsBrowserApi, context.TabCustomizationStateManager);
+            var feature = new TabCustomizationFeature(null!, context.PubSub, context, context.TabCustomizationBrowserApi, context.TabsBrowserApi, context.TabCustomizationStateManager);
             feature.Configure();
             return feature;
         }
@@ -144,7 +150,7 @@ internal class TestBrowserContext : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new FindTextFeature(null!, context, context.FindTextBrowserApi);
+            var feature = new FindTextFeature(null!, context.PubSub, context, context.FindTextBrowserApi);
             feature.Configure();
             return feature;
         }
@@ -153,7 +159,7 @@ internal class TestBrowserContext : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new DomainCustomizationFeature(null!, context, context.DomainCustomizationBrowserApi, context.DomainCustomizationStateManager);
+            var feature = new DomainCustomizationFeature(null!, context.PubSub, context, context.DomainCustomizationBrowserApi, context.DomainCustomizationStateManager);
             feature.Configure();
             return feature;
         }
@@ -162,7 +168,7 @@ internal class TestBrowserContext : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new SettingsFeature(null!, context.SettingsBrowserApi, context.SettingsStateManager);
+            var feature = new SettingsFeature(null!, context.PubSub, context.SettingsBrowserApi, context.SettingsStateManager);
             feature.Configure();
             return feature;
         }

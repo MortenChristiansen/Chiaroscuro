@@ -45,7 +45,7 @@ public class TabPaletteFeatureTests
             .CaptureContext(out var context)
             .BuildTabPaletteFeature();
 
-        PubSub.Instance.Publish(new TabPaletteDismissedEvent());
+        context.PubSub.Publish(new TabPaletteDismissedEvent());
 
         Assert.False(context.HideTabPaletteCalled);
     }
@@ -58,7 +58,7 @@ public class TabPaletteFeatureTests
             .BuildTabPaletteFeature();
         feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.F1));
 
-        PubSub.Instance.Publish(new TabDeactivatedEvent("tab-1"));
+        context.PubSub.Publish(new TabDeactivatedEvent("tab-1"));
 
         Assert.True(context.HideTabPaletteCalled);
     }

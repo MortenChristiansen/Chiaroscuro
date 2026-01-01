@@ -11,7 +11,7 @@ using System.Windows.Media;
 
 namespace BrowserHost.Features.ActionContext.Workspaces;
 
-public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspacesApi, TabsBrowserApi tabsApi, WorkspaceStateManager stateManager) : Feature(window)
+public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrowserApi workspacesApi, TabsBrowserApi tabsApi, WorkspaceStateManager stateManager) : Feature(window, pubSub)
 {
     private WorkspaceDtoV1[] _workspaces = [];
     private string _currentWorkspaceId = null!;
@@ -22,7 +22,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
     public override void Configure()
     {
         var tabsFeature = Window.GetFeature<TabsFeature>();
-        PubSub.Instance.Subscribe<TabsChangedEvent>(e =>
+        PubSub.Subscribe<TabsChangedEvent>(e =>
             _workspaces = stateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
                 e.Tabs.Select(t => CreateTabState(t, tabsFeature)),
@@ -35,7 +35,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
                 ))
             )
         );
-        PubSub.Instance.Subscribe<WorkspaceActivatedEvent>(e =>
+        PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
         {
             _currentWorkspaceId = e.WorkspaceId;
             workspacesApi.WorkspaceActivated(e.WorkspaceId);
@@ -47,7 +47,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
                 Measure.Event("Initial workspace loaded");
             }
         });
-        PubSub.Instance.Subscribe<WorkspaceCreatedEvent>(e =>
+        PubSub.Subscribe<WorkspaceCreatedEvent>(e =>
         {
             var newWorkspace = new WorkspaceDtoV1(
                 e.WorkspaceId,
@@ -60,9 +60,9 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
             _workspaces = stateManager.CreateWorkspace(newWorkspace);
             NotifyFrontendOfUpdatedWorkspaces();
 
-            PubSub.Instance.Publish(new WorkspaceActivatedEvent(newWorkspace.WorkspaceId));
+            PubSub.Publish(new WorkspaceActivatedEvent(newWorkspace.WorkspaceId));
         });
-        PubSub.Instance.Subscribe<WorkspaceUpdatedEvent>(e =>
+        PubSub.Subscribe<WorkspaceUpdatedEvent>(e =>
         {
             var workspace = GetWorkspaceById(e.WorkspaceId);
             workspace = workspace with
@@ -79,7 +79,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
 
             NotifyFrontendOfUpdatedWorkspaces();
         });
-        PubSub.Instance.Subscribe<WorkspaceDeletedEvent>(e =>
+        PubSub.Subscribe<WorkspaceDeletedEvent>(e =>
         {
             if (_workspaces.Length == 1)
                 throw new InvalidOperationException("Cannot delete the last workspace.");
@@ -88,7 +88,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
             NotifyFrontendOfUpdatedWorkspaces();
 
             if (e.WorkspaceId == _currentWorkspaceId)
-                PubSub.Instance.Publish(new WorkspaceActivatedEvent(_workspaces[0].WorkspaceId));
+                PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[0].WorkspaceId));
         });
     }
 
@@ -99,10 +99,10 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
         RestoreFrontendWorkspaces();
 
         Window.WorkspaceColor = GetCurrentWorkspaceColor();
-        PubSub.Instance.Publish(new WorkspaceActivatedEvent(_currentWorkspaceId));
+        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspaceId));
 
         if (App.Options.LaunchUrl != null)
-            PubSub.Instance.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+            PubSub.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
     }
 
     private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, TabsFeature tabsFeature)
@@ -156,7 +156,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
                 }
                 else
                 {
-                    PubSub.Instance.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
+                    PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
                 }
             }
         }
@@ -176,7 +176,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
         tabsApi.CloseTab(tab.TabId);
         RemoveTabFromWorkspace(tab.TabId);
 
-        PubSub.Instance.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
+        PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
         tabsApi.AddTab(new(tab.TabId, tab.Title, tab.Favicon, tab.Created));
     }
 

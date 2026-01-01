@@ -12,7 +12,7 @@ using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
-public partial class CustomWindowChromeFeature(MainWindow window, CustomWindowChromeBrowserApi customWindowChromeApi) : Feature(window)
+public partial class CustomWindowChromeFeature(MainWindow window, PubSub pubSub, CustomWindowChromeBrowserApi customWindowChromeApi) : Feature(window, pubSub)
 {
     private Rect? _lastNormalBounds; // Stored size/position before maximizing (for detach drag only)
     private bool _applyingRestoreBounds; // Prevent recursive capture while programmatically setting during detach
@@ -40,9 +40,9 @@ public partial class CustomWindowChromeFeature(MainWindow window, CustomWindowCh
         Window.LocationChanged += (_, __) => CaptureNormalBounds();
         Window.SizeChanged += (_, __) => CaptureNormalBounds();
 
-        PubSub.Instance.Subscribe<WindowMinimizedEvent>(_ => Minimize());
-        PubSub.Instance.Subscribe<WindowStateToggledEvent>(_ => ToggleMaximizedState());
-        PubSub.Instance.Subscribe<AddressCopyRequestedEvent>(_ =>
+        PubSub.Subscribe<WindowMinimizedEvent>(_ => Minimize());
+        PubSub.Subscribe<WindowStateToggledEvent>(_ => ToggleMaximizedState());
+        PubSub.Subscribe<AddressCopyRequestedEvent>(_ =>
         {
             var address = Window.CurrentTab?.Address;
             if (string.IsNullOrEmpty(address))
@@ -51,8 +51,8 @@ public partial class CustomWindowChromeFeature(MainWindow window, CustomWindowCh
             var sanitized = RemoveGoogleAdTrackingParameters(address);
             Clipboard.SetText(sanitized);
         });
-        PubSub.Instance.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
-        PubSub.Instance.Subscribe<TabActivatedEvent>(OnTabActivated);
+        PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
+        PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
 
         CaptureNormalBounds();
     }

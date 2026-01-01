@@ -6,9 +6,9 @@ using System.Threading;
 
 namespace BrowserHost.Features.Settings;
 
-public class SettingsFeature(MainWindow window, SettingsBrowserApi settingsApi, SettingsStateManager settingsStateManager) : Feature(window)
+public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsBrowserApi settingsApi, SettingsStateManager settingsStateManager) : Feature(window, pubSub)
 {
-    private readonly SettingsBackendApi _backendApi = new();
+    private readonly SettingsBackendApi _backendApi = new(pubSub);
     private readonly Lock _autoAddSsoLock = new();
 
     // These are the settings for the current execution, loaded from disk.
@@ -16,22 +16,22 @@ public class SettingsFeature(MainWindow window, SettingsBrowserApi settingsApi, 
 
     public override void Configure()
     {
-        PubSub.Instance.Subscribe<TabBrowserCreatedEvent>(e =>
+        PubSub.Subscribe<TabBrowserCreatedEvent>(e =>
         {
             if (ContentServer.IsSettingsPage(e.TabBrowser.Address))
                 e.TabBrowser.RegisterContentPageApi(_backendApi, "settingsApi");
         });
-        PubSub.Instance.Subscribe<SettingsPageLoadingEvent>(e =>
+        PubSub.Subscribe<SettingsPageLoadingEvent>(e =>
         {
             var settings = ExecutionSettings;
             settingsApi.SettingsLoaded(new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? [], settings.AutoAddSsoDomains ?? false));
         });
-        PubSub.Instance.Subscribe<SettingsSavedEvent>(e =>
+        PubSub.Subscribe<SettingsSavedEvent>(e =>
         {
             var mappedSettings = new SettingsDataV1(e.Settings.UserAgent, e.Settings.SsoEnabledDomains, e.Settings.AutoAddSsoDomains);
             ExecutionSettings = settingsStateManager.SaveSettings(mappedSettings);
         });
-        PubSub.Instance.Subscribe<SsoFlowStartedEvent>(e =>
+        PubSub.Subscribe<SsoFlowStartedEvent>(e =>
         {
             var settings = ExecutionSettings;
 
@@ -46,7 +46,7 @@ public class SettingsFeature(MainWindow window, SettingsBrowserApi settingsApi, 
                 if (settings.SsoEnabledDomains?.Contains(e.OriginalDomain, StringComparer.OrdinalIgnoreCase) == true)
                     return;
 
-                PubSub.Instance.Publish(new SettingsSavedEvent(new SettingUiStateDto(
+                PubSub.Publish(new SettingsSavedEvent(new SettingUiStateDto(
                     settings.UserAgent,
                     [.. settings.SsoEnabledDomains ?? [], e.OriginalDomain],
                     AutoAddSsoDomains: true

@@ -35,6 +35,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 
     private const int CornerRadiusPx = 8; // Match CefSharp visual
     private readonly TabsBrowserApi _tabsApi;
+    private readonly PubSub _pubSub;
     private readonly Border _hostSurface = new()
     {
         Background = Brushes.Transparent,
@@ -45,7 +46,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private string? _lastAddressSnapshot;
     private double _zoomFactor = 1.0;
     private readonly WebView2SnapshotOverlay _snapshotOverlay = new();
-    private readonly WebView2FindManager _findManager = new();
+    private readonly WebView2FindManager _findManager;
     private readonly WebView2RoundedCornerManager _roundedCornerManager = new(CornerRadiusPx);
 
     // Cache of last applied bounds to avoid redundant work
@@ -58,7 +59,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     public event DependencyPropertyChangedEventHandler? AddressChanged;
     public event EventHandler? PageLoadEnded;
 
-    public WebView2Browser(string id, string address, TabsBrowserApi tabsApi, bool setManualAddress, string? favicon, bool isChildBrowser)
+    public WebView2Browser(string id, string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
         _id = id;
         _initialManualAddress = setManualAddress ? address : null;
@@ -67,6 +68,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _manualAddress = _initialManualAddress;
         _pendingNavigateTo = NormalizeAddress(address);
         _tabsApi = tabsApi;
+        _pubSub = pubSub;
+        _findManager = new WebView2FindManager(pubSub);
 
         _hostSurface.Child = _snapshotOverlay.Visual;
 
@@ -76,8 +79,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _hostSurface.SizeChanged += (_, _) => { UpdateControllerBounds(); };
         _hostSurface.LayoutUpdated += (_, _) => { if (_hostSurface.IsVisible) UpdateControllerBounds(); };
 
-        PubSub.Instance.Subscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
-        PubSub.Instance.Subscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
+        _pubSub.Subscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
+        _pubSub.Subscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
     }
 
     public string Id => _id;
@@ -155,13 +158,13 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private void Core_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
         _isLoading = true;
-        PubSub.Instance.Publish(new TabLoadingStateChangedEvent(_id, true));
+        _pubSub.Publish(new TabLoadingStateChangedEvent(_id, true));
     }
 
     private void Core_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
         _isLoading = false;
-        PubSub.Instance.Publish(new TabLoadingStateChangedEvent(_id, false));
+        _pubSub.Publish(new TabLoadingStateChangedEvent(_id, false));
         var newAddress = _core?.Source;
         if (_lastAddressSnapshot != newAddress)
         {
@@ -197,7 +200,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         {
             // Ctrl+click or middle-click -> open in background tab
             e.Handled = true;
-            PubSub.Instance.Publish(new NavigationStartedEvent(uri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
+            _pubSub.Publish(new NavigationStartedEvent(uri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
             return;
         }
         else
@@ -207,7 +210,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             {
                 var owner = MainWindow.Instance;
                 var parentTabId = !_isChildBrowser ? _id : (MainWindow.Instance.CurrentTab?.Id ?? _id);
-                var win = new ChildBrowserWindow(uri, parentTabId) { Owner = owner };
+                    var win = new ChildBrowserWindow(uri, parentTabId, _pubSub) { Owner = owner };
                 win.Show();
             });
             return;
@@ -348,8 +351,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     {
         try
         {
-            PubSub.Instance.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
-            PubSub.Instance.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
+            _pubSub.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
+            _pubSub.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
             if (_core != null)
             {
                 _handlers.ForEach(h => h.Dispose());
