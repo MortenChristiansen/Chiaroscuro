@@ -12,7 +12,6 @@ public class TabPaletteFeatureTests
     public void Pressing_F1_when_the_tab_palette_is_closed_opens_it()
     {
         var feature = CreateFeature
-            .WithNoCurrentTab()
             .CaptureContext(out var context)
             .BuildTabPaletteFeature();
 

@@ -4,10 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
-using System.IO.Abstractions;
 using Testably.Abstractions;
 
 namespace BrowserHost.Features.ActionDialog;
@@ -41,7 +41,7 @@ public class NavigationHistoryStateManager
 
         try
         {
-            MainWindow.Instance?.Dispatcher.Invoke(() =>
+            void save()
             {
                 Debug.WriteLine($"Saving navigation entry: {normalizedAddress}");
 
@@ -67,7 +67,14 @@ public class NavigationHistoryStateManager
                     }
                     _fileSystem.File.WriteAllText(_navigationHistoryPath, JsonSerializer.Serialize(_cachedHistory, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry));
                 }
-            });
+            }
+
+            // TODO: Find a standard way of doing this (and figure out why this is the only place in a state manager doing this)
+            var dispatcher = MainWindow.Instance?.Dispatcher;
+            if (dispatcher is not null)
+                dispatcher.Invoke(save);
+            else
+                save();
         }
         catch (Exception e) when (!Debugger.IsAttached)
         {

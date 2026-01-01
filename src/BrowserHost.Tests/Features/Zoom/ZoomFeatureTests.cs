@@ -83,7 +83,7 @@ public class ZoomFeatureTests
     public void Pressing_Ctrl_and_Delete_with_a_current_tab_resets_the_zoom_and_is_handled()
     {
         var feature = CreateFeature
-            .WithCurrentTab(out var tab)
+            .WithCurrentTab(out var tab, t => t.ZoomLevel = 5)
             .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Control)
             .BuildZoomFeature();
 

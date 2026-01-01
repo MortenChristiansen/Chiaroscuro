@@ -51,7 +51,6 @@ public class TabCustomizationFeatureTest
     public void Publishing_a_TabPaletteRequestedEvent_does_nothing_when_there_is_no_current_tab()
     {
         CreateFeature
-            .WithNoCurrentTab()
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
 

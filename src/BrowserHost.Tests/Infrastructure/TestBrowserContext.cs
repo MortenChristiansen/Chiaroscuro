@@ -71,12 +71,6 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
             return this;
         }
 
-        public TestBrowserContextBuilder WithNoCurrentTab()
-        {
-            _tab = null;
-            return this;
-        }
-
         public TestBrowserContextBuilder WithCurrentDomainTab(out TabBrowser tab, string address, string? tabId = null)
         {
             tab = TypeConstructor.CreateTabBrowser(tabId);
