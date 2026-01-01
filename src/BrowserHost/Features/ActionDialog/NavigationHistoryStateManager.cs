@@ -1,5 +1,5 @@
-using BrowserHost.Utilities;
 using BrowserHost.Serialization;
+using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,15 +13,15 @@ namespace BrowserHost.Features.ActionDialog;
 
 public record NavigationHistoryEntry(string Title, string? Favicon);
 
-public static class NavigationHistoryStateManager
+public class NavigationHistoryStateManager
 {
-    private static readonly string _navigationHistoryPath = AppDataPathManager.GetAppDataFilePath("navigationHistory.json");
+    private readonly string _navigationHistoryPath = AppDataPathManager.GetAppDataFilePath("navigationHistory.json");
 
     // In-memory cache for navigation history
-    private static Dictionary<string, NavigationHistoryEntry>? _cachedHistory = null;
-    private static readonly Lock _cacheLock = new();
+    private Dictionary<string, NavigationHistoryEntry>? _cachedHistory = null;
+    private readonly Lock _cacheLock = new();
 
-    public static void SaveNavigationEntry(string address, string? title, string? favicon)
+    public virtual void SaveNavigationEntry(string address, string? title, string? favicon)
     {
         var normalizedAddress = NormalizeAddress(address);
 
@@ -81,12 +81,12 @@ public static class NavigationHistoryStateManager
     }
 
     [MemberNotNull(nameof(_cachedHistory))]
-    private static void EnsureCacheLoaded()
+    private void EnsureCacheLoaded()
     {
         _cachedHistory ??= LoadNavigationHistoryFromDisk();
     }
 
-    private static Dictionary<string, NavigationHistoryEntry> LoadNavigationHistoryFromDisk()
+    private Dictionary<string, NavigationHistoryEntry> LoadNavigationHistoryFromDisk()
     {
         try
         {
@@ -104,7 +104,7 @@ public static class NavigationHistoryStateManager
         return [];
     }
 
-    public static List<NavigationSuggestion> GetSuggestions(string searchText, int maxSuggestions = 5)
+    public virtual List<NavigationSuggestion> GetSuggestions(string searchText, int maxSuggestions = 5)
     {
         Dictionary<string, NavigationHistoryEntry> history;
 

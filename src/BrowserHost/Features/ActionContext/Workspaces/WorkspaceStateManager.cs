@@ -19,16 +19,16 @@ public record WorkspaceDtoV1(string WorkspaceId, string Name, string Color, stri
 public record WorkspaceTabStateDtoV1(string TabId, string Address, string? Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 public record FolderDtoV1(string Id, string Name, int StartIndex, int EndIndex);
 
-public static class WorkspaceStateManager
+public class WorkspaceStateManager
 {
-    private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("workspaces.json");
+    private readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("workspaces.json");
     private const int _currentVersion = 1;
     private const int _ephemeralTabExpirationHours = 16;
-    private static readonly WorkspaceDtoV1 _defaultWorkspace = new($"{Guid.NewGuid()}", "Browse", "#202634", "🌐", [], 0);
-    private static WorkspacesDataDtoV1? _lastSavedWorkspaceData;
-    private static readonly Lock _lock = new();
+    private readonly WorkspaceDtoV1 _defaultWorkspace = new($"{Guid.NewGuid()}", "Browse", "#202634", "🌐", [], 0);
+    private WorkspacesDataDtoV1? _lastSavedWorkspaceData;
+    private readonly Lock _lock = new();
 
-    public static WorkspaceDtoV1[] SaveWorkspaceTabs(string workspaceId, IEnumerable<WorkspaceTabStateDtoV1> tabs, int ephemeralTabStartIndex, IEnumerable<FolderDtoV1> folders)
+    public virtual WorkspaceDtoV1[] SaveWorkspaceTabs(string workspaceId, IEnumerable<WorkspaceTabStateDtoV1> tabs, int ephemeralTabStartIndex, IEnumerable<FolderDtoV1> folders)
     {
         lock (_lock)
         {
@@ -45,7 +45,7 @@ public static class WorkspaceStateManager
         return _lastSavedWorkspaceData!.Workspaces;
     }
 
-    private static void SaveWorkspaceIfChanged(string workspaceId, WorkspaceDtoV1 cachedWorkspace, WorkspaceDtoV1 updatedWorkspace)
+    private void SaveWorkspaceIfChanged(string workspaceId, WorkspaceDtoV1 cachedWorkspace, WorkspaceDtoV1 updatedWorkspace)
     {
         // Check if the new data is the same as what we last saved
         if (_lastSavedWorkspaceData != null && StateIsEqual(cachedWorkspace, updatedWorkspace))
@@ -65,7 +65,7 @@ public static class WorkspaceStateManager
         SaveWorkspaces(existingDataWithUpdatedWorkspace);
     }
 
-    private static void SaveWorkspaces(WorkspaceDtoV1[] updatedWorkspaces)
+    private void SaveWorkspaces(WorkspaceDtoV1[] updatedWorkspaces)
     {
         try
         {
@@ -86,7 +86,7 @@ public static class WorkspaceStateManager
         }
     }
 
-    public static WorkspaceDtoV1[] RestoreWorkspacesFromDisk()
+    public virtual WorkspaceDtoV1[] RestoreWorkspacesFromDisk()
     {
         using (Measure.Operation("Restoring workspaces from disk"))
         {
@@ -174,7 +174,7 @@ public static class WorkspaceStateManager
         return true;
     }
 
-    public static WorkspaceDtoV1[] CreateWorkspace(WorkspaceDtoV1 workspace)
+    public virtual WorkspaceDtoV1[] CreateWorkspace(WorkspaceDtoV1 workspace)
     {
         lock (_lock)
         {
@@ -186,7 +186,7 @@ public static class WorkspaceStateManager
         return _lastSavedWorkspaceData.Workspaces;
     }
 
-    public static WorkspaceDtoV1[] UpdateWorkspace(WorkspaceDtoV1 workspace)
+    public virtual WorkspaceDtoV1[] UpdateWorkspace(WorkspaceDtoV1 workspace)
     {
         lock (_lock)
         {
@@ -196,7 +196,7 @@ public static class WorkspaceStateManager
         return _lastSavedWorkspaceData.Workspaces;
     }
 
-    public static WorkspaceDtoV1[] DeleteWorkspace(string workspaceId)
+    public virtual WorkspaceDtoV1[] DeleteWorkspace(string workspaceId)
     {
         lock (_lock)
         {

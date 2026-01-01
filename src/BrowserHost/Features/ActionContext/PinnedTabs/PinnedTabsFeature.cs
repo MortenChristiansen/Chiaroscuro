@@ -7,20 +7,20 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.PinnedTabs;
 
-public class PinnedTabsFeature(MainWindow window, TabsBrowserApi tabsApi, PinnedTabsBrowserApi pinnedTabsApi) : Feature(window)
+public class PinnedTabsFeature(MainWindow window, TabsBrowserApi tabsApi, PinnedTabsBrowserApi pinnedTabsApi, PinnedTabsStateManager stateManager) : Feature(window)
 {
     private PinnedTabDataV1 _pinnedTabData = null!;
 
     public override void Configure()
     {
-        _pinnedTabData = PinnedTabsStateManager.RestorePinnedTabsFromDisk();
+        _pinnedTabData = stateManager.RestorePinnedTabsFromDisk();
         NotifyFrontendOfUpdatedPinnedTabs();
 
         PubSub.Instance.Subscribe<TabActivatedEvent>(e =>
         {
             var newActiveTab = _pinnedTabData.PinnedTabs.FirstOrDefault(t => t.Id == e.TabId);
 
-            _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
+            _pinnedTabData = stateManager.SavePinnedTabs(_pinnedTabData with
             {
                 ActiveTabId = newActiveTab?.Id,
                 PinnedTabs = _pinnedTabData.PinnedTabs
@@ -62,7 +62,7 @@ public class PinnedTabsFeature(MainWindow window, TabsBrowserApi tabsApi, Pinned
     private void AddPinnedTabToState(PinnedTabDtoV1 tab, string? activateTabId)
     {
         var activeTabIsPinned = _pinnedTabData.PinnedTabs.Any(t => t.Id == activateTabId) || activateTabId == tab.Id;
-        _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
+        _pinnedTabData = stateManager.SavePinnedTabs(_pinnedTabData with
         {
             ActiveTabId = activeTabIsPinned ? activateTabId : null,
             PinnedTabs = [.. _pinnedTabData.PinnedTabs, tab]
@@ -74,7 +74,7 @@ public class PinnedTabsFeature(MainWindow window, TabsBrowserApi tabsApi, Pinned
         if (!IsTabPinned(tabId) && _pinnedTabData.ActiveTabId != tabId)
             return;
 
-        _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
+        _pinnedTabData = stateManager.SavePinnedTabs(_pinnedTabData with
         {
             ActiveTabId = _pinnedTabData.ActiveTabId == tabId ? null : _pinnedTabData.ActiveTabId,
             PinnedTabs = [.. _pinnedTabData.PinnedTabs.Where(t => t.Id != tabId)]
@@ -108,7 +108,7 @@ public class PinnedTabsFeature(MainWindow window, TabsBrowserApi tabsApi, Pinned
         if (customizations.DisableFixedAddress == true)
         {
             // By default, the persisted state for pinned tabs is not updated. However, if fixed addresses are disabled then we do want to update it.
-            _pinnedTabData = PinnedTabsStateManager.SavePinnedTabs(_pinnedTabData with
+            _pinnedTabData = stateManager.SavePinnedTabs(_pinnedTabData with
             {
                 PinnedTabs = [.. _pinnedTabData
                     .PinnedTabs

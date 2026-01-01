@@ -11,14 +11,14 @@ namespace BrowserHost.Features.ActionContext.PinnedTabs;
 public record PinnedTabDataV1(PinnedTabDtoV1[] PinnedTabs, string? ActiveTabId);
 public record PinnedTabDtoV1(string Id, string? Title, string? Favicon, string Address);
 
-public static class PinnedTabsStateManager
+public class PinnedTabsStateManager
 {
-    private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("pinned_tabs.json");
+    private readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("pinned_tabs.json");
     private const int _currentVersion = 1;
-    private static PinnedTabDataV1 _lastSavedPinnedTabsData = new([], null);
-    private static readonly Lock _lock = new();
+    private PinnedTabDataV1 _lastSavedPinnedTabsData = new([], null);
+    private readonly Lock _lock = new();
 
-    public static PinnedTabDataV1 SavePinnedTabs(PinnedTabDataV1 pinnedTabsData)
+    public virtual PinnedTabDataV1 SavePinnedTabs(PinnedTabDataV1 pinnedTabsData)
     {
         lock (_lock)
         {
@@ -46,7 +46,7 @@ public static class PinnedTabsStateManager
         }
     }
 
-    public static PinnedTabDataV1 RestorePinnedTabsFromDisk()
+    public virtual PinnedTabDataV1 RestorePinnedTabsFromDisk()
     {
         lock (_lock)
         {

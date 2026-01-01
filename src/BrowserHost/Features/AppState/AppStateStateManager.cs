@@ -10,16 +10,16 @@ namespace BrowserHost.Features.AppState;
 
 public record AppStateDataV1(double ActionContextWidth, double TabPaletteWidth);
 
-public static class AppStateStateManager
+public class AppStateStateManager
 {
-    private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("appState.json");
+    private readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("appState.json");
     private const int _currentVersion = 1;
-    private static AppStateDataV1? _lastSavedState;
-    private static readonly Lock _lock = new();
+    private AppStateDataV1? _lastSavedState;
+    private readonly Lock _lock = new();
 
     private static AppStateDataV1 Default => new(ActionContextWidth: 300, TabPaletteWidth: 350);
 
-    public static AppStateDataV1 RestoreAppStateFromDisk()
+    public virtual AppStateDataV1 RestoreAppStateFromDisk()
     {
         lock (_lock)
         {
@@ -46,7 +46,7 @@ public static class AppStateStateManager
         }
     }
 
-    public static AppStateDataV1 GetAppState()
+    public virtual AppStateDataV1 GetAppState()
     {
         lock (_lock)
         {
@@ -54,7 +54,7 @@ public static class AppStateStateManager
         }
     }
 
-    public static AppStateDataV1 SaveActionContextWidth(double width)
+    public virtual AppStateDataV1 SaveActionContextWidth(double width)
     {
         lock (_lock)
         {
@@ -64,7 +64,7 @@ public static class AppStateStateManager
         }
     }
 
-    public static AppStateDataV1 SaveTabPaletteWidth(double width)
+    public virtual AppStateDataV1 SaveTabPaletteWidth(double width)
     {
         lock (_lock)
         {
@@ -74,7 +74,7 @@ public static class AppStateStateManager
         }
     }
 
-    private static AppStateDataV1 SaveIfChanged(AppStateDataV1 current, AppStateDataV1 updated)
+    private AppStateDataV1 SaveIfChanged(AppStateDataV1 current, AppStateDataV1 updated)
     {
         if (current == updated)
             return current;

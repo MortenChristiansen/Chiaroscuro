@@ -23,7 +23,7 @@ public enum ActionType
     OpenSystemPage,
 }
 
-public partial class ActionDialogFeature(MainWindow window, ActionDialogBrowserApi actionDialogApi) : Feature(window)
+public partial class ActionDialogFeature(MainWindow window, ActionDialogBrowserApi actionDialogApi, NavigationHistoryStateManager navigationHistoryStateManager) : Feature(window)
 {
     [GeneratedRegex(@"^!(\w+)|\s+!(\w+)$")]
     private static partial Regex SearchProviderRegex();
@@ -132,13 +132,13 @@ public partial class ActionDialogFeature(MainWindow window, ActionDialogBrowserA
         if (currentTab == null || currentTab.Id != tabId || string.IsNullOrEmpty(currentTab.ManualAddress))
             return;
 
-        NavigationHistoryStateManager.SaveNavigationEntry(currentTab.ManualAddress, currentTab.Title, currentTab.Favicon);
+        navigationHistoryStateManager.SaveNavigationEntry(currentTab.ManualAddress, currentTab.Title, currentTab.Favicon);
     }
 
     private void HandleValueChanged(ActionDialogValueChangedEvent e)
     {
         // Get suggestions based on the current input
-        var suggestions = NavigationHistoryStateManager.GetSuggestions(e.Value);
+        var suggestions = navigationHistoryStateManager.GetSuggestions(e.Value);
 
         // Send suggestions to frontend
         actionDialogApi.UpdateSuggestions(suggestions);

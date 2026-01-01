@@ -11,7 +11,7 @@ using System.Windows.Media;
 
 namespace BrowserHost.Features.ActionContext.Workspaces;
 
-public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspacesApi, TabsBrowserApi tabsApi) : Feature(window)
+public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspacesApi, TabsBrowserApi tabsApi, WorkspaceStateManager stateManager) : Feature(window)
 {
     private WorkspaceDtoV1[] _workspaces = [];
     private string _currentWorkspaceId = null!;
@@ -23,7 +23,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
     {
         var tabsFeature = Window.GetFeature<TabsFeature>();
         PubSub.Instance.Subscribe<TabsChangedEvent>(e =>
-            _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
+            _workspaces = stateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
                 e.Tabs.Select(t => CreateTabState(t, tabsFeature)),
                 e.EphemeralTabStartIndex,
@@ -57,7 +57,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
                 [],
                 0
             );
-            _workspaces = WorkspaceStateManager.CreateWorkspace(newWorkspace);
+            _workspaces = stateManager.CreateWorkspace(newWorkspace);
             NotifyFrontendOfUpdatedWorkspaces();
 
             PubSub.Instance.Publish(new WorkspaceActivatedEvent(newWorkspace.WorkspaceId));
@@ -72,7 +72,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
                 Icon = e.Icon
             };
 
-            _workspaces = WorkspaceStateManager.UpdateWorkspace(workspace);
+            _workspaces = stateManager.UpdateWorkspace(workspace);
 
             if (e.WorkspaceId == _currentWorkspaceId)
                 Window.WorkspaceColor = GetCurrentWorkspaceColor();
@@ -84,7 +84,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
             if (_workspaces.Length == 1)
                 throw new InvalidOperationException("Cannot delete the last workspace.");
 
-            _workspaces = WorkspaceStateManager.DeleteWorkspace(e.WorkspaceId);
+            _workspaces = stateManager.DeleteWorkspace(e.WorkspaceId);
             NotifyFrontendOfUpdatedWorkspaces();
 
             if (e.WorkspaceId == _currentWorkspaceId)
@@ -94,7 +94,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
 
     public override void Start()
     {
-        _workspaces = WorkspaceStateManager.RestoreWorkspacesFromDisk();
+        _workspaces = stateManager.RestoreWorkspacesFromDisk();
         _currentWorkspaceId = _workspaces[0].WorkspaceId;
         RestoreFrontendWorkspaces();
 
@@ -188,7 +188,7 @@ public class WorkspacesFeature(MainWindow window, WorkspacesBrowserApi workspace
             Tabs = [.. CurrentWorkspace.Tabs.Where(t => t.TabId != tabId)],
             EphemeralTabStartIndex = isPersistentTab ? CurrentWorkspace.EphemeralTabStartIndex - 1 : CurrentWorkspace.EphemeralTabStartIndex,
         };
-        _workspaces = WorkspaceStateManager.UpdateWorkspace(updatedWorkspace);
+        _workspaces = stateManager.UpdateWorkspace(updatedWorkspace);
     }
 
     private void NotifyFrontendOfUpdatedWorkspaces()
