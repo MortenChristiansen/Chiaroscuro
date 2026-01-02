@@ -17,7 +17,7 @@ public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBro
     {
         PubSub.Handle<CancelDownloadCommand>(cmd =>
         {
-            HandleFileDownloadCancelled(new DownloadCancelledEvent(cmd.DownloadId));
+            HandleFileDownloadCancelled(cmd.DownloadId);
             PubSub.Publish(new DownloadCancelledEvent(cmd.DownloadId));
         });
         PubSub.Handle<StartBackgroundDownloadCommand>(async cmd =>
@@ -27,9 +27,9 @@ public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBro
         });
     }
 
-    private void HandleFileDownloadCancelled(DownloadCancelledEvent e)
+    private void HandleFileDownloadCancelled(int downloadId)
     {
-        if (_activeDownloads.TryRemove(e.DownloadId, out var downloadInfo) && !downloadInfo.IsCompleted)
+        if (_activeDownloads.TryRemove(downloadId, out var downloadInfo) && !downloadInfo.IsCompleted)
             downloadInfo.Cancel.Invoke();
     }
 
