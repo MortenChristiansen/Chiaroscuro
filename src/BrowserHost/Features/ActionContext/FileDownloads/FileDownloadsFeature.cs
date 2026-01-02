@@ -22,8 +22,8 @@ public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBro
         });
         PubSub.Handle<StartBackgroundDownloadCommand>(async cmd =>
         {
-            PubSub.Publish(new BackgroundDownloadStartedEvent(cmd.DownloadSource, cmd.FileName));
             await OnBackgroundDownloadStarted(cmd);
+            // Event published in OnBackgroundDownloadStarted if needed
         });
     }
 
@@ -50,6 +50,8 @@ public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBro
 
         if (!_activeDownloads.TryAdd(downloadId, downloadInfo))
             return;
+
+        PubSub.Publish(new BackgroundDownloadStartedEvent(cmd.DownloadSource, cmd.FileName));
 
         EnsureDownloadTimerCreated();
         SendProgressUpdate();

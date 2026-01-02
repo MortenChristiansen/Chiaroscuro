@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Api, loadBackendApi } from '../interfaces/api';
-import { normalizeBackendModel } from '../../shared/utils';
+import { isServerSideRendering, normalizeBackendModel } from '../../shared/utils';
 
 export type TrustStarScore = 1 | 2 | 3 | 4 | 5;
 
@@ -191,7 +191,7 @@ export class DomainTrustService {
 
   private getStorage(): Storage | null {
     try {
-      if (typeof window === 'undefined' || !window.localStorage) {
+      if (isServerSideRendering() || !window.localStorage) {
         return null;
       }
       return window.localStorage;

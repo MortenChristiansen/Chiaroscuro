@@ -34,7 +34,7 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
         PubSub.Handle<ActivateTabCommand>(cmd =>
         {
             var previousTab = Window.CurrentTab;
-            SetCurrentTab(_tabBrowsers.Find(t => t.Id == cmd.TabId));
+            SetCurrentTab(GetTabBrowserById(cmd.TabId));
             tabsApi.SetActiveTab(cmd.TabId);
             PubSub.Publish(new TabActivatedEvent(cmd.TabId, previousTab));
         });

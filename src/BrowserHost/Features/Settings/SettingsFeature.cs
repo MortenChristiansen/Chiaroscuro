@@ -6,9 +6,9 @@ using System.Threading;
 
 namespace BrowserHost.Features.Settings;
 
-public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsBrowserApi settingsApi, SettingsStateManager settingsStateManager) : Feature(window, pubSub)
+public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsStateManager settingsStateManager) : Feature(window, pubSub)
 {
-    private readonly SettingsBackendApi _backendApi = new(pubSub);
+    private SettingsBackendApi _backendApi = null!;
     private readonly Lock _autoAddSsoLock = new();
 
     // These are the settings for the current execution, loaded from disk.
@@ -16,12 +16,8 @@ public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsBrowserAp
 
     public override void Configure()
     {
-        PubSub.Handle<SetSettingsPageLoadingStateCommand>(_ =>
-        {
-            var settings = ExecutionSettings;
-            settingsApi.SettingsLoaded(new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? [], settings.AutoAddSsoDomains ?? false));
-            PubSub.Publish(new SettingsPageLoadingEvent());
-        });
+        _backendApi = new(PubSub, this);
+
         PubSub.Handle<SaveSettingsCommand>(cmd =>
         {
             var mappedSettings = new SettingsDataV1(cmd.Settings.UserAgent, cmd.Settings.SsoEnabledDomains, cmd.Settings.AutoAddSsoDomains);

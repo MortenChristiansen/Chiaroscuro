@@ -42,6 +42,6 @@ export type SettingField =
   | StringArrayField;
 
 export interface SettingsApi {
-  settingsPageLoading: () => void;
+  loadSettingsPage: () => Promise<PlainSettings>;
   saveSettings: (values: PlainSettings) => void;
 }
