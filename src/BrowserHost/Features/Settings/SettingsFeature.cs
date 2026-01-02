@@ -22,13 +22,13 @@ public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsBrowserAp
             settingsApi.SettingsLoaded(new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? [], settings.AutoAddSsoDomains ?? false));
             PubSub.Publish(new SettingsPageLoadingEvent());
         });
-        PubSub.Handle<SaveSettingsCommand>(e =>
+        PubSub.Handle<SaveSettingsCommand>(cmd =>
         {
-            var mappedSettings = new SettingsDataV1(e.Settings.UserAgent, e.Settings.SsoEnabledDomains, e.Settings.AutoAddSsoDomains);
+            var mappedSettings = new SettingsDataV1(cmd.Settings.UserAgent, cmd.Settings.SsoEnabledDomains, cmd.Settings.AutoAddSsoDomains);
             ExecutionSettings = settingsStateManager.SaveSettings(mappedSettings);
-            PubSub.Publish(new SettingsSavedEvent(e.Settings));
+            PubSub.Publish(new SettingsSavedEvent(cmd.Settings));
         });
-        PubSub.Handle<StartSsoFlowCommand>(e =>
+        PubSub.Handle<StartSsoFlowCommand>(cmd =>
         {
             var settings = ExecutionSettings;
 
@@ -40,17 +40,17 @@ public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsBrowserAp
                 // Re-read the settings in case they changed while waiting for the lock
                 settings = ExecutionSettings;
 
-                if (settings.SsoEnabledDomains?.Contains(e.OriginalDomain, StringComparer.OrdinalIgnoreCase) == true)
+                if (settings.SsoEnabledDomains?.Contains(cmd.OriginalDomain, StringComparer.OrdinalIgnoreCase) == true)
                     return;
 
                 PubSub.Send(new SaveSettingsCommand(new SettingUiStateDto(
                     settings.UserAgent,
-                    [.. settings.SsoEnabledDomains ?? [], e.OriginalDomain],
+                    [.. settings.SsoEnabledDomains ?? [], cmd.OriginalDomain],
                     AutoAddSsoDomains: true
                 )));
             }
 
-            PubSub.Publish(new SsoFlowStartedEvent(e.TabId, e.OriginalDomain, e.OriginalUrl));
+            PubSub.Publish(new SsoFlowStartedEvent(cmd.TabId, cmd.OriginalDomain, cmd.OriginalUrl));
         });
 
         PubSub.Subscribe<TabBrowserCreatedEvent>(e =>

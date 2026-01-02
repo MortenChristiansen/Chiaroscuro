@@ -22,13 +22,13 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
     public override void Configure()
     {
         var tabsFeature = Window.GetFeature<TabsFeature>();
-        PubSub.Handle<ChangeTabsCommand>(e =>
+        PubSub.Handle<ChangeTabsCommand>(cmd =>
         {
             _workspaces = stateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
-                e.Tabs.Select(t => CreateTabState(t, tabsFeature)),
-                e.EphemeralTabStartIndex,
-                e.Folders.Select(f => new FolderDtoV1(
+                cmd.Tabs.Select(t => CreateTabState(t, tabsFeature)),
+                cmd.EphemeralTabStartIndex,
+                cmd.Folders.Select(f => new FolderDtoV1(
                     f.Id,
                     f.Name,
                     f.StartIndex,
@@ -36,12 +36,12 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
                 ))
             );
 
-            PubSub.Publish(new TabsChangedEvent(e.Tabs, e.EphemeralTabStartIndex, e.Folders));
+            PubSub.Publish(new TabsChangedEvent(cmd.Tabs, cmd.EphemeralTabStartIndex, cmd.Folders));
         });
-        PubSub.Handle<ActivateWorkspaceCommand>(e =>
+        PubSub.Handle<ActivateWorkspaceCommand>(cmd =>
         {
-            _currentWorkspaceId = e.WorkspaceId;
-            workspacesApi.WorkspaceActivated(e.WorkspaceId);
+            _currentWorkspaceId = cmd.WorkspaceId;
+            workspacesApi.WorkspaceActivated(cmd.WorkspaceId);
             Window.WorkspaceColor = GetCurrentWorkspaceColor();
 
             if (!_hasLoggedInitialWorkspaceTime)
@@ -50,54 +50,54 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
                 Measure.Event("Initial workspace loaded");
             }
 
-            PubSub.Publish(new WorkspaceActivatedEvent(e.WorkspaceId));
+            PubSub.Publish(new WorkspaceActivatedEvent(cmd.WorkspaceId));
         });
-        PubSub.Handle<CreateWorkspaceCommand>(e =>
+        PubSub.Handle<CreateWorkspaceCommand>(cmd =>
         {
             var newWorkspace = new WorkspaceDtoV1(
-                e.WorkspaceId,
-                e.Name,
-                e.Color,
-                e.Icon,
+                cmd.WorkspaceId,
+                cmd.Name,
+                cmd.Color,
+                cmd.Icon,
                 [],
                 0
             );
             _workspaces = stateManager.CreateWorkspace(newWorkspace);
             NotifyFrontendOfUpdatedWorkspaces();
 
-            PubSub.Publish(new WorkspaceCreatedEvent(e.WorkspaceId, e.Name, e.Icon, e.Color));
+            PubSub.Publish(new WorkspaceCreatedEvent(cmd.WorkspaceId, cmd.Name, cmd.Icon, cmd.Color));
             PubSub.Send(new ActivateWorkspaceCommand(newWorkspace.WorkspaceId));
         });
-        PubSub.Handle<UpdateWorkspaceCommand>(e =>
+        PubSub.Handle<UpdateWorkspaceCommand>(cmd =>
         {
-            var workspace = GetWorkspaceById(e.WorkspaceId);
+            var workspace = GetWorkspaceById(cmd.WorkspaceId);
             workspace = workspace with
             {
-                Name = e.Name,
-                Color = e.Color,
-                Icon = e.Icon
+                Name = cmd.Name,
+                Color = cmd.Color,
+                Icon = cmd.Icon
             };
 
             _workspaces = stateManager.UpdateWorkspace(workspace);
 
-            if (e.WorkspaceId == _currentWorkspaceId)
+            if (cmd.WorkspaceId == _currentWorkspaceId)
                 Window.WorkspaceColor = GetCurrentWorkspaceColor();
 
             NotifyFrontendOfUpdatedWorkspaces();
 
-            PubSub.Publish(new WorkspaceUpdatedEvent(e.WorkspaceId, e.Name, e.Icon, e.Color));
+            PubSub.Publish(new WorkspaceUpdatedEvent(cmd.WorkspaceId, cmd.Name, cmd.Icon, cmd.Color));
         });
-        PubSub.Handle<DeleteWorkspaceCommand>(e =>
+        PubSub.Handle<DeleteWorkspaceCommand>(cmd =>
         {
             if (_workspaces.Length == 1)
                 throw new InvalidOperationException("Cannot delete the last workspace.");
 
-            _workspaces = stateManager.DeleteWorkspace(e.WorkspaceId);
+            _workspaces = stateManager.DeleteWorkspace(cmd.WorkspaceId);
             NotifyFrontendOfUpdatedWorkspaces();
 
-            PubSub.Publish(new WorkspaceDeletedEvent(e.WorkspaceId));
+            PubSub.Publish(new WorkspaceDeletedEvent(cmd.WorkspaceId));
 
-            if (e.WorkspaceId == _currentWorkspaceId)
+            if (cmd.WorkspaceId == _currentWorkspaceId)
                 PubSub.Send(new ActivateWorkspaceCommand(_workspaces[0].WorkspaceId));
         });
     }

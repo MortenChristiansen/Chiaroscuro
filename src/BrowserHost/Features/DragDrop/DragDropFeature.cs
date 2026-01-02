@@ -32,10 +32,10 @@ public class DragDropFeature(MainWindow window, PubSub pubSub) : Feature(window,
         Window.DragLeave += (sender, e) => IsDragging = false;
         Window.Drop += OnDrop;
 
-        PubSub.Handle<OpenDroppedFilesCommand>(e =>
+        PubSub.Handle<OpenDroppedFilesCommand>(cmd =>
         {
-            OpenFileTabs(e.FilePaths);
-            PubSub.Publish(new DroppedFilesOpenedEvent(e.FilePaths));
+            OpenFileTabs(cmd.FilePaths);
+            PubSub.Publish(new DroppedFilesOpenedEvent(cmd.FilePaths));
         });
     }
 

@@ -16,7 +16,7 @@ public class TabPaletteFeature(MainWindow window, PubSub pubSub, IBrowserContext
 
     public override void Configure()
     {
-        PubSub.Handle<RequestTabPaletteCommand>((_) =>
+        PubSub.Handle<RequestTabPaletteCommand>(_ =>
         {
             if (_tabPaletteIsOpen)
                 return;
@@ -24,7 +24,7 @@ public class TabPaletteFeature(MainWindow window, PubSub pubSub, IBrowserContext
             OpenTabPalette();
             PubSub.Publish(new TabPaletteRequestedEvent());
         });
-        PubSub.Handle<DismissTabPaletteCommand>((_) =>
+        PubSub.Handle<DismissTabPaletteCommand>(_ =>
         {
             if (!_tabPaletteIsOpen)
                 return;
@@ -33,7 +33,7 @@ public class TabPaletteFeature(MainWindow window, PubSub pubSub, IBrowserContext
             PubSub.Publish(new TabPaletteDismissedEvent());
         });
 
-        PubSub.Subscribe<TabDeactivatedEvent>((_) => PubSub.Send(new DismissTabPaletteCommand()));
+        PubSub.Subscribe<TabDeactivatedEvent>(_ => PubSub.Send(new DismissTabPaletteCommand()));
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)

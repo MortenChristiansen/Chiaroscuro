@@ -37,15 +37,15 @@ public partial class ActionDialogFeature(MainWindow window, PubSub pubSub, Actio
             DismissDialog();
             PubSub.Publish(new ActionDialogDismissedEvent());
         });
-        PubSub.Handle<ExecuteCommandCommand>(e =>
+        PubSub.Handle<ExecuteCommandCommand>(cmd =>
         {
-            HandleCommandExecuted(new CommandExecutedEvent(e.Command, e.Ctrl));
-            PubSub.Publish(new CommandExecutedEvent(e.Command, e.Ctrl));
+            HandleCommandExecuted(new CommandExecutedEvent(cmd.Command, cmd.Ctrl));
+            PubSub.Publish(new CommandExecutedEvent(cmd.Command, cmd.Ctrl));
         });
-        PubSub.Handle<ChangeActionDialogValueCommand>(e =>
+        PubSub.Handle<ChangeActionDialogValueCommand>(cmd =>
         {
-            HandleValueChanged(new ActionDialogValueChangedEvent(e.Value));
-            PubSub.Publish(new ActionDialogValueChangedEvent(e.Value));
+            HandleValueChanged(new ActionDialogValueChangedEvent(cmd.Value));
+            PubSub.Publish(new ActionDialogValueChangedEvent(cmd.Value));
         });
 
         PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => HandlePageHistoryChange(e.TabId));

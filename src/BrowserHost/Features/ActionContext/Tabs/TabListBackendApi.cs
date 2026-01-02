@@ -8,7 +8,6 @@ using System.Linq;
 namespace BrowserHost.Features.ActionContext.Tabs;
 
 public record ActivateTabCommand(string TabId) : ICommand;
-public record DeactivateTabCommand(string TabId) : ICommand;
 public record CloseTabCommand(string TabId) : ICommand;
 public record ChangeTabsCommand(TabUiStateDto[] Tabs, int EphemeralTabStartIndex, FolderUiStateDto[] Folders) : ICommand;
 

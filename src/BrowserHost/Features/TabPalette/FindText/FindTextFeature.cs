@@ -10,30 +10,30 @@ public class FindTextFeature(MainWindow window, PubSub pubSub, IBrowserContext b
 
     public override void Configure()
     {
-        PubSub.Handle<FindTextCommand>((e) =>
+        PubSub.Handle<FindTextCommand>(cmd =>
         {
-            StartFinding(e.Term);
-            PubSub.Publish(new FindTextTriggeredEvent(e.Term));
+            StartFinding(cmd.Term);
+            PubSub.Publish(new FindTextTriggeredEvent(cmd.Term));
         });
-        PubSub.Handle<FindNextTextMatchCommand>((e) =>
+        PubSub.Handle<FindNextTextMatchCommand>(cmd =>
         {
-            FindNext(e.Term);
-            PubSub.Publish(new NextTextMatchTriggeredEvent(e.Term));
+            FindNext(cmd.Term);
+            PubSub.Publish(new NextTextMatchTriggeredEvent(cmd.Term));
         });
-        PubSub.Handle<FindPrevTextMatchCommand>((e) =>
+        PubSub.Handle<FindPrevTextMatchCommand>(cmd =>
         {
-            FindPrevious(e.Term);
-            PubSub.Publish(new PrevTextMatchTriggeredEvent(e.Term));
+            FindPrevious(cmd.Term);
+            PubSub.Publish(new PrevTextMatchTriggeredEvent(cmd.Term));
         });
         PubSub.Handle<StopFindingTextCommand>((_) =>
         {
             StopFinding();
             PubSub.Publish(new StopFindingTextTriggeredEvent());
         });
-        PubSub.Handle<ChangeFindStatusCommand>((e) =>
+        PubSub.Handle<ChangeFindStatusCommand>(cmd =>
         {
-            findTextApi.FindStatusChanged(e.Matches);
-            PubSub.Publish(new FindStatusChangedEvent(e.Matches));
+            findTextApi.FindStatusChanged(cmd.Matches);
+            PubSub.Publish(new FindStatusChangedEvent(cmd.Matches));
         });
 
         PubSub.Subscribe<TabPaletteDismissedEvent>((_) => PubSub.Send(new StopFindingTextCommand()));
