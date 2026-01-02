@@ -23,18 +23,18 @@ public enum ActionType
     OpenSystemPage,
 }
 
-public partial class ActionDialogFeature(MainWindow window, ActionDialogBrowserApi actionDialogApi) : Feature(window)
+public partial class ActionDialogFeature(MainWindow window, PubSub pubSub, ActionDialogBrowserApi actionDialogApi, NavigationHistoryStateManager navigationHistoryStateManager) : Feature(window, pubSub)
 {
     [GeneratedRegex(@"^!(\w+)|\s+!(\w+)$")]
     private static partial Regex SearchProviderRegex();
 
     public override void Configure()
     {
-        PubSub.Instance.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
-        PubSub.Instance.Subscribe<CommandExecutedEvent>(HandleCommandExecuted);
-        PubSub.Instance.Subscribe<ActionDialogValueChangedEvent>(HandleValueChanged);
-        PubSub.Instance.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => HandlePageHistoryChange(e.TabId));
-        PubSub.Instance.Subscribe<TabFaviconUrlChangedEvent>(e => HandlePageHistoryChange(e.TabId));
+        PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
+        PubSub.Subscribe<CommandExecutedEvent>(HandleCommandExecuted);
+        PubSub.Subscribe<ActionDialogValueChangedEvent>(HandleValueChanged);
+        PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => HandlePageHistoryChange(e.TabId));
+        PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => HandlePageHistoryChange(e.TabId));
     }
 
     private static readonly SearchProvider[] _searchProviders =
@@ -63,7 +63,7 @@ public partial class ActionDialogFeature(MainWindow window, ActionDialogBrowserA
         if (ContentServer.IsContentPage(e.Command, out var page))
         {
             var pageUrl = ContentServer.GetUiAddress(page.Address);
-            PubSub.Instance.Publish(new NavigationStartedEvent(pageUrl, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
+            PubSub.Publish(new NavigationStartedEvent(pageUrl, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
             return;
         }
 
@@ -73,7 +73,7 @@ public partial class ActionDialogFeature(MainWindow window, ActionDialogBrowserA
             return;
         }
 
-        PubSub.Instance.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true, ActivateTab: true));
+        PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true, ActivateTab: true));
     }
 
     public static ActionType GetActionType(string command)
@@ -119,11 +119,11 @@ public partial class ActionDialogFeature(MainWindow window, ActionDialogBrowserA
     private static bool HandleUsingDefaultSearchProvider(CommandExecutedEvent e) =>
         e.Command.Trim().Contains(' ') || !e.Command.Contains('.');
 
-    private static void ExecuteProviderQuery(CommandExecutedEvent e, string query, SearchProvider provider)
+    private void ExecuteProviderQuery(CommandExecutedEvent e, string query, SearchProvider provider)
     {
         var urlEncodedQuery = WebUtility.UrlEncode(query);
         var url = string.Format(provider.Pattern, urlEncodedQuery);
-        PubSub.Instance.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
+        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
     }
 
     private void HandlePageHistoryChange(string tabId)
@@ -132,13 +132,13 @@ public partial class ActionDialogFeature(MainWindow window, ActionDialogBrowserA
         if (currentTab == null || currentTab.Id != tabId || string.IsNullOrEmpty(currentTab.ManualAddress))
             return;
 
-        NavigationHistoryStateManager.SaveNavigationEntry(currentTab.ManualAddress, currentTab.Title, currentTab.Favicon);
+        navigationHistoryStateManager.SaveNavigationEntry(currentTab.ManualAddress, currentTab.Title, currentTab.Favicon);
     }
 
     private void HandleValueChanged(ActionDialogValueChangedEvent e)
     {
         // Get suggestions based on the current input
-        var suggestions = NavigationHistoryStateManager.GetSuggestions(e.Value);
+        var suggestions = navigationHistoryStateManager.GetSuggestions(e.Value);
 
         // Send suggestions to frontend
         actionDialogApi.UpdateSuggestions(suggestions);
@@ -169,7 +169,7 @@ public partial class ActionDialogFeature(MainWindow window, ActionDialogBrowserA
         Window.ActionDialog.Visibility = Visibility.Visible;
         Window.ActionDialog.Focus();
         actionDialogApi.ShowActionDialog();
-        PubSub.Instance.Publish(new ActionDialogShownEvent());
+        PubSub.Publish(new ActionDialogShownEvent());
 
         if (Window.ActionDialog.RenderTransform is not ScaleTransform)
         {

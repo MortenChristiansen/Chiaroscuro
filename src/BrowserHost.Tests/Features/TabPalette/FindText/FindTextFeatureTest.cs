@@ -6,7 +6,7 @@ using System.Windows.Input;
 using static BrowserHost.Tests.Fakes.TestBrowserApiExtensions;
 using static BrowserHost.Tests.Infrastructure.TypeConstructor;
 
-namespace BrowserHost.Tests.Features.TabPalette;
+namespace BrowserHost.Tests.Features.TabPalette.FindText;
 
 public class FindTextFeatureTest
 {
@@ -15,9 +15,10 @@ public class FindTextFeatureTest
     {
         CreateFeature
             .WithCurrentTab(out var tab)
+            .CaptureContext(out var context)
             .BuildFindTextFeature();
 
-        PubSub.Instance.Publish(new FindTextEvent("hello"));
+        context.PubSub.Publish(new FindTextEvent("hello"));
 
         var invocation = Assert.Single(tab.FindInvocations);
         Assert.Equal("hello", invocation.SearchText);
@@ -31,9 +32,10 @@ public class FindTextFeatureTest
     {
         var feature = CreateFeature
             .WithCurrentTab(out var tab)
+            .CaptureContext(out var context)
             .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.None)
             .BuildFindTextFeature();
-        PubSub.Instance.Publish(new FindTextEvent("hello"));
+        context.PubSub.Publish(new FindTextEvent("hello"));
 
         var handled = feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.Tab));
 
@@ -47,9 +49,10 @@ public class FindTextFeatureTest
     {
         var feature = CreateFeature
             .WithCurrentTab(out var tab)
+            .CaptureContext(out var context)
             .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Shift)
             .BuildFindTextFeature();
-        PubSub.Instance.Publish(new FindTextEvent("hello"));
+        context.PubSub.Publish(new FindTextEvent("hello"));
 
         var handled = feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.Tab));
 
@@ -65,7 +68,7 @@ public class FindTextFeatureTest
             .WithCurrentTab(out var tab)
             .CaptureContext(out var context)
             .BuildFindTextFeature();
-        PubSub.Instance.Publish(new FindTextEvent("hello"));
+        context.PubSub.Publish(new FindTextEvent("hello"));
 
         var handled = feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.Escape));
 
@@ -98,7 +101,7 @@ public class FindTextFeatureTest
             .CaptureContext(out var context)
             .BuildFindTextFeature();
 
-        PubSub.Instance.Publish(new FindStatusChangedEvent(5));
+        context.PubSub.Publish(new FindStatusChangedEvent(5));
 
         Assert.True(context.FindTextBrowserApi.WasCalledWith("findStatusChanged", "5"));
     }
@@ -108,10 +111,11 @@ public class FindTextFeatureTest
     {
         CreateFeature
             .WithCurrentTab(out var tab)
+            .CaptureContext(out var context)
             .BuildFindTextFeature();
-        PubSub.Instance.Publish(new FindTextEvent("hello"));
+        context.PubSub.Publish(new FindTextEvent("hello"));
 
-        PubSub.Instance.Publish(new TabDeactivatedEvent("tab-1"));
+        context.PubSub.Publish(new TabDeactivatedEvent("tab-1"));
 
         Assert.True(tab.StopFindingCalled);
     }

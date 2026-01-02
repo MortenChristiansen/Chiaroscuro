@@ -7,15 +7,15 @@ namespace BrowserHost.Features.TabPalette;
 public record TabPaletteRequestedEvent();
 public record TabPaletteDismissedEvent();
 
-public class TabPaletteFeature(MainWindow window, IBrowserContext browserContext, TabPaletteBrowserApi tabPaletteApi) : Feature(window)
+public class TabPaletteFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext, TabPaletteBrowserApi tabPaletteApi) : Feature(window, pubSub)
 {
     private bool _tabPaletteIsOpen;
 
     public override void Configure()
     {
-        PubSub.Instance.Subscribe<TabPaletteRequestedEvent>((_) => OpenTabPalette());
-        PubSub.Instance.Subscribe<TabPaletteDismissedEvent>((_) => CloseTabPalette());
-        PubSub.Instance.Subscribe<TabDeactivatedEvent>((_) => CloseTabPalette());
+        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => OpenTabPalette());
+        PubSub.Subscribe<TabPaletteDismissedEvent>((_) => CloseTabPalette());
+        PubSub.Subscribe<TabDeactivatedEvent>((_) => CloseTabPalette());
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -23,9 +23,9 @@ public class TabPaletteFeature(MainWindow window, IBrowserContext browserContext
         if (e.Key == Key.F1)
         {
             if (_tabPaletteIsOpen)
-                PubSub.Instance.Publish(new TabPaletteDismissedEvent());
+                PubSub.Publish(new TabPaletteDismissedEvent());
             else
-                PubSub.Instance.Publish(new TabPaletteRequestedEvent());
+                PubSub.Publish(new TabPaletteRequestedEvent());
 
             return true;
         }

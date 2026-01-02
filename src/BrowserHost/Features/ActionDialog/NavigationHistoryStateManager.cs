@@ -1,27 +1,39 @@
-using BrowserHost.Utilities;
 using BrowserHost.Serialization;
+using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
+using Testably.Abstractions;
 
 namespace BrowserHost.Features.ActionDialog;
 
 public record NavigationHistoryEntry(string Title, string? Favicon);
 
-public static class NavigationHistoryStateManager
+public class NavigationHistoryStateManager
 {
-    private static readonly string _navigationHistoryPath = AppDataPathManager.GetAppDataFilePath("navigationHistory.json");
+    public static string NavigationHistoryPath { get; } = AppDataPathManager.GetAppDataFilePath("navigationHistory.json");
+
+    private readonly IFileSystem _fileSystem;
 
     // In-memory cache for navigation history
-    private static Dictionary<string, NavigationHistoryEntry>? _cachedHistory = null;
-    private static readonly Lock _cacheLock = new();
+    private Dictionary<string, NavigationHistoryEntry>? _cachedHistory = null;
+    private readonly Lock _cacheLock = new();
 
-    public static void SaveNavigationEntry(string address, string? title, string? favicon)
+    public NavigationHistoryStateManager() : this(new RealFileSystem())
+    {
+    }
+
+    public NavigationHistoryStateManager(IFileSystem fileSystem)
+    {
+        _fileSystem = fileSystem;
+    }
+
+    public virtual void SaveNavigationEntry(string address, string? title, string? favicon)
     {
         var normalizedAddress = NormalizeAddress(address);
 
@@ -30,7 +42,7 @@ public static class NavigationHistoryStateManager
 
         try
         {
-            MainWindow.Instance?.Dispatcher.Invoke(() =>
+            void save()
             {
                 Debug.WriteLine($"Saving navigation entry: {normalizedAddress}");
 
@@ -49,9 +61,21 @@ public static class NavigationHistoryStateManager
                     }
 
                     _cachedHistory[normalizedAddress] = newValue;
-                    File.WriteAllText(_navigationHistoryPath, JsonSerializer.Serialize(_cachedHistory, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry));
+                    var stateDirectoryPath = _fileSystem.Path.GetDirectoryName(NavigationHistoryPath);
+                    if (!string.IsNullOrWhiteSpace(stateDirectoryPath))
+                    {
+                        _fileSystem.Directory.CreateDirectory(stateDirectoryPath);
+                    }
+                    _fileSystem.File.WriteAllText(NavigationHistoryPath, JsonSerializer.Serialize(_cachedHistory, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry));
                 }
-            });
+            }
+
+            // TODO: Find a standard way of doing this (and figure out why this is the only place in a state manager doing this)
+            var dispatcher = MainWindow.Instance?.Dispatcher;
+            if (dispatcher is not null)
+                dispatcher.Invoke(save);
+            else
+                save();
         }
         catch (Exception e) when (!Debugger.IsAttached)
         {
@@ -81,18 +105,18 @@ public static class NavigationHistoryStateManager
     }
 
     [MemberNotNull(nameof(_cachedHistory))]
-    private static void EnsureCacheLoaded()
+    private void EnsureCacheLoaded()
     {
         _cachedHistory ??= LoadNavigationHistoryFromDisk();
     }
 
-    private static Dictionary<string, NavigationHistoryEntry> LoadNavigationHistoryFromDisk()
+    private Dictionary<string, NavigationHistoryEntry> LoadNavigationHistoryFromDisk()
     {
         try
         {
-            if (File.Exists(_navigationHistoryPath))
+            if (_fileSystem.File.Exists(NavigationHistoryPath))
             {
-                var json = File.ReadAllText(_navigationHistoryPath);
+                var json = _fileSystem.File.ReadAllText(NavigationHistoryPath);
                 return JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry) ?? new Dictionary<string, NavigationHistoryEntry>();
             }
         }
@@ -104,7 +128,7 @@ public static class NavigationHistoryStateManager
         return [];
     }
 
-    public static List<NavigationSuggestion> GetSuggestions(string searchText, int maxSuggestions = 5)
+    public virtual List<NavigationSuggestion> GetSuggestions(string searchText, int maxSuggestions = 5)
     {
         Dictionary<string, NavigationHistoryEntry> history;
 

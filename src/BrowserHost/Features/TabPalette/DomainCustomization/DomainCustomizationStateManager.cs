@@ -5,8 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Abstractions;
 using System.Text.Json;
 using System.Threading;
+using Testably.Abstractions;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
@@ -18,13 +20,15 @@ public record DomainCustomizationSettingsV2(string Domain, bool CssEnabled);
 
 public class DomainCustomizationStateManager
 {
+    private readonly IFileSystem _fileSystem;
+    private readonly IFileOpener _fileOpener;
     private const int _currentVersion = 2;
     private readonly Lock _lock = new();
 
     // Cache customizations per domain on-demand only
     private readonly Dictionary<string, DomainCustomizationDataV1> _cachedPerDomain = [];
 
-    private static string RootFolder => Path.Combine(AppDataPathManager.GetAppDataFolderPath(), "domain-settings");
+    public static string RootFolder => Path.Combine(AppDataPathManager.GetAppDataFolderPath(), "domain-settings");
     private static string GetDomainFolder(string domain) => Path.Combine(RootFolder, SanitizeDomainName(domain));
     private static string GetCustomizationFilePath(string domain) => Path.Combine(GetDomainFolder(domain), "settings.json");
     private static string GetCssFilePath(string domain) => Path.Combine(GetDomainFolder(domain), "custom.css");
@@ -41,6 +45,16 @@ public class DomainCustomizationStateManager
 
     private static string CacheKey(string domain) => SanitizeDomainName(domain);
 
+    public DomainCustomizationStateManager() : this(new RealFileSystem(), new ShellFileOpener())
+    {
+    }
+
+    public DomainCustomizationStateManager(IFileSystem fileSystem, IFileOpener fileOpener)
+    {
+        _fileSystem = fileSystem;
+        _fileOpener = fileOpener;
+    }
+
     public virtual DomainCustomizationDataV1 GetCustomization(string domain)
     {
         lock (_lock)
@@ -55,27 +69,27 @@ public class DomainCustomizationStateManager
         }
     }
 
-    private static DomainCustomizationDataV1 LoadCustomization(string domain)
+    private DomainCustomizationDataV1 LoadCustomization(string domain)
     {
         var filePath = GetCustomizationFilePath(domain);
         var cssPath = GetCssFilePath(domain);
 
         try
         {
-            if (File.Exists(filePath))
+            if (_fileSystem.File.Exists(filePath))
             {
-                var json = File.ReadAllText(filePath);
+                var json = _fileSystem.File.ReadAllText(filePath);
                 var versioned = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                 if (versioned?.Version == _currentVersion)
                 {
-                    var hasCustomCss = File.Exists(cssPath);
+                    var hasCustomCss = _fileSystem.File.Exists(cssPath);
                     var rawData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentDataDomainCustomizationSettingsV2)?.Data;
                     var rawDomain = rawData?.Domain ?? domain;
                     return new DomainCustomizationDataV1(rawDomain, rawData?.CssEnabled ?? false, hasCustomCss);
                 }
                 else if (versioned?.Version == 1)
                 {
-                    var hasCustomCss = File.Exists(cssPath);
+                    var hasCustomCss = _fileSystem.File.Exists(cssPath);
                     var rawData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentDataDomainCustomizationSettingsV1)?.Data;
                     return new DomainCustomizationDataV1(domain, rawData?.CssEnabled ?? false, hasCustomCss);
                 }
@@ -87,7 +101,7 @@ public class DomainCustomizationStateManager
         }
 
         // Return default values if no customization exists or loading failed
-        var defaultHasCustomCss = File.Exists(cssPath);
+        var defaultHasCustomCss = _fileSystem.File.Exists(cssPath);
         return new DomainCustomizationDataV1(domain, defaultHasCustomCss, defaultHasCustomCss);
     }
 
@@ -98,7 +112,7 @@ public class DomainCustomizationStateManager
             try
             {
                 var domainFolder = GetDomainFolder(customization.Domain);
-                Directory.CreateDirectory(domainFolder);
+                _fileSystem.Directory.CreateDirectory(domainFolder);
 
                 var data = new PersistentData<DomainCustomizationSettingsV2>
                 {
@@ -107,9 +121,9 @@ public class DomainCustomizationStateManager
                 };
                 var json = JsonSerializer.Serialize(data, BrowserHostJsonContext.Default.PersistentDataDomainCustomizationSettingsV2);
 
-                File.WriteAllText(GetCustomizationFilePath(customization.Domain), json);
+                _fileSystem.File.WriteAllText(GetCustomizationFilePath(customization.Domain), json);
 
-                var updated = customization with { HasCustomCss = File.Exists(GetCssFilePath(customization.Domain)) };
+                var updated = customization with { HasCustomCss = _fileSystem.File.Exists(GetCssFilePath(customization.Domain)) };
                 _cachedPerDomain[CacheKey(customization.Domain)] = updated;
 
                 return updated;
@@ -125,11 +139,11 @@ public class DomainCustomizationStateManager
     public virtual string? GetCustomCss(string domain)
     {
         var cssPath = GetCssFilePath(domain);
-        if (File.Exists(cssPath))
+        if (_fileSystem.File.Exists(cssPath))
         {
             try
             {
-                return File.ReadAllText(cssPath);
+                return _fileSystem.File.ReadAllText(cssPath);
             }
             catch (Exception ex)
             {
@@ -152,8 +166,8 @@ public class DomainCustomizationStateManager
         try
         {
             var cssPath = GetCssFilePath(domain);
-            if (File.Exists(cssPath))
-                File.Delete(cssPath);
+            if (_fileSystem.File.Exists(cssPath))
+                _fileSystem.File.Delete(cssPath);
         }
         catch (Exception ex)
         {
@@ -174,18 +188,14 @@ public class DomainCustomizationStateManager
             if (string.IsNullOrEmpty(domainFolder))
                 return false;
 
-            Directory.CreateDirectory(domainFolder);
+            _fileSystem.Directory.CreateDirectory(domainFolder);
 
-            if (!File.Exists(cssPath))
+            if (!_fileSystem.File.Exists(cssPath))
             {
-                File.WriteAllText(cssPath, $"/* Custom CSS for {domain} */\n\n");
+                _fileSystem.File.WriteAllText(cssPath, $"/* Custom CSS for {domain} */\n\n");
             }
 
-            var processStartInfo = new ProcessStartInfo(cssPath)
-            {
-                UseShellExecute = true
-            };
-            Process.Start(processStartInfo);
+            _fileOpener.OpenFile(cssPath);
 
             RefreshCacheForDomain(domain);
             return true;
@@ -211,14 +221,12 @@ public class DomainCustomizationStateManager
             var directory = Path.GetDirectoryName(cssPath);
             var fileName = Path.GetFileName(cssPath);
 
-            if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName) || !Directory.Exists(directory))
+            if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName) || !_fileSystem.Directory.Exists(directory))
                 return NoopDisposable.Instance;
 
-            var watcher = new FileSystemWatcher(directory, fileName)
-            {
-                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName,
-                EnableRaisingEvents = true
-            };
+            var watcher = _fileSystem.FileSystemWatcher.New(directory, fileName);
+            watcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName;
+            watcher.EnableRaisingEvents = true;
 
             void handleChange()
             {
@@ -227,7 +235,7 @@ public class DomainCustomizationStateManager
                     // Small delay to ensure file write is complete
                     Thread.Sleep(100);
 
-                    if (!File.Exists(cssPath))
+                    if (!_fileSystem.File.Exists(cssPath))
                     {
                         onEvent(CustomCssWatchEventKind.Removed);
                         return;
@@ -281,23 +289,23 @@ public class DomainCustomizationStateManager
 
                 try
                 {
-                    if (Directory.Exists(RootFolder))
+                    if (_fileSystem.Directory.Exists(RootFolder))
                     {
-                        foreach (var dir in Directory.EnumerateDirectories(RootFolder))
+                        foreach (var dir in _fileSystem.Directory.EnumerateDirectories(RootFolder))
                         {
                             var settingsFile = Path.Combine(dir, "settings.json");
                             var cssFile = Path.Combine(dir, "custom.css");
 
                             var sanitizedDomainName = Path.GetFileName(dir);
-                            var hasCustomCss = File.Exists(cssFile);
+                            var hasCustomCss = _fileSystem.File.Exists(cssFile);
                             bool cssEnabled = hasCustomCss; // Default to enabled if CSS exists
                             var rawDomain = sanitizedDomainName; // Fallback for legacy entries
 
-                            if (File.Exists(settingsFile))
+                            if (_fileSystem.File.Exists(settingsFile))
                             {
                                 try
                                 {
-                                    var json = File.ReadAllText(settingsFile);
+                                    var json = _fileSystem.File.ReadAllText(settingsFile);
                                     var versioned = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                                     if (versioned?.Version == _currentVersion)
                                     {

@@ -4,7 +4,7 @@ using BrowserHost.Utilities;
 using System.Windows.Input;
 using static BrowserHost.Tests.Infrastructure.TypeConstructor;
 
-namespace BrowserHost.Tests.Features;
+namespace BrowserHost.Tests.Features.TabPalette;
 
 public class TabPaletteFeatureTests
 {
@@ -12,7 +12,6 @@ public class TabPaletteFeatureTests
     public void Pressing_F1_when_the_tab_palette_is_closed_opens_it()
     {
         var feature = CreateFeature
-            .WithNoCurrentTab()
             .CaptureContext(out var context)
             .BuildTabPaletteFeature();
 
@@ -46,7 +45,7 @@ public class TabPaletteFeatureTests
             .CaptureContext(out var context)
             .BuildTabPaletteFeature();
 
-        PubSub.Instance.Publish(new TabPaletteDismissedEvent());
+        context.PubSub.Publish(new TabPaletteDismissedEvent());
 
         Assert.False(context.HideTabPaletteCalled);
     }
@@ -59,7 +58,7 @@ public class TabPaletteFeatureTests
             .BuildTabPaletteFeature();
         feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.F1));
 
-        PubSub.Instance.Publish(new TabDeactivatedEvent("tab-1"));
+        context.PubSub.Publish(new TabDeactivatedEvent("tab-1"));
 
         Assert.True(context.HideTabPaletteCalled);
     }

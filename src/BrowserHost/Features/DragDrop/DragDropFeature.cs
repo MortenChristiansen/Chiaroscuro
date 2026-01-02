@@ -10,7 +10,7 @@ namespace BrowserHost.Features.DragDrop;
 
 public record FileDroppedEvent(string[] FilePaths);
 
-public class DragDropFeature(MainWindow window) : Feature(window)
+public class DragDropFeature(MainWindow window, PubSub pubSub) : Feature(window, pubSub)
 {
     public static bool IsDragging { get; private set; }
 
@@ -31,7 +31,7 @@ public class DragDropFeature(MainWindow window) : Feature(window)
         Window.DragLeave += (sender, e) => IsDragging = false;
         Window.Drop += OnDrop;
 
-        PubSub.Instance.Subscribe<FileDroppedEvent>(HandleFileDropped);
+        PubSub.Subscribe<FileDroppedEvent>(HandleFileDropped);
     }
 
     private void OnDrop(object sender, DragEventArgs e)
@@ -43,7 +43,7 @@ public class DragDropFeature(MainWindow window) : Feature(window)
 
             if (validFiles.Length != 0)
             {
-                PubSub.Instance.Publish(new FileDroppedEvent(validFiles));
+                PubSub.Publish(new FileDroppedEvent(validFiles));
             }
         }
         e.Handled = true;
@@ -72,7 +72,7 @@ public class DragDropFeature(MainWindow window) : Feature(window)
             try
             {
                 var fileUri = new Uri(filePath).AbsoluteUri;
-                PubSub.Instance.Publish(new NavigationStartedEvent(fileUri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+                PubSub.Publish(new NavigationStartedEvent(fileUri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
             }
             catch (Exception ex) when (!Debugger.IsAttached)
             {

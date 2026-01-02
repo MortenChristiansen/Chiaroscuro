@@ -7,7 +7,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.Folders;
 
-public class FoldersFeature(MainWindow window, TabsBrowserApi tabsApi) : Feature(window)
+public class FoldersFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsApi) : Feature(window, pubSub)
 {
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
@@ -102,7 +102,7 @@ public class FoldersFeature(MainWindow window, TabsBrowserApi tabsApi) : Feature
     private void SaveFolders(FolderDtoV1[] folders, WorkspaceDtoV1 currentWorkspace)
     {
         // Persist the updated workspace state
-        PubSub.Instance.Publish(new TabsChangedEvent(
+        PubSub.Publish(new TabsChangedEvent(
             [..currentWorkspace.Tabs.Select(t => new TabUiStateDto(
                 t.TabId,
                 t.Title ?? "",

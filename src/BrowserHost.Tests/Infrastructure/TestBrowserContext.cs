@@ -5,13 +5,31 @@ using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
-using BrowserHost.Tests.Fakes.StateManagers;
+using BrowserHost.Utilities;
 using System.Windows.Input;
+using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Infrastructure;
 
-internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
+internal class TestBrowserContext : IBrowserContext
 {
+    public TestBrowserContext(ITabBrowser? tab)
+    {
+        FileSystem = new MockFileSystem();
+        CurrentTab = tab;
+
+        PubSub = new PubSub(new DirectPubSubDispatchStrategy());
+        PubSubMessages.AttachTo(PubSub);
+
+        TabCustomizationStateManager = new TabCustomizationStateManager(FileSystem);
+        DomainCustomizationStateManager = new DomainCustomizationStateManager(FileSystem, new NoopFileOpener());
+        SettingsStateManager = new SettingsStateManager(FileSystem);
+    }
+
+    public MockFileSystem FileSystem { get; }
+
+    public PubSub PubSub { get; }
+
     public FakeTabPaletteBrowserApi TabPaletteBrowserApi { get; } = new();
     public FakeFindTextBrowserApi FindTextBrowserApi { get; } = new();
     public FakeTabCustomizationBrowserApi TabCustomizationBrowserApi { get; } = new();
@@ -19,11 +37,11 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
     public FakeDomainCustomizationBrowserApi DomainCustomizationBrowserApi { get; } = new();
     public FakeSettingsBrowserApi SettingsBrowserApi { get; } = new();
 
-    public FakeTabCustomizationStateManager TabCustomizationStateManager { get; } = new();
-    public FakeDomainCustomizationStateManager DomainCustomizationStateManager { get; } = new();
-    public FakeSettingsStateManager SettingsStateManager { get; } = new();
+    public TabCustomizationStateManager TabCustomizationStateManager { get; }
+    public DomainCustomizationStateManager DomainCustomizationStateManager { get; }
+    public SettingsStateManager SettingsStateManager { get; }
 
-    public ITabBrowser? CurrentTab { get; private set; } = tab;
+    public ITabBrowser? CurrentTab { get; private set; }
     public string? CurrentTabId => CurrentTab?.Id;
 
     public ModifierKeys CurrentKeyboardModifiers { get; set; }
@@ -44,6 +62,16 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
     public bool ActionRequiresDispatch { get; set; } = false;
 
     public bool DispatchCalled { get; private set; }
+
+    public void WaitForDispatch()
+    {
+        WaitUntil(() => DispatchCalled);
+    }
+
+    public void WaitUntil(Func<bool> condition)
+    {
+        Assert.True(SpinWait.SpinUntil(condition, TimeSpan.FromSeconds(5)));
+    }
 
     public void Dispatch(Action action)
     {
@@ -71,12 +99,6 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
             return this;
         }
 
-        public TestBrowserContextBuilder WithNoCurrentTab()
-        {
-            _tab = null;
-            return this;
-        }
-
         public TestBrowserContextBuilder WithCurrentDomainTab(out TabBrowser tab, string address, string? tabId = null)
         {
             tab = TypeConstructor.CreateTabBrowser(tabId);
@@ -101,7 +123,7 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new ZoomFeature(null!, context);
+            var feature = new ZoomFeature(null!, context.PubSub, context);
             feature.Configure();
             return feature;
         }
@@ -110,7 +132,7 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new TabPaletteFeature(null!, context, context.TabPaletteBrowserApi);
+            var feature = new TabPaletteFeature(null!, context.PubSub, context, context.TabPaletteBrowserApi);
             feature.Configure();
             return feature;
         }
@@ -119,7 +141,7 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new TabCustomizationFeature(null!, context, context.TabCustomizationBrowserApi, context.TabsBrowserApi, context.TabCustomizationStateManager);
+            var feature = new TabCustomizationFeature(null!, context.PubSub, context, context.TabCustomizationBrowserApi, context.TabsBrowserApi, context.TabCustomizationStateManager);
             feature.Configure();
             return feature;
         }
@@ -128,7 +150,7 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new FindTextFeature(null!, context, context.FindTextBrowserApi);
+            var feature = new FindTextFeature(null!, context.PubSub, context, context.FindTextBrowserApi);
             feature.Configure();
             return feature;
         }
@@ -137,7 +159,7 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new DomainCustomizationFeature(null!, context, context.DomainCustomizationBrowserApi, context.DomainCustomizationStateManager);
+            var feature = new DomainCustomizationFeature(null!, context.PubSub, context, context.DomainCustomizationBrowserApi, context.DomainCustomizationStateManager);
             feature.Configure();
             return feature;
         }
@@ -146,7 +168,7 @@ internal class TestBrowserContext(ITabBrowser? tab = null) : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new SettingsFeature(null!, context.SettingsBrowserApi, context.SettingsStateManager);
+            var feature = new SettingsFeature(null!, context.PubSub, context.SettingsBrowserApi, context.SettingsStateManager);
             feature.Configure();
             return feature;
         }

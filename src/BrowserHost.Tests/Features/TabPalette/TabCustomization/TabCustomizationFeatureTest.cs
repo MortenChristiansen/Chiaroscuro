@@ -2,16 +2,15 @@ using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.TabCustomization;
-using BrowserHost.Utilities;
 
-namespace BrowserHost.Tests.Features.TabPalette;
+namespace BrowserHost.Tests.Features.TabPalette.TabCustomization;
 
 public class TabCustomizationFeatureTest
 {
     [Fact]
     public void Configuring_the_feature_sends_all_existing_custom_titles_to_the_action_context()
     {
-        var feature = CreateFeature
+        CreateFeature
             .CaptureContext(out var context)
             .ConfigureContext(ctx =>
             {
@@ -37,7 +36,7 @@ public class TabCustomizationFeatureTest
             .BuildTabCustomizationFeature();
         context.TabCustomizationStateManager.SaveCustomization("tab-1", c => c with { CustomTitle = "Hello" });
 
-        PubSub.Instance.Publish(new TabPaletteRequestedEvent());
+        context.PubSub.Publish(new TabPaletteRequestedEvent());
 
         var invocation = Assert.Single(context.TabCustomizationBrowserApi.Invocations, i => i.Method == "initCustomSettings");
         Assert.Equal("""
@@ -51,11 +50,10 @@ public class TabCustomizationFeatureTest
     public void Publishing_a_TabPaletteRequestedEvent_does_nothing_when_there_is_no_current_tab()
     {
         CreateFeature
-            .WithNoCurrentTab()
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
 
-        PubSub.Instance.Publish(new TabPaletteRequestedEvent());
+        context.PubSub.Publish(new TabPaletteRequestedEvent());
 
         Assert.DoesNotContain(context.TabCustomizationBrowserApi.Invocations, i => i.Method == "initCustomSettings");
     }
@@ -67,7 +65,7 @@ public class TabCustomizationFeatureTest
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
 
-        PubSub.Instance.Publish(new TabCustomTitleChangedEvent("tab-1", "Custom"));
+        context.PubSub.Publish(new TabCustomTitleChangedEvent("tab-1", "Custom"));
 
         var invocation = Assert.Single(context.TabsBrowserApi.Invocations, i => i.Method == "updateTabCustomization");
         Assert.Equal("""
@@ -86,7 +84,7 @@ public class TabCustomizationFeatureTest
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
 
-        PubSub.Instance.Publish(new TabDisableFixedAddressChangedEvent("tab-1", true));
+        context.PubSub.Publish(new TabDisableFixedAddressChangedEvent("tab-1", true));
 
         var customization = context.TabCustomizationStateManager.GetCustomization("tab-1");
         Assert.True(customization.DisableFixedAddress);
@@ -101,12 +99,12 @@ public class TabCustomizationFeatureTest
         context.TabCustomizationStateManager.SaveCustomization("tab-1", c => c with { CustomTitle = "A" });
         var tab = TypeConstructor.CreateTabBrowser("tab-1");
 
-        PubSub.Instance.Publish(new TabClosedEvent(tab));
+        context.PubSub.Publish(new TabClosedEvent(tab));
 
         var customization = context.TabCustomizationStateManager.GetCustomization("tab-1");
         Assert.Null(customization.CustomTitle);
         Assert.False(customization.DisableFixedAddress);
-        Assert.Contains("tab-1", context.TabCustomizationStateManager.DeletedTabIds);
+        Assert.DoesNotContain(context.TabCustomizationStateManager.GetAllCustomizations(), c => c.TabId == "tab-1");
     }
 
     [Fact]
@@ -118,7 +116,7 @@ public class TabCustomizationFeatureTest
         context.TabCustomizationStateManager.SaveCustomization("tab-1", c => c with { CustomTitle = "A", DisableFixedAddress = true });
         context.TabCustomizationStateManager.SaveCustomization("tab-2", c => c with { CustomTitle = "B", DisableFixedAddress = true });
 
-        PubSub.Instance.Publish(new EphemeralTabsExpiredEvent(["tab-1", "tab-2"]));
+        context.PubSub.Publish(new EphemeralTabsExpiredEvent(["tab-1", "tab-2"]));
 
         var after1 = context.TabCustomizationStateManager.GetCustomization("tab-1");
         var after2 = context.TabCustomizationStateManager.GetCustomization("tab-2");
@@ -126,8 +124,7 @@ public class TabCustomizationFeatureTest
         Assert.Null(after2.CustomTitle);
         Assert.False(after1.DisableFixedAddress);
         Assert.False(after2.DisableFixedAddress);
-        Assert.Contains("tab-1", context.TabCustomizationStateManager.DeletedTabIds);
-        Assert.Contains("tab-2", context.TabCustomizationStateManager.DeletedTabIds);
+        Assert.DoesNotContain(context.TabCustomizationStateManager.GetAllCustomizations(), c => c.TabId is "tab-1" or "tab-2");
     }
 
     [Fact]

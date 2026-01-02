@@ -8,16 +8,16 @@ public record ActionDialogDismissedEvent();
 public record CommandExecutedEvent(string Command, bool Ctrl);
 public record ActionDialogValueChangedEvent(string Value);
 
-public class ActionDialogBackendApi : BackendApi
+public class ActionDialogBackendApi(PubSub pubSub) : BackendApi
 {
     public void Execute(string command, bool ctrl) =>
-        PubSub.Instance.Publish(new CommandExecutedEvent(command, ctrl));
+        pubSub.Publish(new CommandExecutedEvent(command, ctrl));
 
     public void DismissActionDialog() =>
-        PubSub.Instance.Publish(new ActionDialogDismissedEvent());
+        pubSub.Publish(new ActionDialogDismissedEvent());
 
     public void NotifyValueChanged(string value) =>
-        PubSub.Instance.Publish(new ActionDialogValueChangedEvent(value));
+        pubSub.Publish(new ActionDialogValueChangedEvent(value));
 
     public string GetActionType(string command) =>
         ActionDialogFeature.GetActionType(command).ToString();

@@ -20,6 +20,7 @@ namespace BrowserHost;
 /// </summary>
 public class ProgramPublishSingleFile
 {
+    public static PubSub PubSub { get; } = new();
     public static SettingsFeature SettingsFeature { get; private set; } = null!;
 
     [STAThread]
@@ -55,7 +56,7 @@ public class ProgramPublishSingleFile
         if (App.Options.ForceAppRegistration)
             WindowsRegistrator.RegisterApplication(new SemanticVersion(0, 0, 0));
 
-        SettingsFeature = new SettingsFeature(null!, new SettingsBrowserApi(() => MainWindow.Instance.CurrentTab), new SettingsStateManager());
+        SettingsFeature = new SettingsFeature(null!, PubSub, new SettingsBrowserApi(() => MainWindow.Instance.CurrentTab), new SettingsStateManager());
 
         var cacheFolder = Debugger.IsAttached ? "CefSharp\\DevCache" : "CefSharp\\Cache";
 
@@ -86,7 +87,7 @@ public class ProgramPublishSingleFile
         //set BrowserSubprocessPath to an absolute path to your main application exe.
         using (Measure.Operation("Performing Cef initialization"))
         {
-            Cef.Initialize(settings, performDependencyCheck: false, new BrowserProcessHandler());
+            Cef.Initialize(settings, performDependencyCheck: false, new BrowserProcessHandler(PubSub));
         }
 
         var app = new App();

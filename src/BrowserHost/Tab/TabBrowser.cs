@@ -19,6 +19,7 @@ public class TabBrowser : UserControl, ITabBrowser
 
     private ITabWebBrowser _browser;
     private readonly TabsBrowserApi _tabsApi;
+    private readonly PubSub _pubSub;
     private bool _isChildBrowser;
     private PersistableState? _persistableState;
 
@@ -57,9 +58,10 @@ public class TabBrowser : UserControl, ITabBrowser
     public bool HasDevTools => _browser.HasDevTools;
     public bool SupportsPromotionToFullTab => _isChildBrowser && _browser.SupportsPromotionToFullTab;
 
-    public TabBrowser(string id, string address, TabsBrowserApi tabsApi, bool setManualAddress, string? favicon, bool isChildBrowser)
+    public TabBrowser(string id, string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
         _tabsApi = tabsApi;
+        _pubSub = pubSub;
         _isChildBrowser = isChildBrowser;
         favicon ??= FileFaviconProvider.TryGetFaviconForAddress(address);
         _browser = CreateBrowser(id, address, setManualAddress, favicon, isChildBrowser);
@@ -71,8 +73,8 @@ public class TabBrowser : UserControl, ITabBrowser
     {
         var isSsoDomain = ShouldUseWebView2(address);
         if (isSsoDomain)
-            return new WebView2Browser(id, address, _tabsApi, setManualAddress, favicon, isChildBrowser);
-        return new CefSharpTabBrowserAdapter(id, address, _tabsApi, setManualAddress, favicon, isChildBrowser);
+            return new WebView2Browser(id, address, _tabsApi, _pubSub, setManualAddress, favicon, isChildBrowser);
+        return new CefSharpTabBrowserAdapter(id, address, _tabsApi, _pubSub, setManualAddress, favicon, isChildBrowser);
     }
 
     public void SavePersistableState()
@@ -149,7 +151,7 @@ public class TabBrowser : UserControl, ITabBrowser
                 !ContentServer.IsContentServerUrl(oldAddress))
             {
                 UpgradeToWebView2(oldAddress);
-                PubSub.Instance.Publish(new SsoFlowStartedEvent(Id, oldUri.Host, oldAddress));
+                _pubSub.Publish(new SsoFlowStartedEvent(Id, oldUri.Host, oldAddress));
                 return; // We restored the old address, so no further processing is needed
             }
         }
@@ -177,7 +179,7 @@ public class TabBrowser : UserControl, ITabBrowser
 
         DetachBrowserEvents();
         var old = _browser;
-        _browser = new WebView2Browser(id, targetAddress, _tabsApi, setManualAddress: setManual, favicon, _isChildBrowser);
+        _browser = new WebView2Browser(id, targetAddress, _tabsApi, _pubSub, setManualAddress: setManual, favicon, _isChildBrowser);
         Content = _browser.AsUIElement();
         AttachBrowserEvents();
         old.Dispose();

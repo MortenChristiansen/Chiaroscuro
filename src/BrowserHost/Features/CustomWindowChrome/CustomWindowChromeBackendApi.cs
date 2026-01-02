@@ -10,7 +10,7 @@ public record WindowStateToggledEvent();
 public record AddressCopyRequestedEvent();
 public record TabLoadingStateChangedEvent(string TabId, bool IsLoading);
 
-public class CustomWindowChromeBackendApi : BackendApi
+public class CustomWindowChromeBackendApi(PubSub pubSub) : BackendApi
 {
     public bool CanGoForward() =>
         MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.CanGoForward ?? false);
@@ -28,16 +28,16 @@ public class CustomWindowChromeBackendApi : BackendApi
         MainWindow.Instance.CurrentTab?.Reload();
 
     public void Minimize() =>
-        PubSub.Instance.Publish(new WindowMinimizedEvent());
+        pubSub.Publish(new WindowMinimizedEvent());
 
     public void Maximize() =>
-        PubSub.Instance.Publish(new WindowStateToggledEvent());
+        pubSub.Publish(new WindowStateToggledEvent());
 
     public void Close() =>
         MainWindow.Instance.Dispatcher.Invoke(MainWindow.Instance.Close);
 
     public void CopyAddress() =>
-        PubSub.Instance.Publish(new AddressCopyRequestedEvent());
+        pubSub.Publish(new AddressCopyRequestedEvent());
 
     public bool IsLoading() =>
         MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.IsLoading ?? false);

@@ -17,6 +17,7 @@ using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Logging;
 using BrowserHost.Tab;
+using BrowserHost.Utilities;
 using BrowserHost.XamlUtilities;
 using CefSharp.Wpf;
 using System;
@@ -39,6 +40,7 @@ public partial class MainWindow : Window
     private readonly List<Feature> _features;
     private bool _tabPaletteHasBeenShown;
     private const int CornerRadiusDip = 8;
+    private readonly AppStateStateManager _appStateStateManager;
 
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
@@ -85,27 +87,30 @@ public partial class MainWindow : Window
         TabPaletteBrowserApi = new TabPaletteBrowserApi(TabPaletteBrowserControl);
         TabCustomizationBrowserApi = new TabCustomizationBrowserApi(TabPaletteBrowserControl);
 
+        _appStateStateManager = new AppStateStateManager();
+
         var browserContext = new BrowserContext(this);
+        var pubSub = ProgramPublishSingleFile.PubSub;
 
         _features =
         [
             App.SettingsFeature,
-            new CustomWindowChromeFeature(this, CustomWindowChromeBrowserApi),
-            new ActionContextFeature(this),
-            new ActionDialogFeature(this, ActionDialogBrowserApi),
-            new TabsFeature(this, TabsBrowserApi),
-            new PinnedTabsFeature(this, TabsBrowserApi, PinnedTabsBrowserApi),
-            new DevToolFeature(this),
-            new FileDownloadsFeature(this, DownloadsBrowserApi),
-            new ZoomFeature(this, browserContext),
-            new DragDropFeature(this),
-            new WorkspacesFeature(this, WorkspacesBrowserApi, TabsBrowserApi),
-            new FoldersFeature(this, TabsBrowserApi),
-            new TabPaletteFeature(this, browserContext, TabPaletteBrowserApi),
-            new FindTextFeature(this, browserContext, FindTextBrowserApi),
-            new TabCustomizationFeature(this, browserContext, TabCustomizationBrowserApi, TabsBrowserApi, new TabCustomizationStateManager()),
-            new DomainCustomizationFeature(this, browserContext, DomainCustomizationBrowserApi, new DomainCustomizationStateManager()),
-            new AppStateFeature(this),
+            new CustomWindowChromeFeature(this, pubSub, CustomWindowChromeBrowserApi),
+            new ActionContextFeature(this, pubSub),
+            new ActionDialogFeature(this, pubSub, ActionDialogBrowserApi, new NavigationHistoryStateManager()),
+            new TabsFeature(this, pubSub, TabsBrowserApi),
+            new PinnedTabsFeature(this, pubSub, TabsBrowserApi, PinnedTabsBrowserApi, new PinnedTabsStateManager()),
+            new DevToolFeature(this, pubSub),
+            new FileDownloadsFeature(this, pubSub, DownloadsBrowserApi),
+            new ZoomFeature(this, pubSub, browserContext),
+            new DragDropFeature(this, pubSub),
+            new WorkspacesFeature(this, pubSub, WorkspacesBrowserApi, TabsBrowserApi, new WorkspaceStateManager(pubSub)),
+            new FoldersFeature(this, pubSub, TabsBrowserApi),
+            new TabPaletteFeature(this, pubSub, browserContext, TabPaletteBrowserApi),
+            new FindTextFeature(this, pubSub, browserContext, FindTextBrowserApi),
+            new TabCustomizationFeature(this, pubSub, browserContext, TabCustomizationBrowserApi, TabsBrowserApi, new TabCustomizationStateManager()),
+            new DomainCustomizationFeature(this, pubSub, browserContext, DomainCustomizationBrowserApi, new DomainCustomizationStateManager()),
+            new AppStateFeature(this, pubSub, _appStateStateManager),
         ];
         _features.ForEach(f =>
         {
@@ -335,7 +340,7 @@ public partial class MainWindow : Window
         if (TabPaletteBrowserControl.Visibility == Visibility.Visible)
             return;
 
-        var savedWidth = AppStateStateManager.GetAppState().TabPaletteWidth;
+        var savedWidth = _appStateStateManager.GetAppState().TabPaletteWidth;
         TabPaletteColumn.Width = new GridLength(savedWidth > 0 ? savedWidth : 350);
 
         if (!_tabPaletteHasBeenShown)

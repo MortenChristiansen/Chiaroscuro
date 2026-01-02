@@ -1,10 +1,12 @@
 ﻿using System.Windows.Input;
+using BrowserHost.Utilities;
 
 namespace BrowserHost.Features;
 
-public abstract class Feature(MainWindow window)
+public abstract class Feature(MainWindow window, PubSub pubSub)
 {
     protected MainWindow Window { get; } = window;
+    protected PubSub PubSub { get; } = pubSub;
 
     public virtual void Configure() { }
     public virtual void Start() { }

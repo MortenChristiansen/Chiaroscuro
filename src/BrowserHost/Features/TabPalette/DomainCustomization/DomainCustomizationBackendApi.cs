@@ -7,26 +7,26 @@ public record DomainCustomizationChangedEvent(string Domain, bool CssEnabled);
 public record DomainCssEditRequestedEvent(string Domain);
 public record DomainCustomCssRemovedEvent(string Domain);
 
-public class DomainCustomizationBackendApi : BackendApi
+public class DomainCustomizationBackendApi(PubSub pubSub) : BackendApi
 {
     public void SetCssEnabled(bool enabled)
     {
         var domain = MainWindow.Instance.CurrentTab?.CurrentDomain;
         if (domain != null)
-            PubSub.Instance.Publish(new DomainCustomizationChangedEvent(domain, enabled));
+            pubSub.Publish(new DomainCustomizationChangedEvent(domain, enabled));
     }
 
     public void EditCss()
     {
         var domain = MainWindow.Instance.CurrentTab?.CurrentDomain;
         if (domain != null)
-            PubSub.Instance.Publish(new DomainCssEditRequestedEvent(domain));
+            pubSub.Publish(new DomainCssEditRequestedEvent(domain));
     }
 
     public void RemoveCss()
     {
         var domain = MainWindow.Instance.CurrentTab?.CurrentDomain;
         if (domain != null)
-            PubSub.Instance.Publish(new DomainCustomCssRemovedEvent(domain));
+            pubSub.Publish(new DomainCustomCssRemovedEvent(domain));
     }
 }

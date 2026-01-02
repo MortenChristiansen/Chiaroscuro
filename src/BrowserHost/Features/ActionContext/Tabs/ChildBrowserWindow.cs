@@ -21,6 +21,7 @@ public class ChildBrowserWindow : OverlayWindow
 {
     private readonly TabBrowser _browser;
     private readonly string _parentTabId;
+    private readonly PubSub _pubSub;
     private const int _cornerRadiusDip = 8;
     private const int _overlayFadeDuration = 300;
     private readonly Border _contentHost;
@@ -37,28 +38,45 @@ public class ChildBrowserWindow : OverlayWindow
     private static readonly Dictionary<string, List<ChildBrowserWindow>> _windowsByTab = [];
     private static readonly Lock _lock = new();
 
-    static ChildBrowserWindow()
+    private static readonly Lock _subscriptionsLock = new();
+    private static bool _subscriptionsInitialized;
+
+    private static void EnsureSubscriptions(PubSub pubSub)
     {
-        PubSub.Instance.Subscribe<TabActivatedEvent>(e =>
+        if (_subscriptionsInitialized)
+            return;
+
+        lock (_subscriptionsLock)
         {
-            if (!string.IsNullOrEmpty(e.TabId)) ShowWindowsForTab(e.TabId);
-            if (e.PreviousTab != null) HideWindowsForTab(e.PreviousTab.Id);
-        });
-        PubSub.Instance.Subscribe<TabDeactivatedEvent>(e =>
-        {
-            if (!string.IsNullOrEmpty(e.TabId)) HideWindowsForTab(e.TabId);
-        });
-        PubSub.Instance.Subscribe<TabClosedEvent>(e =>
-        {
-            if (!string.IsNullOrEmpty(e.Tab.Id)) CloseWindowsForTab(e.Tab.Id);
-        });
+            if (_subscriptionsInitialized)
+                return;
+
+            pubSub.Subscribe<TabActivatedEvent>(e =>
+            {
+                if (!string.IsNullOrEmpty(e.TabId)) ShowWindowsForTab(e.TabId);
+                if (e.PreviousTab != null) HideWindowsForTab(e.PreviousTab.Id);
+            });
+            pubSub.Subscribe<TabDeactivatedEvent>(e =>
+            {
+                if (!string.IsNullOrEmpty(e.TabId)) HideWindowsForTab(e.TabId);
+            });
+            pubSub.Subscribe<TabClosedEvent>(e =>
+            {
+                if (!string.IsNullOrEmpty(e.Tab.Id)) CloseWindowsForTab(e.Tab.Id);
+            });
+
+            _subscriptionsInitialized = true;
+        }
     }
 
-    public ChildBrowserWindow(string address, string parentTabId)
+    public ChildBrowserWindow(string address, string parentTabId, PubSub pubSub)
     {
         Owner = MainWindow.Instance;
 
-        _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.TabsBrowserApi, setManualAddress: false, favicon: null, isChildBrowser: true);
+        EnsureSubscriptions(pubSub);
+        _pubSub = pubSub;
+
+        _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.TabsBrowserApi, pubSub, setManualAddress: false, favicon: null, isChildBrowser: true);
         _browser.PageLoadEnded += Browser_PageLoadEnded;
         _browser.Opacity = 0.0; // Keep child browser hidden until first load completes
         _browser.RenderTransformOrigin = new Point(0.5, 0.5);
@@ -138,14 +156,14 @@ public class ChildBrowserWindow : OverlayWindow
                 // Trigger regular navigation (new tab)
                 contentGrid.Children.Remove(_browser);
                 _browser.PromoteToFullTab();
-                PubSub.Instance.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
+                _pubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
                 // Close this child window
                 BeginCloseWithFade();
                 AnimateContentOut(animateBrowser: false);
             }
             else
             {
-                PubSub.Instance.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+                _pubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
                 BeginCloseWithFade();
                 AnimateContentOut();
             }

@@ -9,17 +9,17 @@ public record PrevTextMatchEvent(string Term);
 public record StopFindingTextEvent();
 public record FindStatusChangedEvent(int Matches);
 
-public class FindTextBackendApi : BackendApi
+public class FindTextBackendApi(PubSub pubSub) : BackendApi
 {
     public void Find(string term) =>
-        PubSub.Instance.Publish(new FindTextEvent(term));
+        pubSub.Publish(new FindTextEvent(term));
 
     public void NextMatch(string term) =>
-        PubSub.Instance.Publish(new NextTextMatchEvent(term));
+        pubSub.Publish(new NextTextMatchEvent(term));
 
     public void PrevMatch(string term) =>
-        PubSub.Instance.Publish(new PrevTextMatchEvent(term));
+        pubSub.Publish(new PrevTextMatchEvent(term));
 
     public void StopFinding() =>
-        PubSub.Instance.Publish(new StopFindingTextEvent());
+        pubSub.Publish(new StopFindingTextEvent());
 }

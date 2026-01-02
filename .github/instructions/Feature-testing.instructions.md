@@ -39,10 +39,9 @@ Feature tests follow a small set of conventions designed to keep tests readable,
 
 ## PubSub is already configured per test
 
-- Tests do **not** need to set up `PubSub`.
-- The assembly applies a per-test PubSub scope automatically via `PerTestPubSubContextAttribute`, ensuring:
-  - Isolation between tests (no subscriber leakage)
-  - A direct dispatch strategy (no UI thread/Dispatcher requirement)
+- Tests do **not** need to set up `PubSub` directly.
+- `TestBrowserContext` creates a dedicated `PubSub` instance per test and uses a direct dispatch strategy (no UI thread/Dispatcher requirement).
+- When a test needs to publish events into a feature, publish via the captured context: `context.PubSub.Publish(new SomeEvent(...))`.
 - Use `PubSubMessages.OfType<TEvent>()` to capture published events for the current test.
 
 ## Event argument creation
@@ -53,10 +52,10 @@ Feature tests follow a small set of conventions designed to keep tests readable,
 
 ## Managing persistent state and file access
 
-- Create a test version of state managers (e.g., `FakeTabCustomizationStateManager`) when persistent state
-  is needed. These are available via the `TestBrowserContext`. They are located in `BrowserHost.Tests/Infrastructure/Fakes/StateManagers`.
-- Do not use an interface. Inherit from the non-fake state manager class and use virtual/override methods on the fake state managers to control behavior as needed.
-- Inject the fake state manager into the feature under test via the `CreateFeature` builder, through the constructor.
+- Use the real state manager classes, backed by a `MockFileSystem`.
+  - The per-test `MockFileSystem` instance is exposed by `TestBrowserContext.FileSystem`.
+  - `TestBrowserContext` constructs state managers using that fake filesystem.
+- Seed state by writing the expected persisted files into the fake filesystem (or by calling the state manager APIs).
 - ALL file system access must be done via the state manager abstraction. Features must not access the file system directly.
 
 ## Assertions

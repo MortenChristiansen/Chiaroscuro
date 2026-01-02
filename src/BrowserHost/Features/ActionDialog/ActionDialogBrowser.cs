@@ -4,11 +4,10 @@ namespace BrowserHost.Features.ActionDialog;
 
 public class ActionDialogBrowser : Browser<ActionDialogBackendApi>
 {
-    public override ActionDialogBackendApi Api { get; }
+    public override ActionDialogBackendApi Api { get; } = new(App.PubSub);
 
     public ActionDialogBrowser()
         : base("/action-dialog", disableContextMenu: true)
     {
-        Api = new ActionDialogBackendApi();
     }
 }
