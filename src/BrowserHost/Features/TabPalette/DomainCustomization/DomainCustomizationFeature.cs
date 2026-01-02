@@ -47,13 +47,20 @@ public class DomainCustomizationFeature : Feature
         });
         PubSub.Subscribe<DomainCustomCssRemovedEvent>((e) =>
         {
+            // Note that this event can be triggered manually by the frontend or by deleting the file directly.
+            // Clearing the watcher will prevent a second event as we delete the CSS file below.
+            if (e.Domain == _currentDomain)
+                ClearCssWatcher();
+
             _stateManager.RemoveCustomCss(e.Domain);
 
             var tab = _browserContext.CurrentTab;
             if (tab != null && e.Domain == _currentDomain)
                 RemoveCssFromTab(tab);
 
-            PubSub.Publish(new DomainCustomizationChangedEvent(e.Domain, CssEnabled: false));
+            var customization = _stateManager.GetCustomization(e.Domain);
+            if (customization.CssEnabled)
+                PubSub.Publish(new DomainCustomizationChangedEvent(e.Domain, CssEnabled: false));
         });
         PubSub.Subscribe<DomainCssEditRequestedEvent>((e) => EditDomainCss(e.Domain));
 
@@ -235,13 +242,18 @@ public class DomainCustomizationFeature : Feature
 
     private void UpdateCssWatcher()
     {
-        _cssWatcherSubscription?.Dispose();
-        _cssWatcherSubscription = null;
+        ClearCssWatcher();
 
         if (_currentDomain == null)
             return;
 
         _cssWatcherSubscription = _stateManager.WatchCustomCss(_currentDomain, OnCustomCssWatchEvent);
+    }
+
+    private void ClearCssWatcher()
+    {
+        _cssWatcherSubscription?.Dispose();
+        _cssWatcherSubscription = null;
     }
 
     private void OnCustomCssWatchEvent(DomainCustomizationStateManager.CustomCssWatchEventKind kind)
