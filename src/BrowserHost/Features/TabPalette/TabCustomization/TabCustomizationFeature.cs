@@ -16,22 +16,27 @@ public class TabCustomizationFeature(
 {
     public override void Configure()
     {
-        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => InitializeCustomSettings());
-        PubSub.Subscribe<TabCustomTitleChangedEvent>((e) =>
+        PubSub.Handle<ChangeTabCustomTitleCommand>(cmd =>
         {
-            var customization = state.SaveCustomization(e.TabId, c => c with { CustomTitle = e.CustomTitle });
-            tabsApi.UpdateTabCustomization(new(e.TabId, customization?.CustomTitle));
+            var customization = state.SaveCustomization(cmd.TabId, c => c with { CustomTitle = cmd.CustomTitle });
+            tabsApi.UpdateTabCustomization(new(cmd.TabId, customization?.CustomTitle));
+            PubSub.Publish(new TabCustomTitleChangedEvent(cmd.TabId, cmd.CustomTitle));
         });
-        PubSub.Subscribe<TabDisableFixedAddressChangedEvent>((e) =>
+        PubSub.Handle<ChangeTabDisableFixedAddressCommand>(cmd =>
         {
-            state.SaveCustomization(e.TabId, c => c with { DisableFixedAddress = e.IsDisabled });
+            state.SaveCustomization(cmd.TabId, c => c with { DisableFixedAddress = cmd.IsDisabled });
+            PubSub.Publish(new TabDisableFixedAddressChangedEvent(cmd.TabId, cmd.IsDisabled));
         });
-        PubSub.Subscribe<TabClosedEvent>((e) => state.DeleteCustomization(e.Tab.Id));
-        PubSub.Subscribe<EphemeralTabsExpiredEvent>((e) =>
+        PubSub.Handle<ExpireEphemeralTabsCommand>(cmd =>
         {
-            foreach (var tabId in e.TabIds)
+            foreach (var tabId in cmd.TabIds)
                 state.DeleteCustomization(tabId);
+
+            PubSub.Publish(new EphemeralTabsExpiredEvent(cmd.TabIds));
         });
+
+        PubSub.Subscribe<TabClosedEvent>((e) => state.DeleteCustomization(e.TabId));
+        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => InitializeCustomSettings());
 
         InitializeCustomizations();
     }

@@ -16,6 +16,7 @@ This is a C# + Typescript repository for a Windows-only custom browser.
 
 - `MainWindow` wires up the app by constructing a list of `Feature`s and calling `Configure()` and `Start()`.
 - A `Feature` is the primary backend extension point (see `src/BrowserHost/Features/Feature.cs`). Features typically:
+  - Send/handle commands via `PubSub`.
   - Subscribe/publish events via `PubSub`.
   - Control embedded UI browsers (e.g. show/hide overlays).
   - Hook keyboard/mouse input via `HandleOnPreviewKeyDown` / `HandleOnPreviewMouseWheel`.

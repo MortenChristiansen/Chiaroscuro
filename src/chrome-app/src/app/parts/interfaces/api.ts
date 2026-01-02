@@ -1,6 +1,8 @@
 export interface Api {}
 
-const isBrowser = typeof window !== 'undefined';
+import { isServerSideRendering } from '../../shared/utils';
+
+const isBrowser = !isServerSideRendering();
 
 export async function loadBackendApi<TApi extends Api>(
   apiName?: string

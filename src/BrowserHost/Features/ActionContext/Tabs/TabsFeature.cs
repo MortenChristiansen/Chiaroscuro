@@ -18,30 +18,37 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
 
     public override void Configure()
     {
-        PubSub.Subscribe<NavigationStartedEvent>(e =>
+        PubSub.Handle<StartNavigationCommand>(cmd =>
         {
-            if (Window.CurrentTab != null && e.UseCurrentTab)
+            if (Window.CurrentTab != null && cmd.UseCurrentTab)
             {
-                Window.CurrentTab.SetAddress(e.Address, setManualAddress: e.SaveInHistory);
+                Window.CurrentTab.SetAddress(cmd.Address, setManualAddress: cmd.SaveInHistory);
             }
             else
             {
-                AddNewTab(e.Address, e.SaveInHistory, e.ActivateTab, e.ReuseTabBrowser);
+                AddNewTab(cmd.Address, cmd.SaveInHistory, cmd.ActivateTab, cmd.ReuseTabBrowser);
             }
+
+            PubSub.Publish(new NavigationStartedEvent(cmd.Address, cmd.UseCurrentTab, cmd.SaveInHistory, cmd.ActivateTab, cmd.ReuseTabBrowser));
         });
-        PubSub.Subscribe<TabActivatedEvent>(e =>
+        PubSub.Handle<ActivateTabCommand>(cmd =>
         {
-            SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId));
-            tabsApi.SetActiveTab(e.TabId);
+            var previousTab = Window.CurrentTab;
+            SetCurrentTab(GetTabBrowserById(cmd.TabId));
+            tabsApi.SetActiveTab(cmd.TabId);
+            PubSub.Publish(new TabActivatedEvent(cmd.TabId, previousTab));
         });
-        PubSub.Subscribe<TabClosedEvent>(e =>
+        PubSub.Handle<CloseTabCommand>(cmd =>
         {
-            _tabBrowsers.Remove(e.Tab);
-            if (e.Tab == Window.CurrentTab)
+            var tab = GetTabBrowserById(cmd.TabId);
+            _tabBrowsers.Remove(tab);
+            if (tab == Window.CurrentTab)
                 SetCurrentTab(null);
-            TryRemoveFromPreloadHost(e.Tab);
-            e.Tab.Dispose();
+            TryRemoveFromPreloadHost(tab);
+            tab.Dispose();
+            PubSub.Publish(new TabClosedEvent(cmd.TabId, tab));
         });
+
         PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
         {
             var workspaceFeature = Window.GetFeature<WorkspacesFeature>();

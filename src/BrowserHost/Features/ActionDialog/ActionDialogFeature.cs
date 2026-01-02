@@ -14,7 +14,6 @@ using System.Windows.Media.Animation;
 namespace BrowserHost.Features.ActionDialog;
 
 public record SearchProvider(string Name, string Key, string Pattern);
-public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory, bool ActivateTab, TabBrowser? ReuseTabBrowser = null);
 
 public enum ActionType
 {
@@ -30,9 +29,22 @@ public partial class ActionDialogFeature(MainWindow window, PubSub pubSub, Actio
 
     public override void Configure()
     {
-        PubSub.Subscribe<ActionDialogDismissedEvent>(_ => DismissDialog());
-        PubSub.Subscribe<CommandExecutedEvent>(HandleCommandExecuted);
-        PubSub.Subscribe<ActionDialogValueChangedEvent>(HandleValueChanged);
+        PubSub.Handle<DismissActionDialogCommand>(_ =>
+        {
+            DismissDialog();
+            PubSub.Publish(new ActionDialogDismissedEvent());
+        });
+        PubSub.Handle<ExecuteCommandCommand>(cmd =>
+        {
+            HandleCommandExecuted(new CommandExecutedEvent(cmd.Command, cmd.Ctrl));
+            PubSub.Publish(new CommandExecutedEvent(cmd.Command, cmd.Ctrl));
+        });
+        PubSub.Handle<ChangeActionDialogValueCommand>(cmd =>
+        {
+            HandleValueChanged(new ActionDialogValueChangedEvent(cmd.Value));
+            PubSub.Publish(new ActionDialogValueChangedEvent(cmd.Value));
+        });
+
         PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => HandlePageHistoryChange(e.TabId));
         PubSub.Subscribe<TabFaviconUrlChangedEvent>(e => HandlePageHistoryChange(e.TabId));
     }
@@ -63,7 +75,7 @@ public partial class ActionDialogFeature(MainWindow window, PubSub pubSub, Actio
         if (ContentServer.IsContentPage(e.Command, out var page))
         {
             var pageUrl = ContentServer.GetUiAddress(page.Address);
-            PubSub.Publish(new NavigationStartedEvent(pageUrl, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
+            PubSub.Send(new StartNavigationCommand(pageUrl, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
             return;
         }
 
@@ -73,7 +85,7 @@ public partial class ActionDialogFeature(MainWindow window, PubSub pubSub, Actio
             return;
         }
 
-        PubSub.Publish(new NavigationStartedEvent(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true, ActivateTab: true));
+        PubSub.Send(new StartNavigationCommand(e.Command, UseCurrentTab: e.Ctrl, SaveInHistory: true, ActivateTab: true));
     }
 
     public static ActionType GetActionType(string command)
@@ -123,7 +135,7 @@ public partial class ActionDialogFeature(MainWindow window, PubSub pubSub, Actio
     {
         var urlEncodedQuery = WebUtility.UrlEncode(query);
         var url = string.Format(provider.Pattern, urlEncodedQuery);
-        PubSub.Publish(new NavigationStartedEvent(url, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
+        PubSub.Send(new StartNavigationCommand(url, UseCurrentTab: e.Ctrl, SaveInHistory: false, ActivateTab: true));
     }
 
     private void HandlePageHistoryChange(string tabId)

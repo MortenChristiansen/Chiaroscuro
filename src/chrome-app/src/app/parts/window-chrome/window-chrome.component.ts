@@ -16,6 +16,7 @@ import { exposeApiToBackend, loadBackendApi } from '../interfaces/api';
 import { IconButtonComponent } from '../../shared/icon-button.component';
 import UrlDisplayComponent from './url-display.component';
 import { WindowsChromeApi } from './windowChromeApi';
+import { isServerSideRendering } from '../../shared/utils';
 
 @Component({
   selector: 'window-chrome',
@@ -89,8 +90,6 @@ export default class WindowChromeComponent implements OnInit {
   async ngOnInit() {
     this.api = await loadBackendApi<WindowsChromeApi>();
 
-    this.isMaximized.set(await this.api.getIsMaximized());
-
     exposeApiToBackend({
       changeAddress: async (url: string | null) => {
         this.address.set(url);
@@ -106,6 +105,9 @@ export default class WindowChromeComponent implements OnInit {
       },
     });
 
+    if (isServerSideRendering()) return;
+
+    this.isMaximized.set(await this.api.getIsMaximized());
     this.api.onLoaded();
   }
   canGoBack = signal(false);

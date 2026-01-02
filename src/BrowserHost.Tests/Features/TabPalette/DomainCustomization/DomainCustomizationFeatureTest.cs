@@ -24,13 +24,13 @@ public class DomainCustomizationFeatureTest
     }
 
     [Fact]
-    public void Publishing_a_DomainCustomizationChangedEvent_persists_css_enabled_and_notifies_the_frontend()
+    public void Sending_a_ChangeDomainCustomizationCommand_persists_css_enabled_and_notifies_the_frontend()
     {
         CreateFeature
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
 
-        context.PubSub.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
+        context.PubSub.Send(new ChangeDomainCustomizationCommand(_domain, CssEnabled: true));
 
         var customization = context.DomainCustomizationStateManager.GetCustomization(_domain);
         Assert.True(customization.CssEnabled);
@@ -39,17 +39,17 @@ public class DomainCustomizationFeatureTest
     }
 
     [Fact]
-    public void Publishing_a_DomainCustomCssRemovedEvent_deletes_CSS_removes_it_from_the_tab_and_disables_it()
+    public void Sending_a_RemoveDomainCustomCssCommand_deletes_CSS_removes_it_from_the_tab_and_disables_it()
     {
         CreateFeature
             .WithCurrentDomainTab(out var tab, $"https://{_domain}/", tabId: "tab-1")
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
         Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(_domain));
-        context.PubSub.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
+        context.PubSub.Send(new ChangeDomainCustomizationCommand(_domain, CssEnabled: true));
         context.PubSub.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
 
-        context.PubSub.Publish(new DomainCustomCssRemovedEvent(_domain));
+        context.PubSub.Send(new RemoveDomainCustomCssCommand(_domain));
 
         var disabledEvent = Assert.Single(PubSubMessages.OfType<DomainCustomizationChangedEvent>(), e => !e.CssEnabled);
         Assert.Equal(_domain, disabledEvent.Domain);
@@ -62,7 +62,7 @@ public class DomainCustomizationFeatureTest
     }
 
     [Fact]
-    public void Publishing_a_DomainCssEditRequestedEvent_creates_CSS_and_enables_it()
+    public void Sending_a_EditDomainCssCommand_creates_CSS_and_enables_it()
     {
         CreateFeature
             .WithCurrentDomainTab(out var tab, $"https://{_domain}/", tabId: "tab-1")
@@ -70,7 +70,7 @@ public class DomainCustomizationFeatureTest
             .BuildDomainCustomizationFeature();
         context.PubSub.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
 
-        context.PubSub.Publish(new DomainCssEditRequestedEvent(_domain));
+        context.PubSub.Send(new EditDomainCssCommand(_domain));
 
         var customization = context.DomainCustomizationStateManager.GetCustomization(_domain);
         Assert.True(customization.CssEnabled);
@@ -88,7 +88,7 @@ public class DomainCustomizationFeatureTest
             .ConfigureContext(ctx => ctx.ActionRequiresDispatch = true)
             .BuildDomainCustomizationFeature();
         Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(_domain));
-        context.PubSub.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
+        context.PubSub.Send(new ChangeDomainCustomizationCommand(_domain, CssEnabled: true));
         context.PubSub.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
         var cssFile = GetCustomCssFilePath(context, _domain);
 
@@ -108,7 +108,7 @@ public class DomainCustomizationFeatureTest
             .ConfigureContext(ctx => ctx.ActionRequiresDispatch = true)
             .BuildDomainCustomizationFeature();
         Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(_domain));
-        context.PubSub.Publish(new DomainCustomizationChangedEvent(_domain, CssEnabled: true));
+        context.PubSub.Send(new ChangeDomainCustomizationCommand(_domain, CssEnabled: true));
         context.PubSub.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
         var cssFile = GetCustomCssFilePath(context, _domain);
 

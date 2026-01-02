@@ -15,8 +15,16 @@ public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBro
 
     public override void Configure()
     {
-        PubSub.Subscribe<DownloadCancelledEvent>(HandleFileDownloadCancelled);
-        PubSub.Subscribe<BackgroundDownloadStartedEvent>(OnBackgroundDownloadStarted);
+        PubSub.Handle<CancelDownloadCommand>(cmd =>
+        {
+            HandleFileDownloadCancelled(new DownloadCancelledEvent(cmd.DownloadId));
+            PubSub.Publish(new DownloadCancelledEvent(cmd.DownloadId));
+        });
+        PubSub.Handle<StartBackgroundDownloadCommand>(async cmd =>
+        {
+            await OnBackgroundDownloadStarted(cmd);
+            // Event published in OnBackgroundDownloadStarted if needed
+        });
     }
 
     private void HandleFileDownloadCancelled(DownloadCancelledEvent e)
@@ -26,14 +34,14 @@ public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBro
     }
 
     private int _nextBackgroundDownloadId = 1_000_000;
-    private async Task OnBackgroundDownloadStarted(BackgroundDownloadStartedEvent e)
+    private async Task OnBackgroundDownloadStarted(StartBackgroundDownloadCommand cmd)
     {
         var downloadId = Interlocked.Increment(ref _nextBackgroundDownloadId);
         using var ct = new CancellationTokenSource();
         var downloadInfo = new DownloadInfo
         {
             Id = downloadId,
-            FileName = e.FileName,
+            FileName = cmd.FileName,
             Cancel = ct.Cancel,
             IsCancelled = false,
             IsCompleted = false,
@@ -43,11 +51,13 @@ public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBro
         if (!_activeDownloads.TryAdd(downloadId, downloadInfo))
             return;
 
+        PubSub.Publish(new BackgroundDownloadStartedEvent(cmd.DownloadSource, cmd.FileName));
+
         EnsureDownloadTimerCreated();
         SendProgressUpdate();
 
         var data = await DownloadHelper.DownloadBytesAsync(
-            e.DownloadSource,
+            cmd.DownloadSource,
             progress =>
             {
                 downloadInfo.Progress = progress.PercentCompleted;
@@ -63,7 +73,7 @@ public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBro
         SendProgressUpdate();
 
         if (data != null)
-            await DownloadHelper.SaveFile(e.FileName, data);
+            await DownloadHelper.SaveFile(cmd.FileName, data);
     }
 
     public void OnDownloadUpdated(int downloadId, DownloadItem downloadItem, IDownloadItemCallback callback)

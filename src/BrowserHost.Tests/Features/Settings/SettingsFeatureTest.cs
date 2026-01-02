@@ -49,22 +49,7 @@ public class SettingsFeatureTest
     }
 
     [Fact]
-    public void Publishing_a_SettingsPageLoadingEvent_sends_settings_to_the_frontend()
-    {
-        CreateFeature
-            .CaptureContext(out var context)
-            .ConfigureContext(c => SeedSettings(c, new("UA", ["a.com", "b.com"], true)))
-            .BuildSettingsFeature();
-
-        context.PubSub.Publish(new SettingsPageLoadingEvent());
-
-        var invocation = Assert.Single(context.SettingsBrowserApi.Invocations);
-        Assert.Equal("settingsLoaded", invocation.Method);
-        Assert.Equal("{\"userAgent\":\"UA\",\"ssoEnabledDomains\":[\"a.com\",\"b.com\"],\"autoAddSsoDomains\":true}", invocation.Arguments);
-    }
-
-    [Fact]
-    public void Publishing_a_SettingsSavedEvent_persists_the_settings_and_updates_the_execution_settings()
+    public void Sending_a_SaveSettingsCommand_persists_the_settings_and_updates_the_execution_settings()
     {
         var feature = CreateFeature
             .ConfigureContext(c =>
@@ -74,7 +59,7 @@ public class SettingsFeatureTest
             .CaptureContext(out var context)
             .BuildSettingsFeature();
 
-        context.PubSub.Publish(new SettingsSavedEvent(new SettingUiStateDto("UA2", ["a.com"], true)));
+        context.PubSub.Send(new SaveSettingsCommand(new SettingUiStateDto("UA2", ["a.com"], true)));
 
         Assert.Equal("UA2", feature.ExecutionSettings.UserAgent);
         Assert.Equal(["a.com"], feature.ExecutionSettings.SsoEnabledDomains!);
@@ -86,27 +71,27 @@ public class SettingsFeatureTest
     }
 
     [Fact]
-    public void Publishing_a_SsoFlowStartedEvent_does_not_publish_anything_when_auto_add_is_disabled()
+    public void Sending_a_StartSsoFlowCommand_does_not_publish_anything_when_auto_add_is_disabled()
     {
         CreateFeature
             .ConfigureContext(c => SeedSettings(c, new("UA", [], AutoAddSsoDomains: false)))
             .CaptureContext(out var context)
             .BuildSettingsFeature();
 
-        context.PubSub.Publish(new SsoFlowStartedEvent("tab-1", "example.com", "https://example.com/"));
+        context.PubSub.Send(new StartSsoFlowCommand("tab-1", "example.com", "https://example.com/"));
 
         Assert.Empty(PubSubMessages.OfType<SettingsSavedEvent>());
     }
 
     [Fact]
-    public void Publishing_a_SsoFlowStartedEvent_publishes_a_SettingsSavedEvent_with_the_domain_added_when_auto_add_is_enabled()
+    public void Sending_a_StartSsoFlowCommand_publishes_a_SettingsSavedEvent_with_the_domain_added_when_auto_add_is_enabled()
     {
         CreateFeature
             .ConfigureContext(c => SeedSettings(c, new("UA", [], AutoAddSsoDomains: true)))
             .CaptureContext(out var context)
             .BuildSettingsFeature();
 
-        context.PubSub.Publish(new SsoFlowStartedEvent("tab-1", "example.com", "https://example.com/"));
+        context.PubSub.Send(new StartSsoFlowCommand("tab-1", "example.com", "https://example.com/"));
 
         var saved = Assert.Single(PubSubMessages.OfType<SettingsSavedEvent>());
         Assert.Equal(["example.com"], saved.Settings.SsoEnabledDomains);
@@ -114,14 +99,14 @@ public class SettingsFeatureTest
     }
 
     [Fact]
-    public void Publishing_a_SsoFlowStartedEvent_does_not_publish_a_SettingsSavedEvent_when_the_domain_is_already_enabled()
+    public void Sending_a_StartSsoFlowCommand_does_not_publish_a_SettingsSavedEvent_when_the_domain_is_already_enabled()
     {
         CreateFeature
             .ConfigureContext(c => SeedSettings(c, new("UA", ["example.com"], AutoAddSsoDomains: true)))
             .CaptureContext(out var context)
             .BuildSettingsFeature();
 
-        context.PubSub.Publish(new SsoFlowStartedEvent("tab-1", "example.com", "https://example.com/"));
+        context.PubSub.Send(new StartSsoFlowCommand("tab-1", "example.com", "https://example.com/"));
 
         Assert.Empty(PubSubMessages.OfType<SettingsSavedEvent>());
     }

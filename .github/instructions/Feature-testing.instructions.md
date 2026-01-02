@@ -41,8 +41,8 @@ Feature tests follow a small set of conventions designed to keep tests readable,
 
 - Tests do **not** need to set up `PubSub` directly.
 - `TestBrowserContext` creates a dedicated `PubSub` instance per test and uses a direct dispatch strategy (no UI thread/Dispatcher requirement).
-- When a test needs to publish events into a feature, publish via the captured context: `context.PubSub.Publish(new SomeEvent(...))`.
-- Use `PubSubMessages.OfType<TEvent>()` to capture published events for the current test.
+- When a test needs to send/publish commands/events into a feature, publish via the captured context: `context.PubSub.Publish(new SomeEvent(...))`.
+- Use `PubSubMessages.OfType<TEvent>()` to capture published events for the current test. You cannot subscribe to sent commands.
 
 ## Event argument creation
 

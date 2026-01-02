@@ -35,7 +35,6 @@ internal class TestBrowserContext : IBrowserContext
     public FakeTabCustomizationBrowserApi TabCustomizationBrowserApi { get; } = new();
     public FakeTabsBrowserApi TabsBrowserApi { get; } = new();
     public FakeDomainCustomizationBrowserApi DomainCustomizationBrowserApi { get; } = new();
-    public FakeSettingsBrowserApi SettingsBrowserApi { get; } = new();
 
     public TabCustomizationStateManager TabCustomizationStateManager { get; }
     public DomainCustomizationStateManager DomainCustomizationStateManager { get; }
@@ -168,7 +167,7 @@ internal class TestBrowserContext : IBrowserContext
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new SettingsFeature(null!, context.PubSub, context.SettingsBrowserApi, context.SettingsStateManager);
+            var feature = new SettingsFeature(null!, context.PubSub, context.SettingsStateManager);
             feature.Configure();
             return feature;
         }

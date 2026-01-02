@@ -31,39 +31,46 @@ public class DomainCustomizationFeature : Feature
 
     public override void Configure()
     {
-        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => InitializeDomainSettings());
-        PubSub.Subscribe<DomainCustomizationChangedEvent>((e) =>
+        PubSub.Handle<ChangeDomainCustomizationCommand>(cmd =>
         {
-            var customization = _stateManager.GetCustomization(e.Domain);
-            var updated = customization with { CssEnabled = e.CssEnabled };
+            var customization = _stateManager.GetCustomization(cmd.Domain);
+            var updated = customization with { CssEnabled = cmd.CssEnabled };
             _stateManager.SaveCustomization(updated);
 
-            if (e.Domain == _currentDomain)
+            if (cmd.Domain == _currentDomain)
             {
                 ApplyCssToCurrentTab();
             }
 
-            NotifyFrontendOfDomainUpdate(e.Domain);
+            NotifyFrontendOfDomainUpdate(cmd.Domain);
+            PubSub.Publish(new DomainCustomizationChangedEvent(cmd.Domain, cmd.CssEnabled));
         });
-        PubSub.Subscribe<DomainCustomCssRemovedEvent>((e) =>
+        PubSub.Handle<RemoveDomainCustomCssCommand>(cmd =>
         {
-            // Note that this event can be triggered manually by the frontend or by deleting the file directly.
-            // Clearing the watcher will prevent a second event as we delete the CSS file below.
-            if (e.Domain == _currentDomain)
+            // Note that this command can be triggered manually by the frontend or by deleting the file directly.
+            // Clearing the watcher will prevent a second signal as we delete the CSS file below.
+            if (cmd.Domain == _currentDomain)
                 ClearCssWatcher();
 
-            _stateManager.RemoveCustomCss(e.Domain);
+            _stateManager.RemoveCustomCss(cmd.Domain);
 
             var tab = _browserContext.CurrentTab;
-            if (tab != null && e.Domain == _currentDomain)
+            if (tab != null && cmd.Domain == _currentDomain)
                 RemoveCssFromTab(tab);
 
-            var customization = _stateManager.GetCustomization(e.Domain);
+            var customization = _stateManager.GetCustomization(cmd.Domain);
             if (customization.CssEnabled)
-                PubSub.Publish(new DomainCustomizationChangedEvent(e.Domain, CssEnabled: false));
-        });
-        PubSub.Subscribe<DomainCssEditRequestedEvent>((e) => EditDomainCss(e.Domain));
+                PubSub.Send(new ChangeDomainCustomizationCommand(cmd.Domain, CssEnabled: false));
 
+            PubSub.Publish(new DomainCustomCssRemovedEvent(cmd.Domain));
+        });
+        PubSub.Handle<EditDomainCssCommand>(cmd =>
+        {
+            EditDomainCss(cmd.Domain);
+            PubSub.Publish(new DomainCssEditRequestedEvent(cmd.Domain));
+        });
+
+        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => InitializeDomainSettings());
         PubSub.Subscribe<TabActivatedEvent>((e) => OnTabChanged());
         PubSub.Subscribe<TabDeactivatedEvent>((e) => OnTabChanged());
     }
@@ -263,7 +270,7 @@ public class DomainCustomizationFeature : Feature
 
         if (kind == DomainCustomizationStateManager.CustomCssWatchEventKind.Removed)
         {
-            PubSub.Publish(new DomainCustomCssRemovedEvent(_currentDomain));
+            PubSub.Send(new RemoveDomainCustomCssCommand(_currentDomain));
             return;
         }
 

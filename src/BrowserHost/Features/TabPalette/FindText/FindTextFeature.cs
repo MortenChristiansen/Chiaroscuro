@@ -10,14 +10,34 @@ public class FindTextFeature(MainWindow window, PubSub pubSub, IBrowserContext b
 
     public override void Configure()
     {
-        PubSub.Subscribe<FindTextEvent>((e) => StartFinding(e.Term));
-        PubSub.Subscribe<NextTextMatchEvent>((e) => FindNext(e.Term));
-        PubSub.Subscribe<PrevTextMatchEvent>((e) => FindPrevious(e.Term));
-        PubSub.Subscribe<StopFindingTextEvent>((_) => StopFinding());
-        PubSub.Subscribe<FindStatusChangedEvent>((e) => findTextApi.FindStatusChanged(e.Matches));
+        PubSub.Handle<FindTextCommand>(cmd =>
+        {
+            StartFinding(cmd.Term);
+            PubSub.Publish(new FindTextTriggeredEvent(cmd.Term));
+        });
+        PubSub.Handle<FindNextTextMatchCommand>(cmd =>
+        {
+            FindNext(cmd.Term);
+            PubSub.Publish(new NextTextMatchTriggeredEvent(cmd.Term));
+        });
+        PubSub.Handle<FindPrevTextMatchCommand>(cmd =>
+        {
+            FindPrevious(cmd.Term);
+            PubSub.Publish(new PrevTextMatchTriggeredEvent(cmd.Term));
+        });
+        PubSub.Handle<StopFindingTextCommand>((_) =>
+        {
+            StopFinding();
+            PubSub.Publish(new StopFindingTextTriggeredEvent());
+        });
+        PubSub.Handle<ChangeFindStatusCommand>(cmd =>
+        {
+            findTextApi.FindStatusChanged(cmd.Matches);
+            PubSub.Publish(new FindStatusChangedEvent(cmd.Matches));
+        });
 
-        PubSub.Subscribe<TabPaletteDismissedEvent>((_) => PubSub.Publish(new StopFindingTextEvent()));
-        PubSub.Subscribe<TabDeactivatedEvent>((_) => PubSub.Publish(new StopFindingTextEvent()));
+        PubSub.Subscribe<TabPaletteDismissedEvent>((_) => PubSub.Send(new StopFindingTextCommand()));
+        PubSub.Subscribe<TabDeactivatedEvent>((_) => PubSub.Send(new StopFindingTextCommand()));
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -25,23 +45,23 @@ public class FindTextFeature(MainWindow window, PubSub pubSub, IBrowserContext b
         if (_findingTextTerm != null && e.Key == Key.Tab)
         {
             if (browserContext.CurrentKeyboardModifiers == ModifierKeys.Shift)
-                PubSub.Publish(new PrevTextMatchEvent(_findingTextTerm));
+                PubSub.Send(new FindPrevTextMatchCommand(_findingTextTerm));
             else
-                PubSub.Publish(new NextTextMatchEvent(_findingTextTerm));
+                PubSub.Send(new FindNextTextMatchCommand(_findingTextTerm));
 
             return true;
         }
 
         if (_findingTextTerm != null && e.Key == Key.Escape)
         {
-            PubSub.Publish(new StopFindingTextEvent());
+            PubSub.Send(new StopFindingTextCommand());
 
             return true;
         }
 
         if (_findingTextTerm == null && (e.Key == Key.F3 || (e.Key == Key.F && browserContext.CurrentKeyboardModifiers == ModifierKeys.Control)))
         {
-            PubSub.Publish(new TabPaletteRequestedEvent());
+            PubSub.Send(new RequestTabPaletteCommand());
             browserContext.FocusTabPalette();
             findTextApi.FocusFindTextInput();
 

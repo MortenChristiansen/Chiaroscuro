@@ -43,11 +43,11 @@ public sealed class PopupLifeSpanHandler(CefSharpTabBrowser tabBrowser, PubSub p
         {
             case WindowOpenDisposition.NewBackgroundTab:
                 tabBrowser.ApplyTemporaryNavigationBlock();
-                pubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
+                pubSub.Send(new StartNavigationCommand(targetUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
                 return true;
             case WindowOpenDisposition.NewForegroundTab:
                 tabBrowser.ApplyTemporaryNavigationBlock();
-                pubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+                pubSub.Send(new StartNavigationCommand(targetUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
                 return true;
             case WindowOpenDisposition.NewWindow:
             case WindowOpenDisposition.NewPopup:

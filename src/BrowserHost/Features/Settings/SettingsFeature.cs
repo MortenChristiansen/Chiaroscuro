@@ -6,9 +6,9 @@ using System.Threading;
 
 namespace BrowserHost.Features.Settings;
 
-public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsBrowserApi settingsApi, SettingsStateManager settingsStateManager) : Feature(window, pubSub)
+public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsStateManager settingsStateManager) : Feature(window, pubSub)
 {
-    private readonly SettingsBackendApi _backendApi = new(pubSub);
+    private SettingsBackendApi _backendApi = null!;
     private readonly Lock _autoAddSsoLock = new();
 
     // These are the settings for the current execution, loaded from disk.
@@ -16,22 +16,15 @@ public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsBrowserAp
 
     public override void Configure()
     {
-        PubSub.Subscribe<TabBrowserCreatedEvent>(e =>
+        _backendApi = new(PubSub, this);
+
+        PubSub.Handle<SaveSettingsCommand>(cmd =>
         {
-            if (ContentServer.IsSettingsPage(e.TabBrowser.Address))
-                e.TabBrowser.RegisterContentPageApi(_backendApi, "settingsApi");
-        });
-        PubSub.Subscribe<SettingsPageLoadingEvent>(e =>
-        {
-            var settings = ExecutionSettings;
-            settingsApi.SettingsLoaded(new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? [], settings.AutoAddSsoDomains ?? false));
-        });
-        PubSub.Subscribe<SettingsSavedEvent>(e =>
-        {
-            var mappedSettings = new SettingsDataV1(e.Settings.UserAgent, e.Settings.SsoEnabledDomains, e.Settings.AutoAddSsoDomains);
+            var mappedSettings = new SettingsDataV1(cmd.Settings.UserAgent, cmd.Settings.SsoEnabledDomains, cmd.Settings.AutoAddSsoDomains);
             ExecutionSettings = settingsStateManager.SaveSettings(mappedSettings);
+            PubSub.Publish(new SettingsSavedEvent(cmd.Settings));
         });
-        PubSub.Subscribe<SsoFlowStartedEvent>(e =>
+        PubSub.Handle<StartSsoFlowCommand>(cmd =>
         {
             var settings = ExecutionSettings;
 
@@ -43,15 +36,23 @@ public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsBrowserAp
                 // Re-read the settings in case they changed while waiting for the lock
                 settings = ExecutionSettings;
 
-                if (settings.SsoEnabledDomains?.Contains(e.OriginalDomain, StringComparer.OrdinalIgnoreCase) == true)
+                if (settings.SsoEnabledDomains?.Contains(cmd.OriginalDomain, StringComparer.OrdinalIgnoreCase) == true)
                     return;
 
-                PubSub.Publish(new SettingsSavedEvent(new SettingUiStateDto(
+                PubSub.Send(new SaveSettingsCommand(new SettingUiStateDto(
                     settings.UserAgent,
-                    [.. settings.SsoEnabledDomains ?? [], e.OriginalDomain],
+                    [.. settings.SsoEnabledDomains ?? [], cmd.OriginalDomain],
                     AutoAddSsoDomains: true
                 )));
             }
+
+            PubSub.Publish(new SsoFlowStartedEvent(cmd.TabId, cmd.OriginalDomain, cmd.OriginalUrl));
+        });
+
+        PubSub.Subscribe<TabBrowserCreatedEvent>(e =>
+        {
+            if (ContentServer.IsSettingsPage(e.TabBrowser.Address))
+                e.TabBrowser.RegisterContentPageApi(_backendApi, "settingsApi");
         });
     }
 }

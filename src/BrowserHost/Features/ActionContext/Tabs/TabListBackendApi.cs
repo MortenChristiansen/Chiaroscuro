@@ -7,27 +7,19 @@ using System.Linq;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
 
-public record TabActivatedEvent(string TabId, TabBrowser? PreviousTab);
-public record TabDeactivatedEvent(string TabId);
-public record TabClosedEvent(TabBrowser Tab);
-public record TabsChangedEvent(TabUiStateDto[] Tabs, int EphemeralTabStartIndex, FolderUiStateDto[] Folders);
-public record TabUrlLoadedSuccessfullyEvent(string TabId);
-public record TabFaviconUrlChangedEvent(string TabId, string? NewFaviconUrl);
-public record TabBrowserCreatedEvent(TabBrowser TabBrowser);
-
 public record TabUiStateDto(string Id, string Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 public record FolderUiStateDto(string Id, string Name, int StartIndex, int EndIndex);
 
 public class TabListBackendApi(PubSub pubSub) : BackendApi
 {
     public void ActivateTab(string tabId) =>
-        pubSub.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
+        pubSub.Send(new ActivateTabCommand(tabId));
 
     public void CloseTab(string tabId) =>
-        pubSub.Publish(new TabClosedEvent(MainWindow.Instance.GetFeature<TabsFeature>().GetTabBrowserById(tabId)));
+        pubSub.Send(new CloseTabCommand(tabId));
 
     public void TabsChanged(List<object> tabs, int ephemeralTabStartIndex, List<object> folders) =>
-        pubSub.Publish(new TabsChangedEvent(
+        pubSub.Send(new ChangeTabsCommand(
             [.. tabs.Select((dynamic tab) => new TabUiStateDto(tab.Id, tab.Title, tab.Favicon, tab.IsActive, DateTimeOffset.Parse(tab.Created)))],
             ephemeralTabStartIndex,
             [.. folders.Select((dynamic folder) => new FolderUiStateDto(folder.Id, folder.Name, folder.StartIndex, folder.EndIndex))]

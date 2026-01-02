@@ -9,6 +9,7 @@ namespace BrowserHost.Utilities;
 public sealed class PubSub
 {
     private readonly Dictionary<Type, List<Delegate>> _subscribers = [];
+    private readonly Dictionary<Type, Delegate> _commandHandlers = [];
     private readonly Lock _lock = new();
     private IPubSubDispatchStrategy _dispatchStrategy;
 
@@ -27,7 +28,7 @@ public sealed class PubSub
         set => _dispatchStrategy = value ?? throw new ArgumentNullException(nameof(value));
     }
 
-    public void Subscribe<T>(Action<T> action)
+    public void Subscribe<T>(Action<T> action) where T : IEvent
     {
         var type = typeof(T);
         lock (_lock)
@@ -42,7 +43,7 @@ public sealed class PubSub
         }
     }
 
-    public void Subscribe<T>(Func<T, Task> action)
+    public void Subscribe<T>(Func<T, Task> action) where T : IEvent
     {
         var type = typeof(T);
         lock (_lock)
@@ -57,7 +58,7 @@ public sealed class PubSub
         }
     }
 
-    public void Publish<T>(T message)
+    public void Publish<T>(T message) where T : IEvent
     {
         var type = typeof(T);
         if (_subscribers.TryGetValue(type, out List<Delegate>? value))
@@ -77,7 +78,51 @@ public sealed class PubSub
         }
     }
 
-    public void Unsubscribe<T>(Action<T> action)
+    public void Handle<T>(Action<T> action) where T : ICommand
+    {
+        var type = typeof(T);
+        lock (_lock)
+        {
+            if (_commandHandlers.ContainsKey(type))
+                throw new InvalidOperationException($"A handler for command '{type.Name}' is already registered.");
+
+            _commandHandlers[type] = action;
+        }
+    }
+
+    public void Handle<T>(Func<T, Task> action) where T : ICommand
+    {
+        var type = typeof(T);
+        lock (_lock)
+        {
+            if (_commandHandlers.ContainsKey(type))
+                throw new InvalidOperationException($"A handler for command '{type.Name}' is already registered.");
+
+            _commandHandlers[type] = action;
+        }
+    }
+
+    public void Send<T>(T command) where T : ICommand
+    {
+        var type = typeof(T);
+        if (!_commandHandlers.TryGetValue(type, out var handler))
+            throw new InvalidOperationException($"No handler registered for command '{type.Name}'.");
+
+        if (handler is Action<T> typedAction)
+        {
+            _dispatchStrategy.Invoke(typedAction, command);
+        }
+        else if (handler is Func<T, Task> asyncAction)
+        {
+            _dispatchStrategy.InvokeAsync(asyncAction, command);
+        }
+        else
+        {
+            throw new InvalidOperationException($"Handler for command '{type.Name}' has invalid type '{handler.GetType().Name}'.");
+        }
+    }
+
+    public void Unsubscribe<T>(Action<T> action) where T : IEvent
     {
         lock (_lock)
         {
@@ -87,7 +132,7 @@ public sealed class PubSub
         }
     }
 
-    public void Unsubscribe<T>(Func<T, Task> action)
+    public void Unsubscribe<T>(Func<T, Task> action) where T : IEvent
     {
         lock (_lock)
         {

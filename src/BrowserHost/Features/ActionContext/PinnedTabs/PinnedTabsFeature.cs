@@ -16,6 +16,31 @@ public class PinnedTabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi 
         _pinnedTabData = stateManager.RestorePinnedTabsFromDisk();
         NotifyFrontendOfUpdatedPinnedTabs();
 
+        PubSub.Handle<PinTabCommand>(cmd =>
+        {
+            var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(cmd.TabId);
+            var activateTabId = Window.CurrentTab?.Id;
+            AddPinnedTabToState(new PinnedTabDtoV1(cmd.TabId, tab.Title, tab.Favicon, tab.Address), activateTabId);
+            tabsApi.CloseTab(cmd.TabId, activateNext: false);
+            NotifyFrontendOfUpdatedPinnedTabs();
+
+            PubSub.Publish(new TabPinnedEvent(cmd.TabId));
+        });
+        PubSub.Handle<UnpinTabCommand>(cmd =>
+        {
+            var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(cmd.TabId);
+            RemovePinnedTabFromState(cmd.TabId);
+            NotifyFrontendOfUpdatedPinnedTabs();
+            tabsApi.AddTab(new(cmd.TabId, tab.Title, tab.Favicon, DateTimeOffset.UtcNow)); // We don't currently store creation info for pinned tabs
+
+            PubSub.Publish(new TabUnpinnedEvent(cmd.TabId));
+        });
+
+        PubSub.Subscribe<TabClosedEvent>(e =>
+        {
+            RemovePinnedTabFromState(e.TabId);
+            NotifyFrontendOfUpdatedPinnedTabs();
+        });
         PubSub.Subscribe<TabActivatedEvent>(e =>
         {
             var newActiveTab = _pinnedTabData.PinnedTabs.FirstOrDefault(t => t.Id == e.TabId);
@@ -25,26 +50,6 @@ public class PinnedTabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi 
                 ActiveTabId = newActiveTab?.Id,
                 PinnedTabs = _pinnedTabData.PinnedTabs
             });
-            NotifyFrontendOfUpdatedPinnedTabs();
-        });
-        PubSub.Subscribe<TabPinnedEvent>(e =>
-        {
-            var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
-            var activateTabId = Window.CurrentTab?.Id;
-            AddPinnedTabToState(new PinnedTabDtoV1(e.TabId, tab.Title, tab.Favicon, tab.Address), activateTabId);
-            tabsApi.CloseTab(e.TabId, activateNext: false);
-            NotifyFrontendOfUpdatedPinnedTabs();
-        });
-        PubSub.Subscribe<TabUnpinnedEvent>(e =>
-        {
-            var tab = Window.GetFeature<TabsFeature>().GetTabBrowserById(e.TabId);
-            RemovePinnedTabFromState(e.TabId);
-            NotifyFrontendOfUpdatedPinnedTabs();
-            tabsApi.AddTab(new(e.TabId, tab.Title, tab.Favicon, DateTimeOffset.UtcNow)); // We don't currently store creation info for pinned tabs
-        });
-        PubSub.Subscribe<TabClosedEvent>(e =>
-        {
-            RemovePinnedTabFromState(e.Tab.Id);
             NotifyFrontendOfUpdatedPinnedTabs();
         });
         PubSub.Subscribe<TabUrlLoadedSuccessfullyEvent>(e => UpdatePinnedTabState(e.TabId));
@@ -88,9 +93,9 @@ public class PinnedTabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi 
         if (e.Key == Key.P && Keyboard.Modifiers == ModifierKeys.Control && activeTabId != null)
         {
             if (_pinnedTabData.ActiveTabId != null)
-                PubSub.Publish(new TabUnpinnedEvent(_pinnedTabData.ActiveTabId));
+                PubSub.Send(new UnpinTabCommand(_pinnedTabData.ActiveTabId));
             else
-                PubSub.Publish(new TabPinnedEvent(activeTabId));
+                PubSub.Send(new PinTabCommand(activeTabId));
 
             return true;
         }
