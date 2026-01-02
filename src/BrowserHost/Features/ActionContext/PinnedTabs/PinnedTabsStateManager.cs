@@ -5,30 +5,19 @@ using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Text.Json;
 using System.Threading;
-using Testably.Abstractions;
 
 namespace BrowserHost.Features.ActionContext.PinnedTabs;
 
 public record PinnedTabDataV1(PinnedTabDtoV1[] PinnedTabs, string? ActiveTabId);
 public record PinnedTabDtoV1(string Id, string? Title, string? Favicon, string Address);
 
-public class PinnedTabsStateManager
+public class PinnedTabsStateManager(IFileSystem fileSystem)
 {
     public static string PersistedStatePath { get; } = AppDataPathManager.GetAppDataFilePath("pinned_tabs.json");
 
-    private readonly IFileSystem _fileSystem;
     private const int _currentVersion = 1;
     private PinnedTabDataV1 _lastSavedPinnedTabsData = new([], null);
     private readonly Lock _lock = new();
-
-    public PinnedTabsStateManager() : this(new RealFileSystem())
-    {
-    }
-
-    public PinnedTabsStateManager(IFileSystem fileSystem)
-    {
-        _fileSystem = fileSystem;
-    }
 
     public virtual PinnedTabDataV1 SavePinnedTabs(PinnedTabDataV1 pinnedTabsData)
     {
@@ -42,10 +31,10 @@ public class PinnedTabsStateManager
 
             try
             {
-                var stateDirectoryPath = _fileSystem.Path.GetDirectoryName(PersistedStatePath);
+                var stateDirectoryPath = fileSystem.Path.GetDirectoryName(PersistedStatePath);
                 if (!string.IsNullOrWhiteSpace(stateDirectoryPath))
                 {
-                    _fileSystem.Directory.CreateDirectory(stateDirectoryPath);
+                    fileSystem.Directory.CreateDirectory(stateDirectoryPath);
                 }
 
                 var versionedData = new PersistentData<PinnedTabDataV1>
@@ -53,7 +42,7 @@ public class PinnedTabsStateManager
                     Version = _currentVersion,
                     Data = pinnedTabsData
                 };
-                _fileSystem.File.WriteAllText(PersistedStatePath, JsonSerializer.Serialize(versionedData, BrowserHostJsonContext.Default.PersistentDataPinnedTabDataV1));
+                fileSystem.File.WriteAllText(PersistedStatePath, JsonSerializer.Serialize(versionedData, BrowserHostJsonContext.Default.PersistentDataPinnedTabDataV1));
                 _lastSavedPinnedTabsData = pinnedTabsData;
             }
             catch (Exception e) when (!Debugger.IsAttached)
@@ -70,9 +59,9 @@ public class PinnedTabsStateManager
         {
             try
             {
-                if (_fileSystem.File.Exists(PersistedStatePath))
+                if (fileSystem.File.Exists(PersistedStatePath))
                 {
-                    var json = _fileSystem.File.ReadAllText(PersistedStatePath);
+                    var json = fileSystem.File.ReadAllText(PersistedStatePath);
                     var versionedData = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                     if (versionedData?.Version == _currentVersion)
                     {

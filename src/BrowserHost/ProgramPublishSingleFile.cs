@@ -8,7 +8,9 @@ using NuGet.Versioning;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Abstractions;
 using System.Runtime.Versioning;
+using Testably.Abstractions;
 using Velopack;
 
 namespace BrowserHost;
@@ -21,6 +23,7 @@ namespace BrowserHost;
 public class ProgramPublishSingleFile
 {
     public static PubSub PubSub { get; } = new();
+    public static IFileSystem FileSystem { get; } = new RealFileSystem();
     public static SettingsFeature SettingsFeature { get; private set; } = null!;
 
     [STAThread]
@@ -56,7 +59,7 @@ public class ProgramPublishSingleFile
         if (App.Options.ForceAppRegistration)
             WindowsRegistrator.RegisterApplication(new SemanticVersion(0, 0, 0));
 
-        SettingsFeature = new SettingsFeature(null!, PubSub, new SettingsStateManager());
+        SettingsFeature = new SettingsFeature(null!, PubSub, new SettingsStateManager(FileSystem));
 
         var cacheFolder = Debugger.IsAttached ? "CefSharp\\DevCache" : "CefSharp\\Cache";
 

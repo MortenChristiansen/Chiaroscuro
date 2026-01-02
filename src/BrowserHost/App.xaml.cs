@@ -5,6 +5,7 @@ using CefSharp;
 using CefSharp.Wpf;
 using System;
 using System.IO;
+using System.IO.Abstractions;
 using System.Windows;
 using Velopack;
 using Velopack.Sources;
@@ -16,6 +17,7 @@ public partial class App : Application
     public static UpdateManager UpdateManager { get; } = new(new GithubSource("https://github.com/MortenChristiansen/Chiaroscuro", accessToken: null, prerelease: false, downloader: null));
     public static Options Options { get; } = Options.Parse(Environment.GetCommandLineArgs());
     public static SettingsFeature SettingsFeature => ProgramPublishSingleFile.SettingsFeature;
+    public static IFileSystem FileSystem => ProgramPublishSingleFile.FileSystem;
     public static PubSub PubSub => ProgramPublishSingleFile.PubSub;
 
     public App()

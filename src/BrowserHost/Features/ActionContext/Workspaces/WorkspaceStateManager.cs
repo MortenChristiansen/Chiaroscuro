@@ -8,7 +8,6 @@ using System.IO.Abstractions;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
-using Testably.Abstractions;
 
 namespace BrowserHost.Features.ActionContext.Workspaces;
 
@@ -20,27 +19,15 @@ public record WorkspaceDtoV1(string WorkspaceId, string Name, string Color, stri
 public record WorkspaceTabStateDtoV1(string TabId, string Address, string? Title, string? Favicon, bool IsActive, DateTimeOffset Created);
 public record FolderDtoV1(string Id, string Name, int StartIndex, int EndIndex);
 
-public class WorkspaceStateManager
+public class WorkspaceStateManager(PubSub pubSub, IFileSystem fileSystem)
 {
     public static string PersistedStatePath { get; } = AppDataPathManager.GetAppDataFilePath("workspaces.json");
 
-    private readonly PubSub _pubSub;
-    private readonly IFileSystem _fileSystem;
     private const int _currentVersion = 1;
     private const int _ephemeralTabExpirationHours = 16;
     private readonly WorkspaceDtoV1 _defaultWorkspace = new($"{Guid.NewGuid()}", "Browse", "#202634", "🌐", [], 0);
     private WorkspacesDataDtoV1? _lastSavedWorkspaceData;
     private readonly Lock _lock = new();
-
-    public WorkspaceStateManager(PubSub pubSub) : this(pubSub, new RealFileSystem())
-    {
-    }
-
-    public WorkspaceStateManager(PubSub pubSub, IFileSystem fileSystem)
-    {
-        _pubSub = pubSub;
-        _fileSystem = fileSystem;
-    }
 
     public virtual WorkspaceDtoV1[] SaveWorkspaceTabs(string workspaceId, IEnumerable<WorkspaceTabStateDtoV1> tabs, int ephemeralTabStartIndex, IEnumerable<FolderDtoV1> folders)
     {
@@ -83,10 +70,10 @@ public class WorkspaceStateManager
     {
         try
         {
-            var stateDirectoryPath = _fileSystem.Path.GetDirectoryName(PersistedStatePath);
+            var stateDirectoryPath = fileSystem.Path.GetDirectoryName(PersistedStatePath);
             if (!string.IsNullOrWhiteSpace(stateDirectoryPath))
             {
-                _fileSystem.Directory.CreateDirectory(stateDirectoryPath);
+                fileSystem.Directory.CreateDirectory(stateDirectoryPath);
             }
 
             var newWorkspacesData = new WorkspacesDataDtoV1(updatedWorkspaces);
@@ -95,7 +82,7 @@ public class WorkspaceStateManager
                 Version = _currentVersion,
                 Data = newWorkspacesData
             };
-            _fileSystem.File.WriteAllText(PersistedStatePath, JsonSerializer.Serialize(versionedData, BrowserHostJsonContext.Default.PersistentDataWorkspacesDataDtoV1));
+            fileSystem.File.WriteAllText(PersistedStatePath, JsonSerializer.Serialize(versionedData, BrowserHostJsonContext.Default.PersistentDataWorkspacesDataDtoV1));
 
             // Update the cache after successful save
             _lastSavedWorkspaceData = newWorkspacesData;
@@ -116,9 +103,9 @@ public class WorkspaceStateManager
 
                 try
                 {
-                    if (_fileSystem.File.Exists(PersistedStatePath))
+                    if (fileSystem.File.Exists(PersistedStatePath))
                     {
-                        var json = _fileSystem.File.ReadAllText(PersistedStatePath);
+                        var json = fileSystem.File.ReadAllText(PersistedStatePath);
 
                         try
                         {
@@ -163,7 +150,7 @@ public class WorkspaceStateManager
             var ephemeralTabs = ephemeralTabStartIndex < tabsData.Tabs.Length ? tabsData.Tabs[ephemeralTabStartIndex..] : [];
             var expiredTabs = ephemeralTabs.Where(t => (now - t.Created).TotalHours >= _ephemeralTabExpirationHours).ToArray();
             if (expiredTabs.Length > 0)
-                _pubSub.Send(new ExpireEphemeralTabsCommand([.. expiredTabs.Select(t => t.TabId)]));
+                pubSub.Send(new ExpireEphemeralTabsCommand([.. expiredTabs.Select(t => t.TabId)]));
             ephemeralTabs = [.. ephemeralTabs.Except(expiredTabs)];
             return tabsData with { Tabs = [.. persistentTabs, .. ephemeralTabs], EphemeralTabStartIndex = ephemeralTabStartIndex };
         }
