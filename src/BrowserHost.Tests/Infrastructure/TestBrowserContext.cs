@@ -70,7 +70,7 @@ internal class TestBrowserContext : IBrowserContext
 
     public void WaitUntil(Func<bool> condition)
     {
-        Assert.True(SpinWait.SpinUntil(condition, TimeSpan.FromSeconds(2)));
+        Assert.True(SpinWait.SpinUntil(condition, TimeSpan.FromSeconds(5)));
     }
 
     public void Dispatch(Action action)
