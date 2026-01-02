@@ -15,8 +15,16 @@ public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBro
 
     public override void Configure()
     {
-        PubSub.Subscribe<DownloadCancelledEvent>(HandleFileDownloadCancelled);
-        PubSub.Subscribe<BackgroundDownloadStartedEvent>(OnBackgroundDownloadStarted);
+        PubSub.Handle<CancelDownloadCommand>(e =>
+        {
+            HandleFileDownloadCancelled(new DownloadCancelledEvent(e.DownloadId));
+            PubSub.Publish(new DownloadCancelledEvent(e.DownloadId));
+        });
+        PubSub.Handle<StartBackgroundDownloadCommand>(async e =>
+        {
+            await OnBackgroundDownloadStarted(new BackgroundDownloadStartedEvent(e.DownloadSource, e.FileName));
+            PubSub.Publish(new BackgroundDownloadStartedEvent(e.DownloadSource, e.FileName));
+        });
     }
 
     private void HandleFileDownloadCancelled(DownloadCancelledEvent e)

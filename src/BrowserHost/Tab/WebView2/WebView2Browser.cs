@@ -200,7 +200,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         {
             // Ctrl+click or middle-click -> open in background tab
             e.Handled = true;
-            _pubSub.Publish(new NavigationStartedEvent(uri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
+            _pubSub.Send(new StartNavigationCommand(uri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
             return;
         }
         else

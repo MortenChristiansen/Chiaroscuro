@@ -16,7 +16,7 @@ public class RequestHandler(string tabId, bool isChildBrowser, PubSub pubSub) : 
     {
         if (targetDisposition == WindowOpenDisposition.NewBackgroundTab)
         {
-            pubSub.Publish(new NavigationStartedEvent(targetUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
+            pubSub.Send(new StartNavigationCommand(targetUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
             return true;
         }
 

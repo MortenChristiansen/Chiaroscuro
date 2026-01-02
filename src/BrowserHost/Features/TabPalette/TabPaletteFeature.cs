@@ -4,8 +4,11 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.TabPalette;
 
-public record TabPaletteRequestedEvent();
-public record TabPaletteDismissedEvent();
+public record RequestTabPaletteCommand() : Utilities.ICommand;
+public record DismissTabPaletteCommand() : Utilities.ICommand;
+
+public record TabPaletteRequestedEvent() : IEvent;
+public record TabPaletteDismissedEvent() : IEvent;
 
 public class TabPaletteFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext, TabPaletteBrowserApi tabPaletteApi) : Feature(window, pubSub)
 {
@@ -13,9 +16,24 @@ public class TabPaletteFeature(MainWindow window, PubSub pubSub, IBrowserContext
 
     public override void Configure()
     {
-        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => OpenTabPalette());
-        PubSub.Subscribe<TabPaletteDismissedEvent>((_) => CloseTabPalette());
-        PubSub.Subscribe<TabDeactivatedEvent>((_) => CloseTabPalette());
+        PubSub.Handle<RequestTabPaletteCommand>((_) =>
+        {
+            if (_tabPaletteIsOpen)
+                return;
+
+            OpenTabPalette();
+            PubSub.Publish(new TabPaletteRequestedEvent());
+        });
+        PubSub.Handle<DismissTabPaletteCommand>((_) =>
+        {
+            if (!_tabPaletteIsOpen)
+                return;
+
+            CloseTabPalette();
+            PubSub.Publish(new TabPaletteDismissedEvent());
+        });
+
+        PubSub.Subscribe<TabDeactivatedEvent>((_) => PubSub.Send(new DismissTabPaletteCommand()));
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -23,9 +41,9 @@ public class TabPaletteFeature(MainWindow window, PubSub pubSub, IBrowserContext
         if (e.Key == Key.F1)
         {
             if (_tabPaletteIsOpen)
-                PubSub.Publish(new TabPaletteDismissedEvent());
+                PubSub.Send(new DismissTabPaletteCommand());
             else
-                PubSub.Publish(new TabPaletteRequestedEvent());
+                PubSub.Send(new RequestTabPaletteCommand());
 
             return true;
         }

@@ -59,13 +59,13 @@ public class TabCustomizationFeatureTest
     }
 
     [Fact]
-    public void Publishing_a_TabCustomTitleChangedEvent_updates_action_context_and_persists_the_custom_title()
+    public void Sending_a_ChangeTabCustomTitleCommand_updates_action_context_and_persists_the_custom_title()
     {
         CreateFeature
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
 
-        context.PubSub.Publish(new TabCustomTitleChangedEvent("tab-1", "Custom"));
+        context.PubSub.Send(new ChangeTabCustomTitleCommand("tab-1", "Custom"));
 
         var invocation = Assert.Single(context.TabsBrowserApi.Invocations, i => i.Method == "updateTabCustomization");
         Assert.Equal("""
@@ -78,13 +78,13 @@ public class TabCustomizationFeatureTest
     }
 
     [Fact]
-    public void Publishing_a_TabDisableFixedAddressChangedEvent_persists_the_flag_value()
+    public void Sending_a_ChangeTabDisableFixedAddressCommand_persists_the_flag_value()
     {
         CreateFeature
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
 
-        context.PubSub.Publish(new TabDisableFixedAddressChangedEvent("tab-1", true));
+        context.PubSub.Send(new ChangeTabDisableFixedAddressCommand("tab-1", true));
 
         var customization = context.TabCustomizationStateManager.GetCustomization("tab-1");
         Assert.True(customization.DisableFixedAddress);
@@ -99,7 +99,7 @@ public class TabCustomizationFeatureTest
         context.TabCustomizationStateManager.SaveCustomization("tab-1", c => c with { CustomTitle = "A" });
         var tab = TypeConstructor.CreateTabBrowser("tab-1");
 
-        context.PubSub.Publish(new TabClosedEvent(tab));
+        context.PubSub.Publish(new TabClosedEvent(tab.Id, tab));
 
         var customization = context.TabCustomizationStateManager.GetCustomization("tab-1");
         Assert.Null(customization.CustomTitle);
@@ -108,7 +108,7 @@ public class TabCustomizationFeatureTest
     }
 
     [Fact]
-    public void Publishing_an_EphemeralTabsExpiredEvent_deletes_customizations_for_those_tab_ids()
+    public void Sending_an_ExpireEphemeralTabsCommand_deletes_customizations_for_those_tab_ids()
     {
         CreateFeature
             .CaptureContext(out var context)
@@ -116,7 +116,7 @@ public class TabCustomizationFeatureTest
         context.TabCustomizationStateManager.SaveCustomization("tab-1", c => c with { CustomTitle = "A", DisableFixedAddress = true });
         context.TabCustomizationStateManager.SaveCustomization("tab-2", c => c with { CustomTitle = "B", DisableFixedAddress = true });
 
-        context.PubSub.Publish(new EphemeralTabsExpiredEvent(["tab-1", "tab-2"]));
+        context.PubSub.Send(new ExpireEphemeralTabsCommand(["tab-1", "tab-2"]));
 
         var after1 = context.TabCustomizationStateManager.GetCustomization("tab-1");
         var after2 = context.TabCustomizationStateManager.GetCustomization("tab-2");

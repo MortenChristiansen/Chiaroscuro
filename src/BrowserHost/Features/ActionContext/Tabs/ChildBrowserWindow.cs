@@ -62,7 +62,7 @@ public class ChildBrowserWindow : OverlayWindow
             });
             pubSub.Subscribe<TabClosedEvent>(e =>
             {
-                if (!string.IsNullOrEmpty(e.Tab.Id)) CloseWindowsForTab(e.Tab.Id);
+                if (!string.IsNullOrEmpty(e.TabId)) CloseWindowsForTab(e.TabId);
             });
 
             _subscriptionsInitialized = true;
@@ -156,14 +156,14 @@ public class ChildBrowserWindow : OverlayWindow
                 // Trigger regular navigation (new tab)
                 contentGrid.Children.Remove(_browser);
                 _browser.PromoteToFullTab();
-                _pubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
+                _pubSub.Send(new StartNavigationCommand(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
                 // Close this child window
                 BeginCloseWithFade();
                 AnimateContentOut(animateBrowser: false);
             }
             else
             {
-                _pubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+                _pubSub.Send(new StartNavigationCommand(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
                 BeginCloseWithFade();
                 AnimateContentOut();
             }

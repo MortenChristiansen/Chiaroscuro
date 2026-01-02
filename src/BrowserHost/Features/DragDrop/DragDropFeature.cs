@@ -8,7 +8,8 @@ using System.Windows;
 
 namespace BrowserHost.Features.DragDrop;
 
-public record FileDroppedEvent(string[] FilePaths);
+public record OpenDroppedFilesCommand(string[] FilePaths) : ICommand;
+public record DroppedFilesOpenedEvent(string[] FilePaths) : IEvent;
 
 public class DragDropFeature(MainWindow window, PubSub pubSub) : Feature(window, pubSub)
 {
@@ -31,7 +32,11 @@ public class DragDropFeature(MainWindow window, PubSub pubSub) : Feature(window,
         Window.DragLeave += (sender, e) => IsDragging = false;
         Window.Drop += OnDrop;
 
-        PubSub.Subscribe<FileDroppedEvent>(HandleFileDropped);
+        PubSub.Handle<OpenDroppedFilesCommand>(e =>
+        {
+            OpenFileTabs(e.FilePaths);
+            PubSub.Publish(new DroppedFilesOpenedEvent(e.FilePaths));
+        });
     }
 
     private void OnDrop(object sender, DragEventArgs e)
@@ -43,7 +48,7 @@ public class DragDropFeature(MainWindow window, PubSub pubSub) : Feature(window,
 
             if (validFiles.Length != 0)
             {
-                PubSub.Publish(new FileDroppedEvent(validFiles));
+                PubSub.Send(new OpenDroppedFilesCommand(validFiles));
             }
         }
         e.Handled = true;
@@ -65,19 +70,19 @@ public class DragDropFeature(MainWindow window, PubSub pubSub) : Feature(window,
         }
     }
 
-    private void HandleFileDropped(FileDroppedEvent e)
+    private void OpenFileTabs(string[] filePaths)
     {
-        foreach (var filePath in e.FilePaths)
+        foreach (var filePath in filePaths)
         {
             try
             {
                 var fileUri = new Uri(filePath).AbsoluteUri;
-                PubSub.Publish(new NavigationStartedEvent(fileUri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+                PubSub.Send(new StartNavigationCommand(fileUri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
             }
             catch (Exception ex) when (!Debugger.IsAttached)
             {
                 // Log error and continue with other files
-                System.Diagnostics.Debug.WriteLine($"Failed to process dropped file {filePath}: {ex.Message}");
+                Debug.WriteLine($"Failed to process dropped file {filePath}: {ex.Message}");
             }
         }
     }

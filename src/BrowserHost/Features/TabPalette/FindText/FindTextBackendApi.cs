@@ -3,23 +3,29 @@ using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.TabPalette.FindText;
 
-public record FindTextEvent(string Term);
-public record NextTextMatchEvent(string Term);
-public record PrevTextMatchEvent(string Term);
-public record StopFindingTextEvent();
-public record FindStatusChangedEvent(int Matches);
+public record FindTextCommand(string Term) : ICommand;
+public record FindNextTextMatchCommand(string Term) : ICommand;
+public record FindPrevTextMatchCommand(string Term) : ICommand;
+public record StopFindingTextCommand() : ICommand;
+public record ChangeFindStatusCommand(int Matches) : ICommand;
+
+public record FindTextTriggeredEvent(string Term) : IEvent;
+public record NextTextMatchTriggeredEvent(string Term) : IEvent;
+public record PrevTextMatchTriggeredEvent(string Term) : IEvent;
+public record StopFindingTextTriggeredEvent() : IEvent;
+public record FindStatusChangedEvent(int Matches) : IEvent;
 
 public class FindTextBackendApi(PubSub pubSub) : BackendApi
 {
     public void Find(string term) =>
-        pubSub.Publish(new FindTextEvent(term));
+        pubSub.Send(new FindTextCommand(term));
 
     public void NextMatch(string term) =>
-        pubSub.Publish(new NextTextMatchEvent(term));
+        pubSub.Send(new FindNextTextMatchCommand(term));
 
     public void PrevMatch(string term) =>
-        pubSub.Publish(new PrevTextMatchEvent(term));
+        pubSub.Send(new FindPrevTextMatchCommand(term));
 
     public void StopFinding() =>
-        pubSub.Publish(new StopFindingTextEvent());
+        pubSub.Send(new StopFindingTextCommand());
 }

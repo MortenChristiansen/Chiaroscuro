@@ -5,11 +5,14 @@ namespace BrowserHost.Features.ActionContext.FileDownloads;
 
 public record DownloadItemDto(int Id, string FileName, int Progress, bool IsCompleted, bool IsCancelled);
 
-public record DownloadCancelledEvent(int DownloadId);
-public record BackgroundDownloadStartedEvent(string DownloadSource, string FileName);
+public record CancelDownloadCommand(int DownloadId) : ICommand;
+public record StartBackgroundDownloadCommand(string DownloadSource, string FileName) : ICommand;
+
+public record DownloadCancelledEvent(int DownloadId) : IEvent;
+public record BackgroundDownloadStartedEvent(string DownloadSource, string FileName) : IEvent;
 
 public class FileDownloadsBackendApi(PubSub pubSub) : BackendApi
 {
     public void CancelDownload(int downloadId) =>
-        pubSub.Publish(new DownloadCancelledEvent(downloadId));
+    pubSub.Send(new CancelDownloadCommand(downloadId));
 }

@@ -18,7 +18,7 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
 
     public override void Configure()
     {
-        PubSub.Subscribe<NavigationStartedEvent>(e =>
+        PubSub.Handle<StartNavigationCommand>(e =>
         {
             if (Window.CurrentTab != null && e.UseCurrentTab)
             {
@@ -28,20 +28,31 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
             {
                 AddNewTab(e.Address, e.SaveInHistory, e.ActivateTab, e.ReuseTabBrowser);
             }
+
+            PubSub.Publish(new NavigationStartedEvent(e.Address, e.UseCurrentTab, e.SaveInHistory, e.ActivateTab, e.ReuseTabBrowser));
         });
-        PubSub.Subscribe<TabActivatedEvent>(e =>
+        PubSub.Handle<ActivateTabCommand>(e =>
         {
+            var previousTab = Window.CurrentTab;
             SetCurrentTab(_tabBrowsers.Find(t => t.Id == e.TabId));
             tabsApi.SetActiveTab(e.TabId);
+            PubSub.Publish(new TabActivatedEvent(e.TabId, previousTab));
         });
-        PubSub.Subscribe<TabClosedEvent>(e =>
+        PubSub.Handle<DeactivateTabCommand>(e =>
         {
-            _tabBrowsers.Remove(e.Tab);
-            if (e.Tab == Window.CurrentTab)
-                SetCurrentTab(null);
-            TryRemoveFromPreloadHost(e.Tab);
-            e.Tab.Dispose();
+            PubSub.Publish(new TabDeactivatedEvent(e.TabId));
         });
+        PubSub.Handle<CloseTabCommand>(e =>
+        {
+            var tab = GetTabBrowserById(e.TabId);
+            _tabBrowsers.Remove(tab);
+            if (tab == Window.CurrentTab)
+                SetCurrentTab(null);
+            TryRemoveFromPreloadHost(tab);
+            tab.Dispose();
+            PubSub.Publish(new TabClosedEvent(e.TabId, tab));
+        });
+
         PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
         {
             var workspaceFeature = Window.GetFeature<WorkspacesFeature>();
@@ -70,7 +81,7 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
     private void SetCurrentTab(TabBrowser? tab)
     {
         if (Window.CurrentTab != null && tab?.Id != Window.CurrentTab.Id)
-            PubSub.Publish(new TabDeactivatedEvent(Window.CurrentTab.Id));
+            PubSub.Send(new DeactivateTabCommand(Window.CurrentTab.Id));
 
         if (tab != null)
             TryRemoveFromPreloadHost(tab);

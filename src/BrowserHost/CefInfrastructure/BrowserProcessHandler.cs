@@ -10,7 +10,7 @@ public class BrowserProcessHandler(PubSub pubSub) : CefSharp.Handler.BrowserProc
     {
         var launchUrl = Options.GetLaunchUrl([.. commandLine.Keys]);
         if (launchUrl != null)
-            pubSub.Publish(new NavigationStartedEvent(launchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+            pubSub.Send(new StartNavigationCommand(launchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
 
         return true;
     }

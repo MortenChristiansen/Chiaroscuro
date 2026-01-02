@@ -4,14 +4,17 @@ using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.ActionContext.PinnedTabs;
 
-public record TabPinnedEvent(string TabId);
-public record TabUnpinnedEvent(string TabId);
+public record PinTabCommand(string TabId) : ICommand;
+public record UnpinTabCommand(string TabId) : ICommand;
+
+public record TabPinnedEvent(string TabId) : IEvent;
+public record TabUnpinnedEvent(string TabId) : IEvent;
 
 public class PinnedTabsBackendApi(PubSub pubSub) : BackendApi
 {
     public void UnpinTab(string tabId) =>
-        pubSub.Publish(new TabUnpinnedEvent(tabId));
+        pubSub.Send(new UnpinTabCommand(tabId));
 
     public void ActivateTab(string tabId) =>
-        pubSub.Publish(new TabActivatedEvent(tabId, MainWindow.Instance.CurrentTab));
+        pubSub.Send(new ActivateTabCommand(tabId));
 }

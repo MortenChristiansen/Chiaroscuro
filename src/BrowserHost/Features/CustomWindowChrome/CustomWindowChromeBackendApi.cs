@@ -5,10 +5,14 @@ using System.Windows;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
-public record WindowMinimizedEvent();
-public record WindowStateToggledEvent();
-public record AddressCopyRequestedEvent();
-public record TabLoadingStateChangedEvent(string TabId, bool IsLoading);
+public record MinimizeWindowCommand() : ICommand;
+public record ToggleWindowStateCommand() : ICommand;
+public record CopyAddressCommand() : ICommand;
+
+public record WindowMinimizedEvent() : IEvent;
+public record WindowStateToggledEvent() : IEvent;
+public record AddressCopiedEvent() : IEvent;
+public record TabLoadingStateChangedEvent(string TabId, bool IsLoading) : IEvent;
 
 public class CustomWindowChromeBackendApi(PubSub pubSub) : BackendApi
 {
@@ -28,16 +32,16 @@ public class CustomWindowChromeBackendApi(PubSub pubSub) : BackendApi
         MainWindow.Instance.CurrentTab?.Reload();
 
     public void Minimize() =>
-        pubSub.Publish(new WindowMinimizedEvent());
+        pubSub.Send(new MinimizeWindowCommand());
 
     public void Maximize() =>
-        pubSub.Publish(new WindowStateToggledEvent());
+        pubSub.Send(new ToggleWindowStateCommand());
 
     public void Close() =>
         MainWindow.Instance.Dispatcher.Invoke(MainWindow.Instance.Close);
 
     public void CopyAddress() =>
-        pubSub.Publish(new AddressCopyRequestedEvent());
+        pubSub.Send(new CopyAddressCommand());
 
     public bool IsLoading() =>
         MainWindow.Instance.Dispatcher.Invoke(() => MainWindow.Instance.CurrentTab?.IsLoading ?? false);

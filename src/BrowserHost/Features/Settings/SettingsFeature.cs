@@ -16,22 +16,19 @@ public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsBrowserAp
 
     public override void Configure()
     {
-        PubSub.Subscribe<TabBrowserCreatedEvent>(e =>
-        {
-            if (ContentServer.IsSettingsPage(e.TabBrowser.Address))
-                e.TabBrowser.RegisterContentPageApi(_backendApi, "settingsApi");
-        });
-        PubSub.Subscribe<SettingsPageLoadingEvent>(e =>
+        PubSub.Handle<SetSettingsPageLoadingStateCommand>(_ =>
         {
             var settings = ExecutionSettings;
             settingsApi.SettingsLoaded(new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? [], settings.AutoAddSsoDomains ?? false));
+            PubSub.Publish(new SettingsPageLoadingEvent());
         });
-        PubSub.Subscribe<SettingsSavedEvent>(e =>
+        PubSub.Handle<SaveSettingsCommand>(e =>
         {
             var mappedSettings = new SettingsDataV1(e.Settings.UserAgent, e.Settings.SsoEnabledDomains, e.Settings.AutoAddSsoDomains);
             ExecutionSettings = settingsStateManager.SaveSettings(mappedSettings);
+            PubSub.Publish(new SettingsSavedEvent(e.Settings));
         });
-        PubSub.Subscribe<SsoFlowStartedEvent>(e =>
+        PubSub.Handle<StartSsoFlowCommand>(e =>
         {
             var settings = ExecutionSettings;
 
@@ -46,12 +43,20 @@ public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsBrowserAp
                 if (settings.SsoEnabledDomains?.Contains(e.OriginalDomain, StringComparer.OrdinalIgnoreCase) == true)
                     return;
 
-                PubSub.Publish(new SettingsSavedEvent(new SettingUiStateDto(
+                PubSub.Send(new SaveSettingsCommand(new SettingUiStateDto(
                     settings.UserAgent,
                     [.. settings.SsoEnabledDomains ?? [], e.OriginalDomain],
                     AutoAddSsoDomains: true
                 )));
             }
+
+            PubSub.Publish(new SsoFlowStartedEvent(e.TabId, e.OriginalDomain, e.OriginalUrl));
+        });
+
+        PubSub.Subscribe<TabBrowserCreatedEvent>(e =>
+        {
+            if (ContentServer.IsSettingsPage(e.TabBrowser.Address))
+                e.TabBrowser.RegisterContentPageApi(_backendApi, "settingsApi");
         });
     }
 }

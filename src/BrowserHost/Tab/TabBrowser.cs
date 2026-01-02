@@ -151,7 +151,7 @@ public class TabBrowser : UserControl, ITabBrowser
                 !ContentServer.IsContentServerUrl(oldAddress))
             {
                 UpgradeToWebView2(oldAddress);
-                _pubSub.Publish(new SsoFlowStartedEvent(Id, oldUri.Host, oldAddress));
+                _pubSub.Send(new StartSsoFlowCommand(Id, oldUri.Host, oldAddress));
                 return; // We restored the old address, so no further processing is needed
             }
         }

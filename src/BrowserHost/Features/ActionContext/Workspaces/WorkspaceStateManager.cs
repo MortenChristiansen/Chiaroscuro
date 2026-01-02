@@ -162,7 +162,8 @@ public class WorkspaceStateManager
             var persistentTabs = ephemeralTabStartIndex > 0 ? tabsData.Tabs[..ephemeralTabStartIndex] : [];
             var ephemeralTabs = ephemeralTabStartIndex < tabsData.Tabs.Length ? tabsData.Tabs[ephemeralTabStartIndex..] : [];
             var expiredTabs = ephemeralTabs.Where(t => (now - t.Created).TotalHours >= _ephemeralTabExpirationHours).ToArray();
-            _pubSub.Publish(new EphemeralTabsExpiredEvent([.. expiredTabs.Select(t => t.TabId)]));
+            if (expiredTabs.Length > 0)
+                _pubSub.Send(new ExpireEphemeralTabsCommand([.. expiredTabs.Select(t => t.TabId)]));
             ephemeralTabs = [.. ephemeralTabs.Except(expiredTabs)];
             return tabsData with { Tabs = [.. persistentTabs, .. ephemeralTabs], EphemeralTabStartIndex = ephemeralTabStartIndex };
         }

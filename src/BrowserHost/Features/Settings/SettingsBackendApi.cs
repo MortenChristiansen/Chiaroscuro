@@ -6,16 +6,20 @@ using System.Linq;
 
 namespace BrowserHost.Features.Settings;
 
-public record SettingsPageLoadingEvent();
-public record SettingsSavedEvent(SettingUiStateDto Settings);
-public record SsoFlowStartedEvent(string TabId, string OriginalDomain, string OriginalUrl);
+public record SetSettingsPageLoadingStateCommand() : ICommand;
+public record SaveSettingsCommand(SettingUiStateDto Settings) : ICommand;
+public record StartSsoFlowCommand(string TabId, string OriginalDomain, string OriginalUrl) : ICommand;
+
+public record SettingsPageLoadingEvent() : IEvent;
+public record SettingsSavedEvent(SettingUiStateDto Settings) : IEvent;
+public record SsoFlowStartedEvent(string TabId, string OriginalDomain, string OriginalUrl) : IEvent;
 
 public record SettingUiStateDto(string? UserAgent, string[] SsoEnabledDomains, bool AutoAddSsoDomains);
 
 public class SettingsBackendApi(PubSub pubSub) : BackendApi
 {
     public void SettingsPageLoading() =>
-        pubSub.Publish(new SettingsPageLoadingEvent());
+        pubSub.Send(new SetSettingsPageLoadingStateCommand());
 
     public void SaveSettings(IDictionary<string, object?> settings)
     {
@@ -31,6 +35,6 @@ public class SettingsBackendApi(PubSub pubSub) : BackendApi
         var autoAddSsoDomains = settings.TryGetValue("autoAddSsoDomains", out var o3) && o3 is bool b ? b : false;
 
         var dto = new SettingUiStateDto(userAgent, ssoEnabledDomains, autoAddSsoDomains);
-        pubSub.Publish(new SettingsSavedEvent(dto));
+        pubSub.Send(new SaveSettingsCommand(dto));
     }
 }

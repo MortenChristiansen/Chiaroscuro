@@ -3,9 +3,13 @@ using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.TabPalette.DomainCustomization;
 
-public record DomainCustomizationChangedEvent(string Domain, bool CssEnabled);
-public record DomainCssEditRequestedEvent(string Domain);
-public record DomainCustomCssRemovedEvent(string Domain);
+public record ChangeDomainCustomizationCommand(string Domain, bool CssEnabled) : ICommand;
+public record EditDomainCssCommand(string Domain) : ICommand;
+public record RemoveDomainCustomCssCommand(string Domain) : ICommand;
+
+public record DomainCustomizationChangedEvent(string Domain, bool CssEnabled) : IEvent;
+public record DomainCssEditRequestedEvent(string Domain) : IEvent;
+public record DomainCustomCssRemovedEvent(string Domain) : IEvent;
 
 public class DomainCustomizationBackendApi(PubSub pubSub) : BackendApi
 {
@@ -13,20 +17,20 @@ public class DomainCustomizationBackendApi(PubSub pubSub) : BackendApi
     {
         var domain = MainWindow.Instance.CurrentTab?.CurrentDomain;
         if (domain != null)
-            pubSub.Publish(new DomainCustomizationChangedEvent(domain, enabled));
+            pubSub.Send(new ChangeDomainCustomizationCommand(domain, enabled));
     }
 
     public void EditCss()
     {
         var domain = MainWindow.Instance.CurrentTab?.CurrentDomain;
         if (domain != null)
-            pubSub.Publish(new DomainCssEditRequestedEvent(domain));
+            pubSub.Send(new EditDomainCssCommand(domain));
     }
 
     public void RemoveCss()
     {
         var domain = MainWindow.Instance.CurrentTab?.CurrentDomain;
         if (domain != null)
-            pubSub.Publish(new DomainCustomCssRemovedEvent(domain));
+            pubSub.Send(new RemoveDomainCustomCssCommand(domain));
     }
 }

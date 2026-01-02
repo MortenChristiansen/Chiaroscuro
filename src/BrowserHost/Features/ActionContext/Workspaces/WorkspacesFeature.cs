@@ -22,7 +22,8 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
     public override void Configure()
     {
         var tabsFeature = Window.GetFeature<TabsFeature>();
-        PubSub.Subscribe<TabsChangedEvent>(e =>
+        PubSub.Handle<ChangeTabsCommand>(e =>
+        {
             _workspaces = stateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
                 e.Tabs.Select(t => CreateTabState(t, tabsFeature)),
@@ -33,9 +34,11 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
                     f.StartIndex,
                     f.EndIndex
                 ))
-            )
-        );
-        PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
+            );
+
+            PubSub.Publish(new TabsChangedEvent(e.Tabs, e.EphemeralTabStartIndex, e.Folders));
+        });
+        PubSub.Handle<ActivateWorkspaceCommand>(e =>
         {
             _currentWorkspaceId = e.WorkspaceId;
             workspacesApi.WorkspaceActivated(e.WorkspaceId);
@@ -46,8 +49,10 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
                 _hasLoggedInitialWorkspaceTime = true;
                 Measure.Event("Initial workspace loaded");
             }
+
+            PubSub.Publish(new WorkspaceActivatedEvent(e.WorkspaceId));
         });
-        PubSub.Subscribe<WorkspaceCreatedEvent>(e =>
+        PubSub.Handle<CreateWorkspaceCommand>(e =>
         {
             var newWorkspace = new WorkspaceDtoV1(
                 e.WorkspaceId,
@@ -60,9 +65,10 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
             _workspaces = stateManager.CreateWorkspace(newWorkspace);
             NotifyFrontendOfUpdatedWorkspaces();
 
-            PubSub.Publish(new WorkspaceActivatedEvent(newWorkspace.WorkspaceId));
+            PubSub.Publish(new WorkspaceCreatedEvent(e.WorkspaceId, e.Name, e.Icon, e.Color));
+            PubSub.Send(new ActivateWorkspaceCommand(newWorkspace.WorkspaceId));
         });
-        PubSub.Subscribe<WorkspaceUpdatedEvent>(e =>
+        PubSub.Handle<UpdateWorkspaceCommand>(e =>
         {
             var workspace = GetWorkspaceById(e.WorkspaceId);
             workspace = workspace with
@@ -78,8 +84,10 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
                 Window.WorkspaceColor = GetCurrentWorkspaceColor();
 
             NotifyFrontendOfUpdatedWorkspaces();
+
+            PubSub.Publish(new WorkspaceUpdatedEvent(e.WorkspaceId, e.Name, e.Icon, e.Color));
         });
-        PubSub.Subscribe<WorkspaceDeletedEvent>(e =>
+        PubSub.Handle<DeleteWorkspaceCommand>(e =>
         {
             if (_workspaces.Length == 1)
                 throw new InvalidOperationException("Cannot delete the last workspace.");
@@ -87,8 +95,10 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
             _workspaces = stateManager.DeleteWorkspace(e.WorkspaceId);
             NotifyFrontendOfUpdatedWorkspaces();
 
+            PubSub.Publish(new WorkspaceDeletedEvent(e.WorkspaceId));
+
             if (e.WorkspaceId == _currentWorkspaceId)
-                PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[0].WorkspaceId));
+                PubSub.Send(new ActivateWorkspaceCommand(_workspaces[0].WorkspaceId));
         });
     }
 
@@ -99,10 +109,10 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
         RestoreFrontendWorkspaces();
 
         Window.WorkspaceColor = GetCurrentWorkspaceColor();
-        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspaceId));
+        PubSub.Send(new ActivateWorkspaceCommand(_currentWorkspaceId));
 
         if (App.Options.LaunchUrl != null)
-            PubSub.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+            PubSub.Send(new StartNavigationCommand(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
     }
 
     private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, TabsFeature tabsFeature)
@@ -156,7 +166,7 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
                 }
                 else
                 {
-                    PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
+                    PubSub.Send(new ActivateWorkspaceCommand(targetWorkspace.WorkspaceId));
                 }
             }
         }
@@ -176,7 +186,7 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
         tabsApi.CloseTab(tab.TabId);
         RemoveTabFromWorkspace(tab.TabId);
 
-        PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
+        PubSub.Send(new ActivateWorkspaceCommand(targetWorkspace.WorkspaceId));
         tabsApi.AddTab(new(tab.TabId, tab.Title, tab.Favicon, tab.Created));
     }
 

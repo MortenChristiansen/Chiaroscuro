@@ -116,7 +116,7 @@ internal sealed class WebView2FindManager(PubSub pubSub)
             if (int.TryParse(result, out var count))
             {
                 _findCount = count;
-                pubSub.Publish(new FindStatusChangedEvent(count));
+                pubSub.Send(new ChangeFindStatusCommand(count));
                 if (count > 0)
                 {
                     _findIndex = 0;
@@ -155,7 +155,7 @@ internal sealed class WebView2FindManager(PubSub pubSub)
             if (int.TryParse(result, out var count) && count != _findCount)
             {
                 _findCount = count;
-                pubSub.Publish(new FindStatusChangedEvent(count));
+                pubSub.Send(new ChangeFindStatusCommand(count));
             }
         }
         catch { }
@@ -185,6 +185,6 @@ internal sealed class WebView2FindManager(PubSub pubSub)
         else
             js = js.Replace("CLEAR_SEL_PLACEHOLDER", string.Empty);
         _ = _core.ExecuteScriptAsync(js);
-        pubSub.Publish(new FindStatusChangedEvent(0));
+        pubSub.Send(new ChangeFindStatusCommand(0));
     }
 }

@@ -34,8 +34,7 @@ public class WebContextMenuBackendApi(PubSub pubSub) : BackendApi
 
         Application.Current.Dispatcher.Invoke(() =>
         {
-            var evt = new BackgroundDownloadStartedEvent(imageUrl, Path.GetFileName(uri.LocalPath));
-            pubSub.Publish(evt);
+            pubSub.Send(new StartBackgroundDownloadCommand(imageUrl, Path.GetFileName(uri.LocalPath)));
         });
     }
 
