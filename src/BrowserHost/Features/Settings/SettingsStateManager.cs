@@ -58,8 +58,9 @@ public class SettingsStateManager
             catch (Exception e) when (!Debugger.IsAttached)
             {
                 Debug.WriteLine($"Failed to save settings state: {e.Message}");
+                return settings;
             }
-            return _lastSavedSettingsData!;
+            return _lastSavedSettingsData;
         }
     }
 

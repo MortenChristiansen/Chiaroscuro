@@ -55,8 +55,8 @@ public class WorkspaceStateManager
             };
 
             SaveWorkspaceIfChanged(workspaceId, workspace, newTabsData);
+            return _lastSavedWorkspaceData!.Workspaces;
         }
-        return _lastSavedWorkspaceData!.Workspaces;
     }
 
     private void SaveWorkspaceIfChanged(string workspaceId, WorkspaceDtoV1 cachedWorkspace, WorkspaceDtoV1 updatedWorkspace)
