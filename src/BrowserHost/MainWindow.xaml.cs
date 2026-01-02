@@ -105,7 +105,7 @@ public partial class MainWindow : Window
             new DevToolFeature(this, pubSub),
             new FileDownloadsFeature(this, pubSub, DownloadsBrowserApi),
             new ZoomFeature(this, pubSub, browserContext),
-            new DragDropFeature(this, pubSub),
+            new DragDropFeature(this, pubSub, browserContext, fileSystem),
             new WorkspacesFeature(this, pubSub, WorkspacesBrowserApi, TabsBrowserApi, new WorkspaceStateManager(pubSub, fileSystem)),
             new FoldersFeature(this, pubSub, TabsBrowserApi),
             new TabPaletteFeature(this, pubSub, browserContext, TabPaletteBrowserApi),

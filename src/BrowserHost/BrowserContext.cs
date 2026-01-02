@@ -1,4 +1,5 @@
-﻿using BrowserHost.Tab;
+﻿using BrowserHost.Features.DragDrop;
+using BrowserHost.Tab;
 using System;
 using System.Windows;
 using System.Windows.Input;
@@ -8,6 +9,7 @@ namespace BrowserHost;
 public class BrowserContext(MainWindow window) : IBrowserContext
 {
     public ITabBrowser? CurrentTab => window.CurrentTab;
+    public IDragDropHost DragDropHost { get; } = new MainWindowDragDropHost(window);
     public string? CurrentTabId => window.CurrentTab?.Id;
     public ModifierKeys CurrentKeyboardModifiers => Keyboard.Modifiers;
 

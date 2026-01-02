@@ -20,6 +20,7 @@ public class CefSharpTabBrowser : Browser
     private readonly TabsBrowserApi _tabsBrowserApi;
     private readonly PubSub _pubSub;
     private readonly bool _isChildBrowser;
+    private readonly DragDropFeature _dragDropFeature;
 
     public string Id { get; }
     public string? Favicon { get; private set; }
@@ -31,6 +32,7 @@ public class CefSharpTabBrowser : Browser
         Favicon = favicon;
         _isChildBrowser = isChildBrowser;
         _pubSub = pubSub;
+        _dragDropFeature = MainWindow.Instance.GetFeature<DragDropFeature>();
         SetAddress(address, setManualAddress);
 
         TitleChanged += OnTitleChanged;
@@ -98,7 +100,7 @@ public class CefSharpTabBrowser : Browser
             return;
         }
 
-        if (DragDropFeature.IsDragging && oldValue != null && newValue.StartsWith("file://"))
+        if (_dragDropFeature.IsDragging && oldValue != null && newValue.StartsWith("file://"))
         {
             // This is a workaround to prevent the current address from being set
             // when dragging and dropping files into the browser. Instead, we want
