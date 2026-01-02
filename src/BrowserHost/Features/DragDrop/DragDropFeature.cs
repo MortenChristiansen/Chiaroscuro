@@ -8,9 +8,6 @@ using System.Windows;
 
 namespace BrowserHost.Features.DragDrop;
 
-public record OpenDroppedFilesCommand(string[] FilePaths) : ICommand;
-public record DroppedFilesOpenedEvent(string[] FilePaths) : IEvent;
-
 public class DragDropFeature(MainWindow window, PubSub pubSub) : Feature(window, pubSub)
 {
     public static bool IsDragging { get; private set; }

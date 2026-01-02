@@ -15,9 +15,6 @@ namespace BrowserHost.Features.ActionDialog;
 
 public record SearchProvider(string Name, string Key, string Pattern);
 
-public record StartNavigationCommand(string Address, bool UseCurrentTab, bool SaveInHistory, bool ActivateTab, TabBrowser? ReuseTabBrowser = null) : Utilities.ICommand;
-public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory, bool ActivateTab, TabBrowser? ReuseTabBrowser = null) : IEvent;
-
 public enum ActionType
 {
     Navigate,

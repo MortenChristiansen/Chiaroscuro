@@ -4,12 +4,6 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.TabPalette;
 
-public record RequestTabPaletteCommand() : Utilities.ICommand;
-public record DismissTabPaletteCommand() : Utilities.ICommand;
-
-public record TabPaletteRequestedEvent() : IEvent;
-public record TabPaletteDismissedEvent() : IEvent;
-
 public class TabPaletteFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext, TabPaletteBrowserApi tabPaletteApi) : Feature(window, pubSub)
 {
     private bool _tabPaletteIsOpen;

@@ -49,21 +49,6 @@ public class SettingsFeatureTest
     }
 
     [Fact]
-    public void Sending_a_SetSettingsPageLoadingStateCommand_sends_settings_to_the_frontend()
-    {
-        CreateFeature
-            .CaptureContext(out var context)
-            .ConfigureContext(c => SeedSettings(c, new("UA", ["a.com", "b.com"], true)))
-            .BuildSettingsFeature();
-
-        context.PubSub.Send(new SetSettingsPageLoadingStateCommand());
-
-        var invocation = Assert.Single(context.SettingsBrowserApi.Invocations);
-        Assert.Equal("settingsLoaded", invocation.Method);
-        Assert.Equal("{\"userAgent\":\"UA\",\"ssoEnabledDomains\":[\"a.com\",\"b.com\"],\"autoAddSsoDomains\":true}", invocation.Arguments);
-    }
-
-    [Fact]
     public void Sending_a_SaveSettingsCommand_persists_the_settings_and_updates_the_execution_settings()
     {
         var feature = CreateFeature

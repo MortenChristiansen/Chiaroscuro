@@ -5,15 +5,6 @@ using System.Windows;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
-public record MinimizeWindowCommand() : ICommand;
-public record ToggleWindowStateCommand() : ICommand;
-public record CopyAddressCommand() : ICommand;
-
-public record WindowMinimizedEvent() : IEvent;
-public record WindowStateToggledEvent() : IEvent;
-public record AddressCopiedEvent() : IEvent;
-public record TabLoadingStateChangedEvent(string TabId, bool IsLoading) : IEvent;
-
 public class CustomWindowChromeBackendApi(PubSub pubSub) : BackendApi
 {
     public bool CanGoForward() =>

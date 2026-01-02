@@ -3,16 +3,6 @@ using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.ActionDialog;
 
-public record ShowActionDialogCommand() : ICommand;
-public record DismissActionDialogCommand() : ICommand;
-public record ExecuteCommandCommand(string Command, bool Ctrl) : ICommand;
-public record ChangeActionDialogValueCommand(string Value) : ICommand;
-
-public record ActionDialogShownEvent() : IEvent;
-public record ActionDialogDismissedEvent() : IEvent;
-public record CommandExecutedEvent(string Command, bool Ctrl) : IEvent;
-public record ActionDialogValueChangedEvent(string Value) : IEvent;
-
 public class ActionDialogBackendApi(PubSub pubSub) : BackendApi
 {
     public void Execute(string command, bool ctrl) =>
