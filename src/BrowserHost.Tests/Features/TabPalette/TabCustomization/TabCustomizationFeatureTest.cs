@@ -31,7 +31,7 @@ public class TabCustomizationFeatureTest
     public void Publishing_a_TabPaletteRequestedEvent_initializes_custom_settings_when_there_is_a_current_tab()
     {
         CreateFeature
-            .WithCurrentTab(out var tab, t => t.Id = "tab-1")
+            .WithCurrentTab(out var tab, "tab-1")
             .CaptureContext(out var context)
             .BuildTabCustomizationFeature();
         context.TabCustomizationStateManager.SaveCustomization("tab-1", c => c with { CustomTitle = "Hello" });

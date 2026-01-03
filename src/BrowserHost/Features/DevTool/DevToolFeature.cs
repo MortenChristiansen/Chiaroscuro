@@ -1,13 +1,12 @@
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Tab;
 using BrowserHost.Utilities;
-using CefSharp;
 using System.Diagnostics;
 using System.Windows.Input;
 
 namespace BrowserHost.Features.DevTool;
 
-public class DevToolFeature(MainWindow window, PubSub pubSub) : Feature(window, pubSub)
+public class DevToolFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext) : Feature(window, pubSub)
 {
     public override void Configure()
     {
@@ -41,34 +40,20 @@ public class DevToolFeature(MainWindow window, PubSub pubSub) : Feature(window, 
 
     private void ToggleDevTools()
     {
-        var currentTab = Window.CurrentTab;
-        if (currentTab == null) return;
-
-        ToggleDevTools(currentTab);
+        ToggleDevTools(browserContext.CurrentTab);
     }
 
     private void ToggleActionContextDevTools()
     {
-        ToggleDevTools(Window.ActionContext.GetBrowserHost());
+        browserContext.ToggleActionContextDevTools();
     }
 
     private void ToggleTabPalettetDevTools()
     {
-        ToggleDevTools(Window.TabPaletteBrowserControl.GetBrowserHost());
+        browserContext.ToggleTabPaletteDevTools();
     }
 
-    private static void ToggleDevTools(IBrowserHost browserHost)
-    {
-        if (browserHost != null)
-        {
-            if (browserHost.HasDevTools)
-                browserHost.CloseDevTools();
-            else
-                browserHost.ShowDevTools();
-        }
-    }
-
-    private static void ToggleDevTools(TabBrowser? browser)
+    private static void ToggleDevTools(ITabBrowser? browser)
     {
         if (browser != null)
         {

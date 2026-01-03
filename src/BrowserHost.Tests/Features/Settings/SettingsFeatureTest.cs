@@ -24,13 +24,13 @@ public class SettingsFeatureTest
     public void Publishing_a_TabBrowserCreatedEvent_registers_the_settings_backend_api_for_the_settings_page()
     {
         CreateFeature
-            .WithCurrentDomainTab(out var tab, "/settings")
+            .WithCurrentTab(out var tab, address: "/settings")
             .CaptureContext(out var context)
             .BuildSettingsFeature();
 
         context.PubSub.Publish(new TabBrowserCreatedEvent(tab));
 
-        var registration = Assert.Single(tab.GetTabWebBrowser().RegisteredContentPageApis);
+        var registration = Assert.Single(tab.RegisteredContentPageApis);
         Assert.Equal("settingsApi", registration.Name);
         Assert.IsType<SettingsBackendApi>(registration.Api);
     }
@@ -39,13 +39,13 @@ public class SettingsFeatureTest
     public void Publishing_a_TabBrowserCreatedEvent_does_not_register_the_settings_api_for_non_settings_pages()
     {
         CreateFeature
-            .WithCurrentDomainTab(out var tab, "https://other.com/settings")
+            .WithCurrentTab(out var tab, address: "https://other.com/settings")
             .CaptureContext(out var context)
             .BuildSettingsFeature();
 
         context.PubSub.Publish(new TabBrowserCreatedEvent(tab));
 
-        Assert.Empty(tab.GetTabWebBrowser().RegisteredContentPageApis);
+        Assert.Empty(tab.RegisteredContentPageApis);
     }
 
     [Fact]

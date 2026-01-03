@@ -1,4 +1,5 @@
-﻿using BrowserHost.Tab;
+﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Tab;
 using System.Windows;
 
 namespace BrowserHost.Tests.Fakes;
@@ -7,7 +8,21 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
 {
     public string Id { get; set; } = id ?? $"{Guid.NewGuid()}";
     public double ZoomLevel { get; set; }
-    public string? CurrentDomain => null;
+
+    public string? CurrentDomain
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Address))
+                return null;
+
+            return Uri.TryCreate(Address, UriKind.Absolute, out var uri) ? uri.Host : null;
+        }
+    }
+
+    public bool HasDevTools { get; private set; }
+    public bool ShowDevToolsCalled { get; private set; }
+    public bool CloseDevToolsCalled { get; private set; }
 
     public event DependencyPropertyChangedEventHandler? AddressChanged;
 
@@ -21,6 +36,13 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
     public bool ResetZoomCalled { get; private set; }
 
     public Task<double> GetZoomLevelAsync() => Task.FromResult(ZoomLevel);
+
+    public bool IsLoading { get; set; }
+
+    public bool RegisterContentPageApiCalled { get; private set; }
+    public List<RegisteredContentPageApi> RegisteredContentPageApis { get; } = [];
+
+    public string Address { get; set; } = "";
 
     public void SetZoomLevel(double level)
     {
@@ -49,23 +71,24 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
         return Task.CompletedTask;
     }
 
-    public record FindInvocation(string SearchText, bool Forward, bool MatchCase, bool FindNext);
-}
-
-internal static class TabBrowserExtensions
-{
-    extension(TabBrowser tabBrowser)
+    public void ShowDevTools()
     {
-        public void SetTabAddress(string address)
-        {
-            tabBrowser.GetTabWebBrowser().SetAddress(address, setManualAddress: false);
-        }
-
-        public FakeTabWebBrowser GetTabWebBrowser()
-        {
-            var browserField = typeof(TabBrowser).GetField("_browser", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?? throw new InvalidOperationException("TabBrowser._browser field not found - internal structure may have changed");
-            return (FakeTabWebBrowser)browserField.GetValue(tabBrowser)!;
-        }
+        ShowDevToolsCalled = true;
+        HasDevTools = true;
     }
+
+    public void CloseDevTools()
+    {
+        CloseDevToolsCalled = true;
+        HasDevTools = false;
+    }
+
+    public void RegisterContentPageApi(BackendApi api, string name)
+    {
+        RegisterContentPageApiCalled = true;
+        RegisteredContentPageApis.Add(new RegisteredContentPageApi(name, api));
+    }
+
+    public record FindInvocation(string SearchText, bool Forward, bool MatchCase, bool FindNext);
+    public record RegisteredContentPageApi(string Name, BackendApi Api);
 }

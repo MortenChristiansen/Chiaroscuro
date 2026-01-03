@@ -12,6 +12,9 @@ public interface IBrowserContext
     public string? CurrentTabId { get; }
     ModifierKeys CurrentKeyboardModifiers { get; }
 
+    void ToggleActionContextDevTools();
+    void ToggleTabPaletteDevTools();
+
     void ShowTabPalette();
     void HideTabPalette();
     void FocusTabPalette();
