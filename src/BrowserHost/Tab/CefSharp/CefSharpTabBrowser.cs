@@ -10,6 +10,7 @@ using BrowserHost.Utilities;
 using CefSharp;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 
@@ -54,9 +55,35 @@ public class CefSharpTabBrowser : Browser
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
+        var newTitle = e.NewValue as string;
+
+        // It seems there is a bug in the PDF viewer that wants to change the title of the browser to something wrong, so we always set it to the file name
+        if (sender is CefSharpTabBrowser tb && tb.Address.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+            newTitle = GetFileDisplayName(tb.Address);
+
         if (!_isChildBrowser && !IsNavigationBlocked)
-            _tabsBrowserApi.UpdateTabTitle(Id, (string)e.NewValue);
+            _tabsBrowserApi.UpdateTabTitle(Id, newTitle);
     }
+
+    private static string GetFileDisplayName(string fileUri)
+    {
+        if (string.IsNullOrWhiteSpace(fileUri))
+            return fileUri;
+
+        // Try to parse as a file:// URI. If parsing fails, fall back to the raw value.
+        if (!Uri.TryCreate(fileUri, UriKind.Absolute, out var uri) || !uri.IsFile)
+            return fileUri;
+
+        // LocalPath is already unescaped for typical file URIs.
+        var localPath = uri.LocalPath;
+        if (string.IsNullOrWhiteSpace(localPath))
+            return fileUri;
+
+        // Prefer just the filename for a concise tab title.
+        var name = Path.GetFileName(localPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        return string.IsNullOrWhiteSpace(name) ? localPath : name;
+    }
+
 
     private void OnFaviconAddressesChanged(IList<string> addresses)
     {
@@ -92,8 +119,11 @@ public class CefSharpTabBrowser : Browser
         _navigationBlockedUntil = DateTimeOffset.UtcNow.AddSeconds(3);
     }
 
-    protected override void OnAddressChanged(string oldValue, string newValue)
+    protected override void OnAddressChanged(string? oldValue, string newValue)
     {
+        if (oldValue?.StartsWith("file://") == true && newValue.StartsWith("file://") == true)
+            return;
+
         if (IsNavigationBlocked)
         {
             GetBrowser().GoBack();
