@@ -121,8 +121,8 @@ public class CefSharpTabBrowser : Browser
 
     protected override void OnAddressChanged(string? oldValue, string newValue)
     {
-        if (oldValue?.StartsWith("file://") == true && newValue.StartsWith("file://") == true)
-            return;
+        //if (oldValue?.StartsWith("file://") == true && newValue.StartsWith("file://") == true)
+        //    return;
 
         if (IsNavigationBlocked)
         {
@@ -130,18 +130,7 @@ public class CefSharpTabBrowser : Browser
             return;
         }
 
-        if (_dragDropFeature.IsDragging && oldValue != null && newValue.StartsWith("file://"))
-        {
-            // This is a workaround to prevent the current address from being set
-            // when dragging and dropping files into the browser. Instead, we want
-            // open a new tab with the file URL. This is not directly possible,
-            // so we have to revert the change 
-            GetBrowser().GoBack();
-        }
-        else
-        {
-            base.OnAddressChanged(oldValue, newValue);
-        }
+        base.OnAddressChanged(oldValue, newValue);
     }
 
     public void RegisterContentPageApi<TApi>(TApi api, string name) where TApi : BackendApi
