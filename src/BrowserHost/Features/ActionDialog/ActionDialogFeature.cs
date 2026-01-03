@@ -1,5 +1,4 @@
 using BrowserHost.Features.ActionContext.Tabs;
-using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using System;
 using System.Diagnostics.CodeAnalysis;

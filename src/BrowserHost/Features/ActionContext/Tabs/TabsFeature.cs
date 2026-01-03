@@ -6,7 +6,6 @@ using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
@@ -126,14 +125,14 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
 
     private void PreloadTab(TabBrowser browser)
     {
-        var host = (Grid)Window.FindName("PreloadTabsHost");
+        var host = Window.PreloadTabsHost;
         if (host.Children.OfType<TabBrowser>().Any(tb => tb.Id == browser.Id)) return;
         host.Children.Add(browser);
     }
 
     private void TryRemoveFromPreloadHost(TabBrowser browser)
     {
-        var host = (Grid)Window.FindName("PreloadTabsHost");
+        var host = Window.PreloadTabsHost;
         foreach (var child in host.Children.OfType<TabBrowser>().Where(tb => tb.Id == browser.Id).ToArray())
             host.Children.Remove(child);
     }

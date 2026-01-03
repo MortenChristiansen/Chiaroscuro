@@ -1,4 +1,5 @@
-﻿using BrowserHost.Features.Settings;
+﻿using BrowserHost.Features.DragDrop;
+using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
@@ -35,6 +36,8 @@ internal class TestBrowserContext : IBrowserContext
     public FakeTabCustomizationBrowserApi TabCustomizationBrowserApi { get; } = new();
     public FakeTabsBrowserApi TabsBrowserApi { get; } = new();
     public FakeDomainCustomizationBrowserApi DomainCustomizationBrowserApi { get; } = new();
+    public FakeDragDropHost FakeDragDropHost { get; } = new FakeDragDropHost();
+    public IDragDropHost DragDropHost => FakeDragDropHost;
 
     public TabCustomizationStateManager TabCustomizationStateManager { get; }
     public DomainCustomizationStateManager DomainCustomizationStateManager { get; }
@@ -168,6 +171,15 @@ internal class TestBrowserContext : IBrowserContext
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
             var feature = new SettingsFeature(null!, context.PubSub, context.SettingsStateManager);
+            feature.Configure();
+            return feature;
+        }
+
+        public DragDropFeature BuildDragDropFeature()
+        {
+            var context = _context ?? new TestBrowserContext(_tab);
+            _configureContext?.Invoke(context);
+            var feature = new DragDropFeature(null!, context.PubSub, context, context.FileSystem);
             feature.Configure();
             return feature;
         }

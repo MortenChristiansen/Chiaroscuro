@@ -2,7 +2,6 @@
 using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.CustomWindowChrome;
-using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Permissions;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.WebContextMenu;
@@ -10,6 +9,7 @@ using BrowserHost.Utilities;
 using CefSharp;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 
@@ -52,9 +52,35 @@ public class CefSharpTabBrowser : Browser
 
     private void OnTitleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
+        var newTitle = e.NewValue as string;
+
+        // It seems there is a bug in the PDF viewer that wants to change the title of the browser to something wrong, so we always set it to the file name
+        if (sender is CefSharpTabBrowser tb && tb.Address.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+            newTitle = GetFileDisplayName(tb.Address);
+
         if (!_isChildBrowser && !IsNavigationBlocked)
-            _tabsBrowserApi.UpdateTabTitle(Id, (string)e.NewValue);
+            _tabsBrowserApi.UpdateTabTitle(Id, newTitle);
     }
+
+    private static string GetFileDisplayName(string fileUri)
+    {
+        if (string.IsNullOrWhiteSpace(fileUri))
+            return fileUri;
+
+        // Try to parse as a file:// URI. If parsing fails, fall back to the raw value.
+        if (!Uri.TryCreate(fileUri, UriKind.Absolute, out var uri) || !uri.IsFile)
+            return fileUri;
+
+        // LocalPath is already unescaped for typical file URIs.
+        var localPath = uri.LocalPath;
+        if (string.IsNullOrWhiteSpace(localPath))
+            return fileUri;
+
+        // Prefer just the filename for a concise tab title.
+        var name = Path.GetFileName(localPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        return string.IsNullOrWhiteSpace(name) ? localPath : name;
+    }
+
 
     private void OnFaviconAddressesChanged(IList<string> addresses)
     {
@@ -90,7 +116,7 @@ public class CefSharpTabBrowser : Browser
         _navigationBlockedUntil = DateTimeOffset.UtcNow.AddSeconds(3);
     }
 
-    protected override void OnAddressChanged(string oldValue, string newValue)
+    protected override void OnAddressChanged(string? oldValue, string newValue)
     {
         if (IsNavigationBlocked)
         {
@@ -98,18 +124,7 @@ public class CefSharpTabBrowser : Browser
             return;
         }
 
-        if (DragDropFeature.IsDragging && oldValue != null && newValue.StartsWith("file://"))
-        {
-            // This is a workaround to prevent the current address from being set
-            // when dragging and dropping files into the browser. Instead, we want
-            // open a new tab with the file URL. This is not directly possible,
-            // so we have to revert the change 
-            GetBrowser().GoBack();
-        }
-        else
-        {
-            base.OnAddressChanged(oldValue, newValue);
-        }
+        base.OnAddressChanged(oldValue, newValue);
     }
 
     public void RegisterContentPageApi<TApi>(TApi api, string name) where TApi : BackendApi

@@ -8,30 +8,18 @@ using System.IO.Abstractions;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
-using Testably.Abstractions;
 
 namespace BrowserHost.Features.ActionDialog;
 
 public record NavigationHistoryEntry(string Title, string? Favicon);
 
-public class NavigationHistoryStateManager
+public class NavigationHistoryStateManager(IFileSystem fileSystem)
 {
     public static string NavigationHistoryPath { get; } = AppDataPathManager.GetAppDataFilePath("navigationHistory.json");
-
-    private readonly IFileSystem _fileSystem;
 
     // In-memory cache for navigation history
     private Dictionary<string, NavigationHistoryEntry>? _cachedHistory = null;
     private readonly Lock _cacheLock = new();
-
-    public NavigationHistoryStateManager() : this(new RealFileSystem())
-    {
-    }
-
-    public NavigationHistoryStateManager(IFileSystem fileSystem)
-    {
-        _fileSystem = fileSystem;
-    }
 
     public virtual void SaveNavigationEntry(string address, string? title, string? favicon)
     {
@@ -61,12 +49,12 @@ public class NavigationHistoryStateManager
                     }
 
                     _cachedHistory[normalizedAddress] = newValue;
-                    var stateDirectoryPath = _fileSystem.Path.GetDirectoryName(NavigationHistoryPath);
+                    var stateDirectoryPath = fileSystem.Path.GetDirectoryName(NavigationHistoryPath);
                     if (!string.IsNullOrWhiteSpace(stateDirectoryPath))
                     {
-                        _fileSystem.Directory.CreateDirectory(stateDirectoryPath);
+                        fileSystem.Directory.CreateDirectory(stateDirectoryPath);
                     }
-                    _fileSystem.File.WriteAllText(NavigationHistoryPath, JsonSerializer.Serialize(_cachedHistory, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry));
+                    fileSystem.File.WriteAllText(NavigationHistoryPath, JsonSerializer.Serialize(_cachedHistory, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry));
                 }
             }
 
@@ -114,9 +102,9 @@ public class NavigationHistoryStateManager
     {
         try
         {
-            if (_fileSystem.File.Exists(NavigationHistoryPath))
+            if (fileSystem.File.Exists(NavigationHistoryPath))
             {
-                var json = _fileSystem.File.ReadAllText(NavigationHistoryPath);
+                var json = fileSystem.File.ReadAllText(NavigationHistoryPath);
                 return JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.DictionaryStringNavigationHistoryEntry) ?? new Dictionary<string, NavigationHistoryEntry>();
             }
         }
