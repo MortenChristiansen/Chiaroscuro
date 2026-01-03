@@ -91,7 +91,7 @@ public class DomainCustomizationFeatureTest
         context.PubSub.Send(new ChangeDomainCustomizationCommand(_domain, CssEnabled: true));
         context.PubSub.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
         var cssFile = GetCustomCssFilePath(context, _domain);
-        context.ResetDispatchCalled(); // TODO: Why is this needed?
+        context.ResetDispatchCalled();
 
         context.FileSystem.File.WriteAllText(cssFile, "body { background: green; } /* token:green */");
 
