@@ -1,3 +1,4 @@
+using BrowserHost.CefInfrastructure;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -10,10 +11,21 @@ public interface ITabBrowser
 {
     string Id { get; }
     string? CurrentDomain { get; }
+    string Address { get; }
 
     event DependencyPropertyChangedEventHandler? AddressChanged;
 
     Task ExecuteScriptAsync(string script);
+
+    void RegisterContentPageApi(BackendApi api, string name);
+
+    bool IsLoading { get; }
+
+    // Dev Tools
+
+    bool HasDevTools { get; }
+    void ShowDevTools();
+    void CloseDevTools();
 
     // Zoom
 

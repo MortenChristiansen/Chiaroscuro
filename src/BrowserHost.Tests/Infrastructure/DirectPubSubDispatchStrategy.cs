@@ -8,13 +8,17 @@ namespace BrowserHost.Tests.Infrastructure;
 /// </summary>
 internal class DirectPubSubDispatchStrategy : PubSub.IPubSubDispatchStrategy
 {
+    public Action? OnDispatched { get; set; }
+
     public void Invoke<T>(Action<T> action, T message)
     {
+        OnDispatched?.Invoke();
         action(message);
     }
 
     public async Task InvokeAsync<T>(Func<T, Task> action, T message)
     {
+        OnDispatched?.Invoke();
         await action(message);
     }
 }

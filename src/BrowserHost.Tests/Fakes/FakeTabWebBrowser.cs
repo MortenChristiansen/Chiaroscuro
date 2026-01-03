@@ -14,7 +14,9 @@ internal class FakeTabWebBrowser(string tabId) : ITabWebBrowser
     public bool IsLoading => false;
     public bool CanGoBack => false;
     public bool CanGoForward => false;
-    public bool HasDevTools => false;
+    public bool HasDevTools { get; private set; }
+    public bool ShowDevToolsCalled { get; private set; }
+    public bool CloseDevToolsCalled { get; private set; }
     public double DefaultZoomLevel => 0;
 
     public List<ClientApiInvocation> ClientApiInvocations { get; } = [];
@@ -52,8 +54,17 @@ internal class FakeTabWebBrowser(string tabId) : ITabWebBrowser
     public void Find(string searchText, bool forward, bool matchCase, bool findNext) => throw new NotSupportedException();
     public void StopFinding(bool clearSelection) => throw new NotSupportedException();
     public UIElement AsUIElement() => throw new NotSupportedException();
-    public void ShowDevTools() => throw new NotSupportedException();
-    public void CloseDevTools() => throw new NotSupportedException();
+    public void ShowDevTools()
+    {
+        ShowDevToolsCalled = true;
+        HasDevTools = true;
+    }
+
+    public void CloseDevTools()
+    {
+        CloseDevToolsCalled = true;
+        HasDevTools = false;
+    }
     public void Dispose() { }
 
     public record ClientApiInvocation(string Api, string? Arguments);

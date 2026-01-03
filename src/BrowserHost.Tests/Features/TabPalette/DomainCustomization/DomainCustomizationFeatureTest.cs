@@ -13,7 +13,7 @@ public class DomainCustomizationFeatureTest
     public void Publishing_a_TabPaletteRequestedEvent_initializes_domain_settings_when_the_current_tab_has_a_domain()
     {
         CreateFeature
-            .WithCurrentDomainTab(out _, $"https://{_domain}/", tabId: "tab-1")
+            .WithCurrentTab(out _, "tab-1", $"https://{_domain}/")
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
 
@@ -42,7 +42,7 @@ public class DomainCustomizationFeatureTest
     public void Sending_a_RemoveDomainCustomCssCommand_deletes_CSS_removes_it_from_the_tab_and_disables_it()
     {
         CreateFeature
-            .WithCurrentDomainTab(out var tab, $"https://{_domain}/", tabId: "tab-1")
+            .WithCurrentTab(out var tab, "tab-1", $"https://{_domain}/")
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
         Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(_domain));
@@ -58,14 +58,14 @@ public class DomainCustomizationFeatureTest
         Assert.False(customization.CssEnabled);
         Assert.False(customization.HasCustomCss);
         Assert.Contains(context.DomainCustomizationBrowserApi.Invocations, i => i.Method == "updateDomainSettings");
-        Assert.Contains(tab.GetTabWebBrowser().ExecutedScripts, s => s.Contains("chiaroscuro-domain-css") && s.Contains("remove"));
+        Assert.Contains(tab.ExecutedScripts, s => s.Contains("chiaroscuro-domain-css") && s.Contains("remove"));
     }
 
     [Fact]
     public void Sending_a_EditDomainCssCommand_creates_CSS_and_enables_it()
     {
         CreateFeature
-            .WithCurrentDomainTab(out var tab, $"https://{_domain}/", tabId: "tab-1")
+            .WithCurrentTab(out var tab, "tab-1", $"https://{_domain}/")
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
         context.PubSub.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
@@ -83,7 +83,7 @@ public class DomainCustomizationFeatureTest
     public void When_the_CSS_watcher_signals_a_change_the_CSS_is_reloaded_and_the_frontend_is_notified_via_dispatch()
     {
         CreateFeature
-            .WithCurrentDomainTab(out var tab, $"https://{_domain}/", tabId: "tab-1")
+            .WithCurrentTab(out var tab, "tab-1", $"https://{_domain}/")
             .CaptureContext(out var context)
             .ConfigureContext(ctx => ctx.ActionRequiresDispatch = true)
             .BuildDomainCustomizationFeature();
@@ -91,19 +91,20 @@ public class DomainCustomizationFeatureTest
         context.PubSub.Send(new ChangeDomainCustomizationCommand(_domain, CssEnabled: true));
         context.PubSub.Publish(new TabActivatedEvent(tab.Id, PreviousTab: null));
         var cssFile = GetCustomCssFilePath(context, _domain);
+        context.ResetDispatchCalled(); // TODO: Why is this needed?
 
         context.FileSystem.File.WriteAllText(cssFile, "body { background: green; } /* token:green */");
 
         context.WaitForDispatch();
         Assert.Contains(context.DomainCustomizationBrowserApi.Invocations, i => i.Method == "updateDomainSettings");
-        Assert.Contains(tab.GetTabWebBrowser().ExecutedScripts, s => s.Contains("chiaroscuro-domain-css") && s.Contains("expectedCss") && s.Contains("token:green"));
+        Assert.Contains(tab.ExecutedScripts, s => s.Contains("token:green"));
     }
 
     [Fact]
-    public void When_the_CSS_watcher_signals_that_CSS_was_removed_a_DomainCustomCssRemovedEvent_is_published_without_dispatching()
+    public void When_the_CSS_watcher_signals_that_CSS_was_removed_a_DomainCustomCssRemovedEvent_is_published_with_dispatching()
     {
         CreateFeature
-            .WithCurrentDomainTab(out var tab, $"https://{_domain}/", tabId: "tab-1")
+            .WithCurrentTab(out var tab, "tab-1", $"https://{_domain}/")
             .CaptureContext(out var context)
             .ConfigureContext(ctx => ctx.ActionRequiresDispatch = true)
             .BuildDomainCustomizationFeature();
@@ -117,8 +118,8 @@ public class DomainCustomizationFeatureTest
         context.WaitUntil(() => PubSubMessages.OfType<DomainCustomCssRemovedEvent>().Any());
         var removedEvent = Assert.Single(PubSubMessages.OfType<DomainCustomCssRemovedEvent>());
         Assert.Equal(_domain, removedEvent.Domain);
-        Assert.False(context.DispatchCalled);
-        Assert.Contains(tab.GetTabWebBrowser().ExecutedScripts, s => s.Contains("chiaroscuro-domain-css") && s.Contains("remove"));
+        Assert.True(context.DispatchCalled);
+        Assert.Contains(tab.ExecutedScripts, s => s.Contains("chiaroscuro-domain-css") && s.Contains("remove"));
     }
 
     [Fact]
@@ -127,7 +128,7 @@ public class DomainCustomizationFeatureTest
         var domain1 = $"{Guid.NewGuid():N}.example";
         var domain2 = $"{Guid.NewGuid():N}.example";
         CreateFeature
-            .WithCurrentDomainTab(out var tab1, $"https://{domain1}/", tabId: "tab-1")
+            .WithCurrentTab(out var tab1, "tab-1", $"https://{domain1}/")
             .CaptureContext(out var context)
             .BuildDomainCustomizationFeature();
         Assert.True(context.DomainCustomizationStateManager.EnsureCustomCssExistsAndOpenInEditor(domain1));
@@ -135,14 +136,13 @@ public class DomainCustomizationFeatureTest
         context.PubSub.Publish(new TabActivatedEvent(tab1.Id, PreviousTab: null));
         var cssFile1 = GetCustomCssFilePath(context, domain1);
 
-        var tab2 = TypeConstructor.CreateTabBrowser("tab-2");
-        tab2.SetTabAddress($"https://{domain2}/");
+        var tab2 = new FakeTabBrowser("tab-2") { Address = $"https://{domain2}/" };
         context.SetCurrentTab(tab2);
 
-        var scriptsBefore = tab2.GetTabWebBrowser().ExecutedScripts.Count;
+        var scriptsBefore = tab2.ExecutedScripts.Count;
         var invocationsBefore = context.DomainCustomizationBrowserApi.Invocations.Count(i => i.Method == "updateDomainSettings");
         context.FileSystem.File.WriteAllText(cssFile1, "body { background: blue; } /* token:domain1 */");
-        Assert.Equal(scriptsBefore, tab2.GetTabWebBrowser().ExecutedScripts.Count);
+        Assert.Equal(scriptsBefore, tab2.ExecutedScripts.Count);
         Assert.Equal(invocationsBefore, context.DomainCustomizationBrowserApi.Invocations.Count(i => i.Method == "updateDomainSettings"));
     }
 

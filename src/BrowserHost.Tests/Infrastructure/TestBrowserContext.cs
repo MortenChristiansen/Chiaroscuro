@@ -1,4 +1,5 @@
-﻿using BrowserHost.Features.DragDrop;
+﻿using BrowserHost.Features.DevTool;
+using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
@@ -19,8 +20,15 @@ internal class TestBrowserContext : IBrowserContext
         FileSystem = new MockFileSystem();
         CurrentTab = tab;
 
-        PubSub = new PubSub(new DirectPubSubDispatchStrategy());
+        var dispatchStrategy = new DirectPubSubDispatchStrategy();
+        PubSub = new PubSub(dispatchStrategy);
         PubSubMessages.AttachTo(PubSub);
+
+        dispatchStrategy.OnDispatched = () =>
+        {
+            if (ActionRequiresDispatch)
+                DispatchCalled = true;
+        };
 
         TabCustomizationStateManager = new TabCustomizationStateManager(FileSystem);
         DomainCustomizationStateManager = new DomainCustomizationStateManager(FileSystem, new NoopFileOpener());
@@ -46,6 +54,12 @@ internal class TestBrowserContext : IBrowserContext
     public ITabBrowser? CurrentTab { get; private set; }
     public string? CurrentTabId => CurrentTab?.Id;
 
+    public bool ToggleActionContextDevToolsCalled { get; private set; }
+    public bool ToggleTabPaletteDevToolsCalled { get; private set; }
+
+    public void ToggleActionContextDevTools() => ToggleActionContextDevToolsCalled = true;
+    public void ToggleTabPaletteDevTools() => ToggleTabPaletteDevToolsCalled = true;
+
     public ModifierKeys CurrentKeyboardModifiers { get; set; }
 
     public bool ShowTabPaletteCalled { get; private set; }
@@ -64,6 +78,8 @@ internal class TestBrowserContext : IBrowserContext
     public bool ActionRequiresDispatch { get; set; } = false;
 
     public bool DispatchCalled { get; private set; }
+
+    public void ResetDispatchCalled() => DispatchCalled = false;
 
     public void WaitForDispatch()
     {
@@ -93,18 +109,19 @@ internal class TestBrowserContext : IBrowserContext
         private Action<TestBrowserContext>? _configureContext;
         private TestBrowserContext? _context;
 
-        public TestBrowserContextBuilder WithCurrentTab(out FakeTabBrowser tab, Action<FakeTabBrowser>? configureTab = null)
+        public TestBrowserContextBuilder WithCurrentTab(out FakeTabBrowser tab, string? tabId = null, string? address = null, Action<FakeTabBrowser>? configureTab = null)
         {
-            tab = new FakeTabBrowser();
+            tab = new FakeTabBrowser(tabId);
             configureTab?.Invoke(tab);
+            tab.Address = address ?? "";
             _tab = tab;
             return this;
         }
 
-        public TestBrowserContextBuilder WithCurrentDomainTab(out TabBrowser tab, string address, string? tabId = null)
+        public TestBrowserContextBuilder WithCurrentTab(out FakeTabBrowser tab, Action<FakeTabBrowser> configureTab)
         {
-            tab = TypeConstructor.CreateTabBrowser(tabId);
-            tab.SetTabAddress(address);
+            tab = new FakeTabBrowser();
+            configureTab(tab);
             _tab = tab;
             return this;
         }
@@ -171,6 +188,15 @@ internal class TestBrowserContext : IBrowserContext
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
             var feature = new SettingsFeature(null!, context.PubSub, context.SettingsStateManager);
+            feature.Configure();
+            return feature;
+        }
+
+        public DevToolFeature BuildDevToolFeature()
+        {
+            var context = _context ?? new TestBrowserContext(_tab);
+            _configureContext?.Invoke(context);
+            var feature = new DevToolFeature(null!, context.PubSub, context);
             feature.Configure();
             return feature;
         }
