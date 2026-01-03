@@ -2,7 +2,6 @@
 using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.CustomWindowChrome;
-using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Permissions;
 using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.WebContextMenu;
@@ -21,7 +20,6 @@ public class CefSharpTabBrowser : Browser
     private readonly TabsBrowserApi _tabsBrowserApi;
     private readonly PubSub _pubSub;
     private readonly bool _isChildBrowser;
-    private readonly DragDropFeature _dragDropFeature;
 
     public string Id { get; }
     public string? Favicon { get; private set; }
@@ -33,7 +31,6 @@ public class CefSharpTabBrowser : Browser
         Favicon = favicon;
         _isChildBrowser = isChildBrowser;
         _pubSub = pubSub;
-        _dragDropFeature = MainWindow.Instance.GetFeature<DragDropFeature>();
         SetAddress(address, setManualAddress);
 
         TitleChanged += OnTitleChanged;
@@ -121,9 +118,6 @@ public class CefSharpTabBrowser : Browser
 
     protected override void OnAddressChanged(string? oldValue, string newValue)
     {
-        //if (oldValue?.StartsWith("file://") == true && newValue.StartsWith("file://") == true)
-        //    return;
-
         if (IsNavigationBlocked)
         {
             GetBrowser().GoBack();
