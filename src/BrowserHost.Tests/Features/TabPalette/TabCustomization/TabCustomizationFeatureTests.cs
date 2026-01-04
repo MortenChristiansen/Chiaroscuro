@@ -5,7 +5,7 @@ using BrowserHost.Features.TabPalette.TabCustomization;
 
 namespace BrowserHost.Tests.Features.TabPalette.TabCustomization;
 
-public class TabCustomizationFeatureTest
+public class TabCustomizationFeatureTests
 {
     [Fact]
     public void Configuring_the_feature_sends_all_existing_custom_titles_to_the_action_context()

@@ -15,6 +15,14 @@ public class BrowserContext(MainWindow window) : IBrowserContext
     public string? CurrentTabId => window.CurrentTab?.Id;
     public ModifierKeys CurrentKeyboardModifiers => Keyboard.Modifiers;
 
+    public WindowState WindowState
+    {
+        get => window.WindowState;
+        set => window.WindowState = value;
+    }
+
+    public void SetClipboardText(string text) => Clipboard.SetText(text);
+
     public void ToggleActionContextDevTools() => ToggleDevTools(window.ActionContext.GetBrowserHost());
     public void ToggleTabPaletteDevTools() => ToggleDevTools(window.TabPaletteBrowserControl.GetBrowserHost());
 

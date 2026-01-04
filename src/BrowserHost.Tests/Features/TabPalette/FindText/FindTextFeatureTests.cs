@@ -7,7 +7,7 @@ using static BrowserHost.Tests.Infrastructure.TypeConstructor;
 
 namespace BrowserHost.Tests.Features.TabPalette.FindText;
 
-public class FindTextFeatureTest
+public class FindTextFeatureTests
 {
     [Fact]
     public void Sending_a_FindTextCommand_starts_finding_text_in_the_current_tab()

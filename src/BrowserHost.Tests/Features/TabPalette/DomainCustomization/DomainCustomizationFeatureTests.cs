@@ -5,7 +5,7 @@ using BrowserHost.Utilities;
 
 namespace BrowserHost.Tests.Features.TabPalette.DomainCustomization;
 
-public class DomainCustomizationFeatureTest
+public class DomainCustomizationFeatureTests
 {
     private readonly string _domain = $"{Guid.NewGuid():N}.example";
 

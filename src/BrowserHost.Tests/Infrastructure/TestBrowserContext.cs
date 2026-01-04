@@ -1,4 +1,5 @@
-﻿using BrowserHost.Features.DevTool;
+﻿using BrowserHost.Features.CustomWindowChrome;
+using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
@@ -8,6 +9,7 @@ using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
 using BrowserHost.Utilities;
+using System.Windows;
 using System.Windows.Input;
 using Testably.Abstractions.Testing;
 
@@ -44,6 +46,8 @@ internal class TestBrowserContext : IBrowserContext
     public FakeTabCustomizationBrowserApi TabCustomizationBrowserApi { get; } = new();
     public FakeTabsBrowserApi TabsBrowserApi { get; } = new();
     public FakeDomainCustomizationBrowserApi DomainCustomizationBrowserApi { get; } = new();
+    public FakeCustomWindowChromeBrowserApi CustomWindowChromeBrowserApi { get; } = new();
+
     public FakeDragDropHost FakeDragDropHost { get; } = new FakeDragDropHost();
     public IDragDropHost DragDropHost => FakeDragDropHost;
 
@@ -61,6 +65,12 @@ internal class TestBrowserContext : IBrowserContext
     public void ToggleTabPaletteDevTools() => ToggleTabPaletteDevToolsCalled = true;
 
     public ModifierKeys CurrentKeyboardModifiers { get; set; }
+
+    public WindowState WindowState { get; set; } = WindowState.Normal;
+
+    public string? ClipboardText { get; private set; }
+
+    public void SetClipboardText(string text) => ClipboardText = text;
 
     public bool ShowTabPaletteCalled { get; private set; }
     public bool HideTabPaletteCalled { get; private set; }
@@ -206,6 +216,15 @@ internal class TestBrowserContext : IBrowserContext
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
             var feature = new DragDropFeature(null!, context.PubSub, context, context.FileSystem);
+            feature.Configure();
+            return feature;
+        }
+
+        public CustomWindowChromeFeature BuildCustomWindowChromeFeature()
+        {
+            var context = _context ?? new TestBrowserContext(_tab);
+            _configureContext?.Invoke(context);
+            var feature = new CustomWindowChromeFeature(null!, context.PubSub, context, context.CustomWindowChromeBrowserApi, enableWindowIntegration: false);
             feature.Configure();
             return feature;
         }
