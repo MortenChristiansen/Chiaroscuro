@@ -97,7 +97,7 @@ public partial class MainWindow : Window
         _features =
         [
             App.SettingsFeature,
-            new CustomWindowChromeFeature(this, pubSub, CustomWindowChromeBrowserApi),
+            new CustomWindowChromeFeature(this, pubSub, browserContext, CustomWindowChromeBrowserApi),
             new ActionContextFeature(this, pubSub),
             new ActionDialogFeature(this, pubSub, ActionDialogBrowserApi, new NavigationHistoryStateManager(fileSystem)),
             new TabsFeature(this, pubSub, TabsBrowserApi),

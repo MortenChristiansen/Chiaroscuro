@@ -12,7 +12,12 @@ using System.Windows.Media.Imaging;
 
 namespace BrowserHost.Features.CustomWindowChrome;
 
-public partial class CustomWindowChromeFeature(MainWindow window, PubSub pubSub, CustomWindowChromeBrowserApi customWindowChromeApi) : Feature(window, pubSub)
+public partial class CustomWindowChromeFeature(
+    MainWindow window,
+    PubSub pubSub,
+    IBrowserContext browserContext,
+    CustomWindowChromeBrowserApi customWindowChromeApi,
+    bool enableWindowIntegration = true) : Feature(window, pubSub)
 {
     private Rect? _lastNormalBounds; // Stored size/position before maximizing (for detach drag only)
     private bool _applyingRestoreBounds; // Prevent recursive capture while programmatically setting during detach
@@ -29,17 +34,6 @@ public partial class CustomWindowChromeFeature(MainWindow window, PubSub pubSub,
 
     public override void Configure()
     {
-        Window.WindowStyle = WindowStyle.None;
-        Window.AllowsTransparency = true;
-
-        Window.ChromeUI.PreviewMouseLeftButtonDown += ChromeUI_PreviewMouseLeftButtonDown;
-
-        Window.ResizeBorder.PreviewMouseMove += ResizeBorder_PreviewMouseMove;
-        Window.ResizeBorder.PreviewMouseLeftButtonDown += ResizeBorder_PreviewMouseLeftButtonDown;
-        Window.StateChanged += Window_StateChanged;
-        Window.LocationChanged += (_, __) => CaptureNormalBounds();
-        Window.SizeChanged += (_, __) => CaptureNormalBounds();
-
         PubSub.Handle<MinimizeWindowCommand>(_ =>
         {
             Minimize();
@@ -52,12 +46,12 @@ public partial class CustomWindowChromeFeature(MainWindow window, PubSub pubSub,
         });
         PubSub.Handle<CopyAddressCommand>(_ =>
         {
-            var address = Window.CurrentTab?.Address;
+            var address = browserContext.CurrentTab?.Address;
             if (string.IsNullOrEmpty(address))
                 return;
 
             var sanitized = RemoveGoogleAdTrackingParameters(address);
-            Clipboard.SetText(sanitized);
+            browserContext.SetClipboardText(sanitized);
 
             PubSub.Publish(new AddressCopiedEvent());
         });
@@ -65,7 +59,21 @@ public partial class CustomWindowChromeFeature(MainWindow window, PubSub pubSub,
         PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
         PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
 
-        CaptureNormalBounds();
+        if (enableWindowIntegration)
+        {
+            Window.WindowStyle = WindowStyle.None;
+            Window.AllowsTransparency = true;
+
+            Window.ChromeUI.PreviewMouseLeftButtonDown += ChromeUI_PreviewMouseLeftButtonDown;
+
+            Window.ResizeBorder.PreviewMouseMove += ResizeBorder_PreviewMouseMove;
+            Window.ResizeBorder.PreviewMouseLeftButtonDown += ResizeBorder_PreviewMouseLeftButtonDown;
+            Window.StateChanged += Window_StateChanged;
+            Window.LocationChanged += (_, __) => CaptureNormalBounds();
+            Window.SizeChanged += (_, __) => CaptureNormalBounds();
+
+            CaptureNormalBounds();
+        }
     }
 
     private static string RemoveGoogleAdTrackingParameters(string address)
@@ -173,7 +181,7 @@ public partial class CustomWindowChromeFeature(MainWindow window, PubSub pubSub,
 
     private void OnTabLoadingStateChanged(TabLoadingStateChangedEvent e)
     {
-        if (Window.CurrentTab?.Id == e.TabId)
+        if (browserContext.CurrentTab?.Id == e.TabId)
             customWindowChromeApi.UpdateLoadingState(e.IsLoading);
     }
 
@@ -187,13 +195,13 @@ public partial class CustomWindowChromeFeature(MainWindow window, PubSub pubSub,
 
     private void ToggleMaximizedState()
     {
-        if (Window.WindowState == WindowState.Maximized)
-            Window.WindowState = WindowState.Normal;
+        if (browserContext.WindowState == WindowState.Maximized)
+            browserContext.WindowState = WindowState.Normal;
         else
-            Window.WindowState = WindowState.Maximized;
+            browserContext.WindowState = WindowState.Maximized;
     }
 
-    private void Minimize() => Window.WindowState = WindowState.Minimized;
+    private void Minimize() => browserContext.WindowState = WindowState.Minimized;
 
     private void BeginDetachDragFromMaximized(MouseEventArgs e)
     {
@@ -216,7 +224,7 @@ public partial class CustomWindowChromeFeature(MainWindow window, PubSub pubSub,
             double cursorX = pt.X / scaleX;
             double cursorY = pt.Y / scaleY;
 
-            Window.WindowState = WindowState.Normal; // triggers restore
+            browserContext.WindowState = WindowState.Normal; // triggers restore
 
             double targetWidth = restore.Width;
             double targetHeight = restore.Height;
@@ -277,7 +285,7 @@ public partial class CustomWindowChromeFeature(MainWindow window, PubSub pubSub,
 
     private void ResizeBorder_PreviewMouseMove(object sender, MouseEventArgs e)
     {
-        if (Window.WindowState == WindowState.Normal)
+        if (browserContext.WindowState == WindowState.Normal)
         {
             var pos = e.GetPosition(Window.ResizeBorder);
             var hit = GetResizeDirection(pos, Window.ResizeBorder.ActualWidth, Window.ResizeBorder.ActualHeight);
@@ -291,7 +299,7 @@ public partial class CustomWindowChromeFeature(MainWindow window, PubSub pubSub,
 
     private void ResizeBorder_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (Window.WindowState == WindowState.Normal && e.LeftButton == MouseButtonState.Pressed)
+        if (browserContext.WindowState == WindowState.Normal && e.LeftButton == MouseButtonState.Pressed)
         {
             var pos = e.GetPosition(Window.ResizeBorder);
             var hit = GetResizeDirection(pos, Window.ResizeBorder.ActualWidth, Window.ResizeBorder.ActualHeight);
