@@ -4,7 +4,7 @@ using static BrowserHost.Tests.Infrastructure.TypeConstructor;
 
 namespace BrowserHost.Tests.Features.DevTool;
 
-public class DevToolFeatureTest
+public class DevToolFeatureTests
 {
     [Fact]
     public void Publishing_a_TabClosedEvent_closes_the_tab_dev_tools()

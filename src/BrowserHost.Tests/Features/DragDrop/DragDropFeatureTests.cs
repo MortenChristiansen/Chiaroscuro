@@ -3,7 +3,7 @@ using BrowserHost.Features.DragDrop;
 
 namespace BrowserHost.Tests.Features.DragDrop;
 
-public class DragDropFeatureTest
+public class DragDropFeatureTests
 {
     [Fact]
     public void Configuring_the_feature_enables_drag_and_drop_on_the_host()

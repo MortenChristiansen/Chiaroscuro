@@ -3,7 +3,7 @@ using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.TabPalette.DomainCustomization;
 
-public class DomainCustomizationStateManagerTest
+public class DomainCustomizationStateManagerTests
 {
     [Fact]
     public void Saving_a_domain_customization_persists_it_and_it_can_be_restored()

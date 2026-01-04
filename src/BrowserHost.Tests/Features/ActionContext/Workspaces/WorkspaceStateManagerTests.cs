@@ -1,11 +1,10 @@
 using BrowserHost.Features.ActionContext.Workspaces;
-using BrowserHost.Tests.Infrastructure;
 using BrowserHost.Utilities;
 using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.ActionContext.Workspaces;
 
-public class WorkspaceStateManagerTest
+public class WorkspaceStateManagerTests
 {
     [Fact]
     public void Saving_workspace_tabs_persists_them_and_they_can_be_restored_in_a_new_instance()

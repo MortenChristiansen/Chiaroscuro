@@ -3,7 +3,7 @@ using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.AppState;
 
-public class AppStateStateManagerTest
+public class AppStateStateManagerTests
 {
     [Fact]
     public void Saving_action_context_width_clamps_to_the_minimum_and_can_be_restored()

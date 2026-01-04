@@ -3,7 +3,7 @@ using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.Settings;
 
-public class SettingsStateManagerTest
+public class SettingsStateManagerTests
 {
     [Fact]
     public void Saving_settings_persists_them_and_they_can_be_restored_in_a_new_instance()

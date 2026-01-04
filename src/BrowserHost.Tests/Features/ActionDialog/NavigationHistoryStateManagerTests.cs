@@ -3,7 +3,7 @@ using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.ActionDialog;
 
-public class NavigationHistoryStateManagerTest
+public class NavigationHistoryStateManagerTests
 {
     [Fact]
     public void Saving_a_navigation_entry_persists_it_and_it_can_be_suggested()

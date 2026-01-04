@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace BrowserHost.Tests.Features.Settings;
 
-public class SettingsFeatureTest
+public class SettingsFeatureTests
 {
     [Fact]
     public void Configuring_the_feature_restores_execution_settings_from_the_state_manager()

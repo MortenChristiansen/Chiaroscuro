@@ -3,7 +3,7 @@ using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Features.ActionContext.PinnedTabs;
 
-public class PinnedTabsStateManagerTest
+public class PinnedTabsStateManagerTests
 {
     [Fact]
     public void Restoring_pinned_tabs_when_no_state_file_exists_returns_empty_state()
