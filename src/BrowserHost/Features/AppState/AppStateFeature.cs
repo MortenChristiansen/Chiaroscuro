@@ -1,23 +1,25 @@
+using BrowserHost.Features.ActionContext;
+using BrowserHost.Features.TabPalette;
 using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.AppState;
 
-public class AppStateFeature(PubSub pubSub, IBrowserContext context, AppStateStateManager stateManager) : Feature(pubSub)
+public class AppStateFeature(PubSub pubSub, ActionContextWindowOperations actionContextWindowOperations, TabPaletteWindowOperations tabPaletteWindowOperations, AppStateStateManager stateManager) : Feature(pubSub)
 {
     public override void Configure()
     {
-        context.ActionContextResizeCompleted += () =>
+        actionContextWindowOperations.RegisterActionContextResizeCompletedHandler(() =>
         {
-            var width = context.ActionContextActualWidth;
+            var width = actionContextWindowOperations.ActionContextActualWidth;
             stateManager.SaveActionContextWidth(width);
-        };
+        });
 
-        context.TabPaletteResizeCompleted += () =>
+        tabPaletteWindowOperations.RegisterTabPaletteResizeCompletedHandler(() =>
         {
-            var width = context.TabPaletteActualWidth;
+            var width = tabPaletteWindowOperations.TabPaletteActualWidth;
             if (width > 0)
                 stateManager.SaveTabPaletteWidth(width);
-        };
+        });
     }
 
     public override void Start()
@@ -30,7 +32,7 @@ public class AppStateFeature(PubSub pubSub, IBrowserContext context, AppStateSta
         var layout = stateManager.RestoreAppStateFromDisk();
 
         if (layout.ActionContextWidth > 0)
-            context.SetActionContextWidth(layout.ActionContextWidth);
+            actionContextWindowOperations.SetActionContextWidth(layout.ActionContextWidth);
 
         // TabPalette is restored when opened; keep collapsed until user shows it
     }

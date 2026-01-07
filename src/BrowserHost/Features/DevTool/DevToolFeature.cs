@@ -6,7 +6,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.DevTool;
 
-public class DevToolFeature(PubSub pubSub, IBrowserContext browserContext) : Feature(pubSub)
+public class DevToolFeature(PubSub pubSub, IBrowserContext browserContext, DevToolWindowOperations windowOperations) : Feature(pubSub)
 {
     public override void Configure()
     {
@@ -45,12 +45,12 @@ public class DevToolFeature(PubSub pubSub, IBrowserContext browserContext) : Fea
 
     private void ToggleActionContextDevTools()
     {
-        browserContext.ToggleActionContextDevTools();
+        windowOperations.ToggleActionContextDevTools();
     }
 
     private void ToggleTabPalettetDevTools()
     {
-        browserContext.ToggleTabPaletteDevTools();
+        windowOperations.ToggleTabPaletteDevTools();
     }
 
     private static void ToggleDevTools(ITabBrowser? browser)

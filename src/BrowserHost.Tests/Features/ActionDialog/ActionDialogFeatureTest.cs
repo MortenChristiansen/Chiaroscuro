@@ -68,12 +68,12 @@ public class ActionDialogFeatureTest
         CreateFeature
             .CaptureContext(out var context)
             .BuildActionDialogFeature();
-        context.ShowActionDialogControl();
+        context.ActionDialogWindowOperations.ShowActionDialog();
         PubSubMessages.Clear();
 
         context.PubSub.Send(new DismissActionDialogCommand());
 
-        Assert.True(context.HideActionDialogControlCalled);
+        Assert.Equal(1, context.ActionDialogWindowOperations.HideCallCount);
         Assert.Single(PubSubMessages.OfType<ActionDialogDismissedEvent>());
     }
 
@@ -90,7 +90,7 @@ public class ActionDialogFeatureTest
         var handled = feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.T));
 
         Assert.True(handled);
-        Assert.True(context.ShowActionDialogControlCalled);
+        Assert.Equal(1, context.ActionDialogWindowOperations.ShowCallCount);
         Assert.Contains(context.ActionDialogBrowserApi.Invocations, i => i.Method == "showDialog");
         Assert.Single(PubSubMessages.OfType<ActionDialogShownEvent>());
     }

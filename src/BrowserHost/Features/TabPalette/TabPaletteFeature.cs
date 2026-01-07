@@ -4,7 +4,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.TabPalette;
 
-public class TabPaletteFeature(PubSub pubSub, IBrowserContext browserContext, TabPaletteBrowserApi tabPaletteApi) : Feature(pubSub)
+public class TabPaletteFeature(PubSub pubSub, IBrowserContext browserContext, TabPaletteBrowserApi tabPaletteApi, TabPaletteWindowOperations windowOperations) : Feature(pubSub)
 {
     private bool _tabPaletteIsOpen;
 
@@ -49,7 +49,7 @@ public class TabPaletteFeature(PubSub pubSub, IBrowserContext browserContext, Ta
     {
         _tabPaletteIsOpen = true;
         tabPaletteApi.Init();
-        browserContext.ShowTabPalette();
+        windowOperations.ShowTabPalette();
     }
 
     private void CloseTabPalette()
@@ -58,6 +58,6 @@ public class TabPaletteFeature(PubSub pubSub, IBrowserContext browserContext, Ta
             return;
 
         _tabPaletteIsOpen = false;
-        browserContext.HideTabPalette();
+        windowOperations.HideTabPalette();
     }
 }

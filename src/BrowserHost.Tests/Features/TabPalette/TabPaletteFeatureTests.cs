@@ -19,8 +19,8 @@ public class TabPaletteFeatureTests
 
         Assert.True(handled);
         Assert.True(context.TabPaletteBrowserApi.WasCalledWith("init"));
-        Assert.True(context.ShowTabPaletteCalled);
-        Assert.False(context.HideTabPaletteCalled);
+        Assert.Equal(1, context.TabPaletteWindowOperations.ShowCallCount);
+        Assert.Equal(0, context.TabPaletteWindowOperations.HideCallCount);
     }
 
     [Fact]
@@ -34,8 +34,8 @@ public class TabPaletteFeatureTests
         Assert.True(feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.F1)));
 
         Assert.True(context.TabPaletteBrowserApi.WasCalledWith("init"));
-        Assert.True(context.ShowTabPaletteCalled);
-        Assert.True(context.HideTabPaletteCalled);
+        Assert.Equal(1, context.TabPaletteWindowOperations.ShowCallCount);
+        Assert.Equal(1, context.TabPaletteWindowOperations.HideCallCount);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class TabPaletteFeatureTests
 
         context.PubSub.Publish(new TabPaletteDismissedEvent());
 
-        Assert.False(context.HideTabPaletteCalled);
+        Assert.Equal(0, context.TabPaletteWindowOperations.HideCallCount);
     }
 
     [Fact]
@@ -60,6 +60,6 @@ public class TabPaletteFeatureTests
 
         context.PubSub.Publish(new TabDeactivatedEvent("tab-1"));
 
-        Assert.True(context.HideTabPaletteCalled);
+        Assert.Equal(1, context.TabPaletteWindowOperations.HideCallCount);
     }
 }

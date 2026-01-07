@@ -9,7 +9,8 @@ namespace BrowserHost.Features.CustomWindowChrome;
 public partial class CustomWindowChromeFeature(
     PubSub pubSub,
     IBrowserContext browserContext,
-    CustomWindowChromeBrowserApi customWindowChromeApi) : Feature(pubSub)
+    CustomWindowChromeBrowserApi customWindowChromeApi,
+    CustomWindowChromeWindowOperations windowOperations) : Feature(pubSub)
 {
     private static readonly HashSet<string> _googleAdTrackingParameters = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -49,7 +50,7 @@ public partial class CustomWindowChromeFeature(
         PubSub.Subscribe<TabLoadingStateChangedEvent>(OnTabLoadingStateChanged);
         PubSub.Subscribe<TabActivatedEvent>(OnTabActivated);
 
-        browserContext.EnableCustomWindowChromeIntegration(customWindowChromeApi);
+        windowOperations.EnableCustomWindowChrome(customWindowChromeApi);
     }
 
     private static string RemoveGoogleAdTrackingParameters(string address)

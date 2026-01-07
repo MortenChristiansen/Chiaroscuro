@@ -17,7 +17,7 @@ public class AppStateFeatureTest
 
         feature.Start();
 
-        Assert.Equal(444, context.ActionContextWidthSetTo);
+        Assert.Equal(444, context.ActionContextWindowOperations.WidthSetTo);
     }
 
     [Fact]
@@ -26,9 +26,9 @@ public class AppStateFeatureTest
         CreateFeature
             .CaptureContext(out var context)
             .BuildAppStateFeature();
-        context.ActionContextActualWidth = 555;
+        context.ActionContextWindowOperations.ActualWidthValue = 555;
 
-        context.RaiseActionContextResizeCompleted();
+        context.ActionContextWindowOperations.RaiseResizeCompleted();
 
         var restored = new AppStateStateManager(context.FileSystem).RestoreAppStateFromDisk();
         Assert.Equal(555, restored.ActionContextWidth);
@@ -40,9 +40,9 @@ public class AppStateFeatureTest
         CreateFeature
             .CaptureContext(out var context)
             .BuildAppStateFeature();
-        context.TabPaletteActualWidth = 333;
+        context.TabPaletteWindowOperations.ActualWidthValue = 333;
 
-        context.RaiseTabPaletteResizeCompleted();
+        context.TabPaletteWindowOperations.RaiseResizeCompleted();
 
         var restored = new AppStateStateManager(context.FileSystem).RestoreAppStateFromDisk();
         Assert.Equal(333, restored.TabPaletteWidth);

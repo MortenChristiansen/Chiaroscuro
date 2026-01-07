@@ -17,7 +17,7 @@ public enum ActionType
     Search,
     OpenSystemPage,
 }
-public partial class ActionDialogFeature(PubSub pubSub, IBrowserContext context, ActionDialogBrowserApi actionDialogApi, NavigationHistoryStateManager navigationHistoryStateManager) : Feature(pubSub)
+public partial class ActionDialogFeature(PubSub pubSub, IBrowserContext context, ActionDialogBrowserApi actionDialogApi, NavigationHistoryStateManager navigationHistoryStateManager, ActionDialogWindowOperations windowOperations) : Feature(pubSub)
 {
     [GeneratedRegex(@"^!(\w+)|\s+!(\w+)$")]
     private static partial Regex SearchProviderRegex();
@@ -163,10 +163,10 @@ public partial class ActionDialogFeature(PubSub pubSub, IBrowserContext context,
 
     private void ShowDialog()
     {
-        if (context.IsActionDialogVisible)
+        if (windowOperations.ActionDialogIsVisible)
             return;
 
-        context.ShowActionDialogControl();
+        windowOperations.ShowActionDialog();
         actionDialogApi.ShowActionDialog();
         PubSub.Publish(new ActionDialogShownEvent());
         AddGlassOverlayToCurrentTab();
@@ -180,10 +180,10 @@ public partial class ActionDialogFeature(PubSub pubSub, IBrowserContext context,
 
     private void DismissDialog()
     {
-        if (!context.IsActionDialogVisible)
+        if (!windowOperations.ActionDialogIsVisible)
             return;
 
-        context.HideActionDialogControl();
+        windowOperations.HideActionDialog();
         HideGlassOverlayFromCurrentTab();
     }
 

@@ -17,6 +17,7 @@ using BrowserHost.Features.TabPalette.FindText;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
+using BrowserHost.Tests.Fakes.WindowOperations;
 using BrowserHost.Utilities;
 using System.Windows;
 using System.Windows.Input;
@@ -68,6 +69,12 @@ internal class TestBrowserContext : IBrowserContext
     public FakeActionDialogBrowserApi ActionDialogBrowserApi { get; } = new();
     public FakeDownloadsBrowserApi DownloadsBrowserApi { get; } = new();
 
+    public FakeCustomWindowChromeWindowOperations CustomWindowChromeWindowOperations { get; } = new();
+    public FakeActionDialogWindowOperations ActionDialogWindowOperations { get; } = new();
+    public FakeActionContextWindowOperations ActionContextWindowOperations { get; } = new();
+    public FakeTabPaletteWindowOperations TabPaletteWindowOperations { get; } = new();
+    public FakeDevToolWindowOperations DevToolWindowOperations { get; } = new();
+
     public FakeDragDropHost FakeDragDropHost { get; } = new FakeDragDropHost();
     public IDragDropHost DragDropHost => FakeDragDropHost;
 
@@ -82,47 +89,6 @@ internal class TestBrowserContext : IBrowserContext
 
     public ITabBrowser? CurrentTab { get; private set; }
     public string? CurrentTabId => CurrentTab?.Id;
-
-    public bool ToggleActionContextDevToolsCalled { get; private set; }
-    public bool ToggleTabPaletteDevToolsCalled { get; private set; }
-
-    public void ToggleActionContextDevTools() => ToggleActionContextDevToolsCalled = true;
-    public void ToggleTabPaletteDevTools() => ToggleTabPaletteDevToolsCalled = true;
-
-    public bool IsActionDialogVisible { get; private set; }
-
-    public bool ShowActionDialogControlCalled { get; private set; }
-    public bool HideActionDialogControlCalled { get; private set; }
-
-    public void ShowActionDialogControl()
-    {
-        ShowActionDialogControlCalled = true;
-        IsActionDialogVisible = true;
-    }
-
-    public void HideActionDialogControl()
-    {
-        HideActionDialogControlCalled = true;
-        IsActionDialogVisible = false;
-    }
-
-    public int ToggleActionContextVisibilityCallCount { get; private set; }
-
-    public void ToggleActionContextVisibility() => ToggleActionContextVisibilityCallCount++;
-
-    public double ActionContextActualWidth { get; set; }
-
-    public double ActionContextWidthSetTo { get; private set; }
-
-    public void SetActionContextWidth(double width) => ActionContextWidthSetTo = width;
-
-    public double TabPaletteActualWidth { get; set; }
-
-    public event Action? ActionContextResizeCompleted;
-    public event Action? TabPaletteResizeCompleted;
-
-    public void RaiseActionContextResizeCompleted() => ActionContextResizeCompleted?.Invoke();
-    public void RaiseTabPaletteResizeCompleted() => TabPaletteResizeCompleted?.Invoke();
 
     public ModifierKeys CurrentKeyboardModifiers { get; set; }
 
@@ -144,19 +110,6 @@ internal class TestBrowserContext : IBrowserContext
     public string? ClipboardText { get; private set; }
 
     public void SetClipboardText(string text) => ClipboardText = text;
-
-    public bool ShowTabPaletteCalled { get; private set; }
-    public bool HideTabPaletteCalled { get; private set; }
-    public bool FocusTabPaletteCalled { get; private set; }
-
-    public bool EnableCustomWindowChromeIntegrationCalled { get; private set; }
-
-    public void ShowTabPalette() => ShowTabPaletteCalled = true;
-    public void HideTabPalette() => HideTabPaletteCalled = true;
-    public void FocusTabPalette() => FocusTabPaletteCalled = true;
-
-    public void EnableCustomWindowChromeIntegration(CustomWindowChromeBrowserApi customWindowChromeApi) =>
-        EnableCustomWindowChromeIntegrationCalled = true;
 
     public void SetCurrentTab(ITabBrowser? tab)
     {
@@ -297,13 +250,13 @@ internal class TestBrowserContext : IBrowserContext
             BuildFeature((context) => new ZoomFeature(context.PubSub, context));
 
         public TabPaletteFeature BuildTabPaletteFeature() =>
-            BuildFeature((context) => new TabPaletteFeature(context.PubSub, context, context.TabPaletteBrowserApi));
+            BuildFeature((context) => new TabPaletteFeature(context.PubSub, context, context.TabPaletteBrowserApi, context.TabPaletteWindowOperations));
 
         public TabCustomizationFeature BuildTabCustomizationFeature() =>
             BuildFeature((context) => new TabCustomizationFeature(context.PubSub, context, context.TabCustomizationBrowserApi, context.TabsBrowserApi, context.TabCustomizationStateManager));
 
         public FindTextFeature BuildFindTextFeature() =>
-            BuildFeature((context) => new FindTextFeature(context.PubSub, context, context.FindTextBrowserApi));
+            BuildFeature((context) => new FindTextFeature(context.PubSub, context, context.FindTextBrowserApi, context.TabPaletteWindowOperations));
 
         public DomainCustomizationFeature BuildDomainCustomizationFeature() =>
             BuildFeature((context) => new DomainCustomizationFeature(context.PubSub, context, context.DomainCustomizationBrowserApi, context.DomainCustomizationStateManager));
@@ -312,13 +265,13 @@ internal class TestBrowserContext : IBrowserContext
             BuildFeature((context) => new SettingsFeature(context.PubSub, context.SettingsStateManager));
 
         public DevToolFeature BuildDevToolFeature() =>
-            BuildFeature((context) => new DevToolFeature(context.PubSub, context));
+            BuildFeature((context) => new DevToolFeature(context.PubSub, context, context.DevToolWindowOperations));
 
         public DragDropFeature BuildDragDropFeature() =>
             BuildFeature((context) => new DragDropFeature(context.PubSub, context, context.FileSystem));
 
         public CustomWindowChromeFeature BuildCustomWindowChromeFeature() =>
-            BuildFeature((context) => new CustomWindowChromeFeature(context.PubSub, context, context.CustomWindowChromeBrowserApi));
+            BuildFeature((context) => new CustomWindowChromeFeature(context.PubSub, context, context.CustomWindowChromeBrowserApi, context.CustomWindowChromeWindowOperations));
 
         public WorkspacesFeature BuildWorkspacesFeature() =>
             BuildFeature((context) => new WorkspacesFeature(context.PubSub, context, context.WorkspacesBrowserApi, context.TabsBrowserApi, context.WorkspaceStateManager));
@@ -330,13 +283,13 @@ internal class TestBrowserContext : IBrowserContext
             BuildFeature((context) => new TabsFeature(context.PubSub, context, context.TabsBrowserApi));
 
         public ActionContextFeature BuildActionContextFeature() =>
-            BuildFeature((context) => new ActionContextFeature(context.PubSub, context));
+            BuildFeature((context) => new ActionContextFeature(context.PubSub, context, context.ActionContextWindowOperations));
 
         public ActionDialogFeature BuildActionDialogFeature() =>
-            BuildFeature((context) => new ActionDialogFeature(context.PubSub, context, context.ActionDialogBrowserApi, new NavigationHistoryStateManager(context.FileSystem)));
+            BuildFeature((context) => new ActionDialogFeature(context.PubSub, context, context.ActionDialogBrowserApi, new NavigationHistoryStateManager(context.FileSystem), context.ActionDialogWindowOperations));
 
         public AppStateFeature BuildAppStateFeature() =>
-            BuildFeature((context) => new AppStateFeature(context.PubSub, context, new AppStateStateManager(context.FileSystem)));
+            BuildFeature((context) => new AppStateFeature(context.PubSub, context.ActionContextWindowOperations, context.TabPaletteWindowOperations, new AppStateStateManager(context.FileSystem)));
 
         public FoldersFeature BuildFoldersFeature() =>
             BuildFeature((context) => new FoldersFeature(context.PubSub, context, context.TabsBrowserApi));

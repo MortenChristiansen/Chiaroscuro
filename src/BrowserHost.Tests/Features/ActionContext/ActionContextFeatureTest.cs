@@ -16,6 +16,6 @@ public class ActionContextFeatureTest
         var handled = feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.S));
 
         Assert.True(handled);
-        Assert.Equal(1, context.ToggleActionContextVisibilityCallCount);
+        Assert.Equal(1, context.ActionContextWindowOperations.ToggleVisibilityCallCount);
     }
 }

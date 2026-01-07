@@ -4,7 +4,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.TabPalette.FindText;
 
-public class FindTextFeature(PubSub pubSub, IBrowserContext browserContext, FindTextBrowserApi findTextApi) : Feature(pubSub)
+public class FindTextFeature(PubSub pubSub, IBrowserContext browserContext, FindTextBrowserApi findTextApi, TabPaletteWindowOperations windowOperations) : Feature(pubSub)
 {
     private string? _findingTextTerm;
 
@@ -62,7 +62,7 @@ public class FindTextFeature(PubSub pubSub, IBrowserContext browserContext, Find
         if (_findingTextTerm == null && (e.Key == Key.F3 || (e.Key == Key.F && browserContext.CurrentKeyboardModifiers == ModifierKeys.Control)))
         {
             PubSub.Send(new RequestTabPaletteCommand());
-            browserContext.FocusTabPalette();
+            windowOperations.FocusTabPalette();
             findTextApi.FocusFindTextInput();
 
             return true;
