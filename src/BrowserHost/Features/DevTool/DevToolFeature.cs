@@ -6,7 +6,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.DevTool;
 
-public class DevToolFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext) : Feature(window, pubSub)
+public class DevToolFeature(PubSub pubSub, IBrowserContext browserContext) : Feature(pubSub)
 {
     public override void Configure()
     {

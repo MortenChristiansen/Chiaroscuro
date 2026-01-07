@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace BrowserHost.Features.DragDrop;
 
-public class DragDropFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext, IFileSystem fileSystem) : Feature(window, pubSub)
+public class DragDropFeature(PubSub pubSub, IBrowserContext browserContext, IFileSystem fileSystem) : Feature(pubSub)
 {
     public bool IsDragging { get; private set; }
 

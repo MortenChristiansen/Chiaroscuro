@@ -1,6 +1,8 @@
 ﻿using BrowserHost.Features.ActionContext.PinnedTabs;
 using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.ActionContext.FileDownloads;
 using BrowserHost.Features.ActionContext.Workspaces;
+using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
@@ -85,6 +87,22 @@ public class FakeWorkspacesBrowserApi() : WorkspacesBrowserApi(null!), IFakeBrow
 }
 
 public class FakePinnedTabsBrowserApi() : PinnedTabsBrowserApi(null!), IFakeBrowserApi
+{
+    public List<BrowserApiInvocation> Invocations { get; } = [];
+
+    public override void CallClientApi(string api, string? arguments = null) =>
+        Invocations.Add(new(api, arguments));
+}
+
+public class FakeActionDialogBrowserApi() : ActionDialogBrowserApi(null!), IFakeBrowserApi
+{
+    public List<BrowserApiInvocation> Invocations { get; } = [];
+
+    public override void CallClientApi(string api, string? arguments = null) =>
+        Invocations.Add(new(api, arguments));
+}
+
+public class FakeDownloadsBrowserApi() : DownloadsBrowserApi(null!), IFakeBrowserApi
 {
     public List<BrowserApiInvocation> Invocations { get; } = [];
 

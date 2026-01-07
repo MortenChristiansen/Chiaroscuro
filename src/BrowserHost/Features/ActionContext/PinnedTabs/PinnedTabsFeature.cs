@@ -7,7 +7,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.PinnedTabs;
 
-public class PinnedTabsFeature(MainWindow window, PubSub pubSub, IBrowserContext context, TabsBrowserApi tabsApi, PinnedTabsBrowserApi pinnedTabsApi, PinnedTabsStateManager stateManager) : Feature(window, pubSub)
+public class PinnedTabsFeature(PubSub pubSub, IBrowserContext context, TabsBrowserApi tabsApi, PinnedTabsBrowserApi pinnedTabsApi, PinnedTabsStateManager stateManager) : Feature(pubSub)
 {
     private PinnedTabDataV1 _pinnedTabData = null!;
 
@@ -90,7 +90,7 @@ public class PinnedTabsFeature(MainWindow window, PubSub pubSub, IBrowserContext
     {
         var activeTabId = context.CurrentTab?.Id;
 
-        if (e.Key == Key.P && Keyboard.Modifiers == ModifierKeys.Control && activeTabId != null)
+        if (e.Key == Key.P && context.CurrentKeyboardModifiers == ModifierKeys.Control && activeTabId != null)
         {
             if (_pinnedTabData.ActiveTabId != null)
                 PubSub.Send(new UnpinTabCommand(_pinnedTabData.ActiveTabId));

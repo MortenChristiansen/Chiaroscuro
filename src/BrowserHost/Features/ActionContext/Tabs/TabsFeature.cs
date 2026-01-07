@@ -10,7 +10,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
 
-public class TabsFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext, TabsBrowserApi tabsApi) : Feature(window, pubSub)
+public class TabsFeature(PubSub pubSub, IBrowserContext browserContext, TabsBrowserApi tabsApi) : Feature(pubSub)
 {
     private readonly List<ITabBrowser> _tabBrowsers = [];
     private readonly HashSet<string> _loadedWorkspaceIds = [];

@@ -1,44 +1,36 @@
-using System.Windows;
-using System.Windows.Controls;
 using BrowserHost.Utilities;
 
 namespace BrowserHost.Features.AppState;
 
-public class AppStateFeature(MainWindow window, PubSub pubSub, AppStateStateManager stateManager) : Feature(window, pubSub)
+public class AppStateFeature(PubSub pubSub, IBrowserContext context, AppStateStateManager stateManager) : Feature(pubSub)
 {
-    private ColumnDefinition? _actionContextColumn;
-
     public override void Configure()
     {
-        _actionContextColumn = Window.ActionContextColumn;
-
-        Window.Loaded += (_, __) => ApplyInitialLayout();
-
-        Window.ActionContextGridSplitter.DragCompleted += (_, __) =>
+        context.ActionContextResizeCompleted += () =>
         {
-            if (_actionContextColumn != null)
-            {
-                var width = _actionContextColumn.ActualWidth;
-                stateManager.SaveActionContextWidth(width);
-            }
+            var width = context.ActionContextActualWidth;
+            stateManager.SaveActionContextWidth(width);
         };
 
-        Window.TabPaletteGridSplitter.DragCompleted += (_, __) =>
+        context.TabPaletteResizeCompleted += () =>
         {
-            var tabPaletteCol = Window.TabPaletteColumn;
-            if (tabPaletteCol.ActualWidth > 0)
-            {
-                stateManager.SaveTabPaletteWidth(tabPaletteCol.ActualWidth);
-            }
+            var width = context.TabPaletteActualWidth;
+            if (width > 0)
+                stateManager.SaveTabPaletteWidth(width);
         };
+    }
+
+    public override void Start()
+    {
+        ApplyInitialLayout();
     }
 
     private void ApplyInitialLayout()
     {
         var layout = stateManager.RestoreAppStateFromDisk();
 
-        if (_actionContextColumn != null && layout.ActionContextWidth > 0)
-            _actionContextColumn.Width = new GridLength(layout.ActionContextWidth);
+        if (layout.ActionContextWidth > 0)
+            context.SetActionContextWidth(layout.ActionContextWidth);
 
         // TabPalette is restored when opened; keep collapsed until user shows it
     }

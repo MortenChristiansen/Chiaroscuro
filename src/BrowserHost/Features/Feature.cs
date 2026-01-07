@@ -3,9 +3,8 @@ using BrowserHost.Utilities;
 
 namespace BrowserHost.Features;
 
-public abstract class Feature(MainWindow window, PubSub pubSub)
+public abstract class Feature(PubSub pubSub)
 {
-    protected MainWindow Window { get; } = window;
     protected PubSub PubSub { get; } = pubSub;
 
     public virtual void Configure() { }

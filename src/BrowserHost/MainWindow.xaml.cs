@@ -30,6 +30,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Testably.Abstractions;
 using Velopack;
 using Measurement = BrowserHost.Logging.Measure;
 
@@ -90,6 +91,7 @@ public partial class MainWindow : Window
         var browserContext = new BrowserContext(this);
         var pubSub = ProgramPublishSingleFile.PubSub;
         var fileSystem = App.FileSystem;
+        var timeSystem = new RealTimeSystem();
         var shellFileOpener = new ShellFileOpener();
 
         _appStateStateManager = new AppStateStateManager(fileSystem);
@@ -97,22 +99,22 @@ public partial class MainWindow : Window
         _features =
         [
             App.SettingsFeature,
-            new CustomWindowChromeFeature(this, pubSub, browserContext, CustomWindowChromeBrowserApi),
-            new ActionContextFeature(this, pubSub),
-            new ActionDialogFeature(this, pubSub, ActionDialogBrowserApi, new NavigationHistoryStateManager(fileSystem)),
-            new TabsFeature(this, pubSub, browserContext, TabsBrowserApi),
-            new PinnedTabsFeature(this, pubSub, browserContext, TabsBrowserApi, PinnedTabsBrowserApi, new PinnedTabsStateManager(fileSystem)),
-            new DevToolFeature(this, pubSub, browserContext),
-            new FileDownloadsFeature(this, pubSub, DownloadsBrowserApi),
-            new ZoomFeature(this, pubSub, browserContext),
-            new DragDropFeature(this, pubSub, browserContext, fileSystem),
-            new WorkspacesFeature(this, pubSub, browserContext, WorkspacesBrowserApi, TabsBrowserApi, new WorkspaceStateManager(pubSub, fileSystem)),
-            new FoldersFeature(this, pubSub, TabsBrowserApi),
-            new TabPaletteFeature(this, pubSub, browserContext, TabPaletteBrowserApi),
-            new FindTextFeature(this, pubSub, browserContext, FindTextBrowserApi),
-            new TabCustomizationFeature(this, pubSub, browserContext, TabCustomizationBrowserApi, TabsBrowserApi, new TabCustomizationStateManager(fileSystem)),
-            new DomainCustomizationFeature(this, pubSub, browserContext, DomainCustomizationBrowserApi, new DomainCustomizationStateManager(fileSystem, shellFileOpener)),
-            new AppStateFeature(this, pubSub, _appStateStateManager),
+            new CustomWindowChromeFeature(pubSub, browserContext, CustomWindowChromeBrowserApi),
+            new ActionContextFeature(pubSub, browserContext),
+            new ActionDialogFeature(pubSub, browserContext, ActionDialogBrowserApi, new NavigationHistoryStateManager(fileSystem)),
+            new TabsFeature(pubSub, browserContext, TabsBrowserApi),
+            new PinnedTabsFeature(pubSub, browserContext, TabsBrowserApi, PinnedTabsBrowserApi, new PinnedTabsStateManager(fileSystem)),
+            new DevToolFeature(pubSub, browserContext),
+            new FileDownloadsFeature(pubSub, DownloadsBrowserApi, timeSystem),
+            new ZoomFeature(pubSub, browserContext),
+            new DragDropFeature(pubSub, browserContext, fileSystem),
+            new WorkspacesFeature(pubSub, browserContext, WorkspacesBrowserApi, TabsBrowserApi, new WorkspaceStateManager(pubSub, fileSystem)),
+            new FoldersFeature(pubSub, browserContext, TabsBrowserApi),
+            new TabPaletteFeature(pubSub, browserContext, TabPaletteBrowserApi),
+            new FindTextFeature(pubSub, browserContext, FindTextBrowserApi),
+            new TabCustomizationFeature(pubSub, browserContext, TabCustomizationBrowserApi, TabsBrowserApi, new TabCustomizationStateManager(fileSystem)),
+            new DomainCustomizationFeature(pubSub, browserContext, DomainCustomizationBrowserApi, new DomainCustomizationStateManager(fileSystem, shellFileOpener)),
+            new AppStateFeature(pubSub, browserContext, _appStateStateManager),
         ];
         _features.ForEach(f =>
         {

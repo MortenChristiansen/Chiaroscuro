@@ -4,7 +4,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.TabPalette;
 
-public class TabPaletteFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext, TabPaletteBrowserApi tabPaletteApi) : Feature(window, pubSub)
+public class TabPaletteFeature(PubSub pubSub, IBrowserContext browserContext, TabPaletteBrowserApi tabPaletteApi) : Feature(pubSub)
 {
     private bool _tabPaletteIsOpen;
 

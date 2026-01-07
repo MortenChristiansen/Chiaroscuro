@@ -5,13 +5,19 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Testably.Abstractions;
+using ITimer = Testably.Abstractions.TimeSystem.ITimer;
 
 namespace BrowserHost.Features.ActionContext.FileDownloads;
 
-public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBrowserApi downloadsApi) : Feature(window, pubSub)
+public class FileDownloadsFeature(
+    PubSub pubSub,
+    DownloadsBrowserApi downloadsApi,
+    ITimeSystem timeSystem
+) : Feature(pubSub)
 {
     private readonly ConcurrentDictionary<int, DownloadInfo> _activeDownloads = new();
-    private Timer? _progressTimer;
+    private ITimer? _progressTimer;
 
     public override void Configure()
     {
@@ -105,7 +111,7 @@ public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBro
     private void RemoveCompletedDownloadAfterDelay(int downloadId)
     {
         // Keep completed downloads for 10 seconds
-        var _ = Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ =>
+        var _ = timeSystem.Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ =>
         {
             _activeDownloads.TryRemove(downloadId, out var _);
             if (_activeDownloads.Count == 0)
@@ -119,7 +125,7 @@ public class FileDownloadsFeature(MainWindow window, PubSub pubSub, DownloadsBro
 
     private void EnsureDownloadTimerCreated()
     {
-        _progressTimer ??= new Timer(SendProgressUpdate, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        _progressTimer ??= timeSystem.Timer.New(SendProgressUpdate, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
     private void SendProgressUpdate(object? state = null)

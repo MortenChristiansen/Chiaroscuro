@@ -4,7 +4,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.TabPalette.FindText;
 
-public class FindTextFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext, FindTextBrowserApi findTextApi) : Feature(window, pubSub)
+public class FindTextFeature(PubSub pubSub, IBrowserContext browserContext, FindTextBrowserApi findTextApi) : Feature(pubSub)
 {
     private string? _findingTextTerm;
 

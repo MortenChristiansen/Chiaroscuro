@@ -6,13 +6,12 @@ using System.Linq;
 namespace BrowserHost.Features.TabPalette.TabCustomization;
 
 public class TabCustomizationFeature(
-    MainWindow window,
     PubSub pubSub,
     IBrowserContext browserContext,
     TabCustomizationBrowserApi tabCustomizationApi,
     TabsBrowserApi tabsApi,
     TabCustomizationStateManager state
-    ) : Feature(window, pubSub)
+    ) : Feature(pubSub)
 {
     public override void Configure()
     {

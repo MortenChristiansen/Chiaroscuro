@@ -3,7 +3,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.Zoom;
 
-public class ZoomFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext) : Feature(window, pubSub)
+public class ZoomFeature(PubSub pubSub, IBrowserContext browserContext) : Feature(pubSub)
 {
     public override bool HandleOnPreviewMouseWheel(MouseWheelEventArgs e)
     {

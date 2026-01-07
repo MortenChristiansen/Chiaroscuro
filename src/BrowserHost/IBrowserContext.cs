@@ -1,5 +1,6 @@
 ﻿using BrowserHost.Features;
 using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Tab;
 using BrowserHost.Utilities;
@@ -36,9 +37,31 @@ public interface IBrowserContext
     void ToggleActionContextDevTools();
     void ToggleTabPaletteDevTools();
 
+    // Action dialog
+
+    bool IsActionDialogVisible { get; }
+    void ShowActionDialogControl();
+    void HideActionDialogControl();
+
+    // Action context panel
+
+    void ToggleActionContextVisibility();
+
+    // App layout persistence hooks
+
+    double ActionContextActualWidth { get; }
+    void SetActionContextWidth(double width);
+
+    double TabPaletteActualWidth { get; }
+
+    event Action? ActionContextResizeCompleted;
+    event Action? TabPaletteResizeCompleted;
+
     void ShowTabPalette();
     void HideTabPalette();
     void FocusTabPalette();
+
+    void EnableCustomWindowChromeIntegration(CustomWindowChromeBrowserApi customWindowChromeApi);
 
     bool ActionRequiresDispatch { get; }
     void Dispatch(Action action);
