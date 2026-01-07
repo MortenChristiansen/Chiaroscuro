@@ -100,7 +100,7 @@ public partial class MainWindow : Window
             new CustomWindowChromeFeature(this, pubSub, browserContext, CustomWindowChromeBrowserApi),
             new ActionContextFeature(this, pubSub),
             new ActionDialogFeature(this, pubSub, ActionDialogBrowserApi, new NavigationHistoryStateManager(fileSystem)),
-            new TabsFeature(this, pubSub, TabsBrowserApi),
+            new TabsFeature(this, pubSub, browserContext, TabsBrowserApi),
             new PinnedTabsFeature(this, pubSub, browserContext, TabsBrowserApi, PinnedTabsBrowserApi, new PinnedTabsStateManager(fileSystem)),
             new DevToolFeature(this, pubSub, browserContext),
             new FileDownloadsFeature(this, pubSub, DownloadsBrowserApi),

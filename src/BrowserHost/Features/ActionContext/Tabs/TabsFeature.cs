@@ -10,18 +10,18 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.Tabs;
 
-public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsApi) : Feature(window, pubSub)
+public class TabsFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext, TabsBrowserApi tabsApi) : Feature(window, pubSub)
 {
-    private readonly List<TabBrowser> _tabBrowsers = [];
+    private readonly List<ITabBrowser> _tabBrowsers = [];
     private readonly HashSet<string> _loadedWorkspaceIds = [];
 
     public override void Configure()
     {
         PubSub.Handle<StartNavigationCommand>(cmd =>
         {
-            if (Window.CurrentTab != null && cmd.UseCurrentTab)
+            if (browserContext.CurrentTab != null && cmd.UseCurrentTab)
             {
-                Window.CurrentTab.SetAddress(cmd.Address, setManualAddress: cmd.SaveInHistory);
+                browserContext.CurrentTab.SetAddress(cmd.Address, setManualAddress: cmd.SaveInHistory);
             }
             else
             {
@@ -32,7 +32,7 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
         });
         PubSub.Handle<ActivateTabCommand>(cmd =>
         {
-            var previousTab = Window.CurrentTab;
+            var previousTab = browserContext.CurrentTab;
             SetCurrentTab(GetTabBrowserById(cmd.TabId));
             tabsApi.SetActiveTab(cmd.TabId);
             PubSub.Publish(new TabActivatedEvent(cmd.TabId, previousTab));
@@ -41,17 +41,17 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
         {
             var tab = GetTabBrowserById(cmd.TabId);
             _tabBrowsers.Remove(tab);
-            if (tab == Window.CurrentTab)
+            if (tab == browserContext.CurrentTab)
                 SetCurrentTab(null);
-            TryRemoveFromPreloadHost(tab);
             tab.Dispose();
+            browserContext.TabsHost.RemovePreloadedTab(tab.Id);
             PubSub.Publish(new TabClosedEvent(cmd.TabId, tab));
         });
 
         PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
         {
-            var workspaceFeature = Window.GetFeature<WorkspacesFeature>();
-            var pinnedTabsFeature = Window.GetFeature<PinnedTabsFeature>();
+            var workspaceFeature = browserContext.GetFeature<WorkspacesFeature>();
+            var pinnedTabsFeature = browserContext.GetFeature<PinnedTabsFeature>();
             var workspace = workspaceFeature.GetWorkspaceById(e.WorkspaceId);
 
             if (!_loadedWorkspaceIds.Contains(e.WorkspaceId))
@@ -73,15 +73,15 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
         });
     }
 
-    private void SetCurrentTab(TabBrowser? tab)
+    private void SetCurrentTab(ITabBrowser? tab)
     {
-        if (Window.CurrentTab != null && tab?.Id != Window.CurrentTab.Id)
-            PubSub.Publish(new TabDeactivatedEvent(Window.CurrentTab.Id));
+        if (browserContext.CurrentTab != null && tab?.Id != browserContext.CurrentTab.Id)
+            PubSub.Publish(new TabDeactivatedEvent(browserContext.CurrentTab.Id));
 
         if (tab != null)
-            TryRemoveFromPreloadHost(tab);
+            browserContext.TabsHost.RemovePreloadedTab(tab.Id);
 
-        Window.SetCurrentTab(tab);
+        browserContext.SetCurrentTab(tab);
     }
 
     public override void Start()
@@ -91,13 +91,13 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
 
     private void LoadPinnedTabs()
     {
-        var tabs = Window.GetFeature<PinnedTabsFeature>().GetPinnedTabs();
+        var tabs = browserContext.GetFeature<PinnedTabsFeature>().GetPinnedTabs();
         _tabBrowsers.AddRange(tabs.Select(t => AddExistingTab(t.Id, t.Address, t.Title, t.Favicon)));
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.B && Keyboard.Modifiers == ModifierKeys.Control)
+        if (e.Key == Key.B && browserContext.CurrentKeyboardModifiers == ModifierKeys.Control)
         {
             ToggleCurrentTabBookmark();
             return true;
@@ -106,9 +106,9 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
         return base.HandleOnPreviewKeyDown(e);
     }
 
-    private TabBrowser AddNewTab(string address, bool saveInHistory, bool activateTab, TabBrowser? reuseTabBrowser)
+    private ITabBrowser AddNewTab(string address, bool saveInHistory, bool activateTab, ITabBrowser? reuseTabBrowser)
     {
-        var browser = reuseTabBrowser ?? new TabBrowser($"{Guid.NewGuid()}", address, tabsApi, PubSub, setManualAddress: saveInHistory, favicon: null, isChildBrowser: false);
+        var browser = reuseTabBrowser ?? browserContext.CreateNewTab(address, tabsApi, PubSub, setManualAddress: saveInHistory, favicon: null, isChildBrowser: false);
         _tabBrowsers.Add(browser);
 
         var tab = new TabDto(browser.Id, browser.Title, browser.Favicon, DateTimeOffset.UtcNow);
@@ -123,23 +123,14 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
         return browser;
     }
 
-    private void PreloadTab(TabBrowser browser)
+    private void PreloadTab(ITabBrowser browser)
     {
-        var host = Window.PreloadTabsHost;
-        if (host.Children.OfType<TabBrowser>().Any(tb => tb.Id == browser.Id)) return;
-        host.Children.Add(browser);
+        browserContext.TabsHost.PreloadTab(browser);
     }
 
-    private void TryRemoveFromPreloadHost(TabBrowser browser)
+    private ITabBrowser AddExistingTab(string id, string address, string? title, string? favicon)
     {
-        var host = Window.PreloadTabsHost;
-        foreach (var child in host.Children.OfType<TabBrowser>().Where(tb => tb.Id == browser.Id).ToArray())
-            host.Children.Remove(child);
-    }
-
-    private TabBrowser AddExistingTab(string id, string address, string? title, string? favicon)
-    {
-        var browser = new TabBrowser(id, address, tabsApi, PubSub, setManualAddress: false, favicon: favicon, isChildBrowser: false);
+        var browser = browserContext.CreateExistingTab(id, address, tabsApi, PubSub, setManualAddress: false, favicon: favicon, isChildBrowser: false);
         if (!string.IsNullOrEmpty(title))
             browser.Title = title;
 
@@ -151,13 +142,13 @@ public class TabsFeature(MainWindow window, PubSub pubSub, TabsBrowserApi tabsAp
 
     private void ToggleCurrentTabBookmark()
     {
-        var tab = Window.CurrentTab;
-        if (tab == null || Window.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id)) return;
+        var tab = browserContext.CurrentTab;
+        if (tab == null || browserContext.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id)) return;
 
         tabsApi.ToggleTabBookmark(tab.Id);
         tab.SavePersistableState();
     }
 
-    public TabBrowser GetTabBrowserById(string tabId) =>
+    public ITabBrowser GetTabBrowserById(string tabId) =>
         _tabBrowsers.FirstOrDefault(t => t.Id == tabId) ?? throw new ArgumentException("Tab does not exist");
 }
