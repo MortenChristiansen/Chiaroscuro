@@ -1,4 +1,5 @@
 ﻿using BrowserHost.CefInfrastructure;
+using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Tab;
 using System.Windows;
 
@@ -8,6 +9,10 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
 {
     public string Id { get; set; } = id ?? $"{Guid.NewGuid()}";
     public double ZoomLevel { get; set; }
+
+    public string Address { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string? Favicon { get; set; }
 
     public string? CurrentDomain
     {
@@ -42,7 +47,20 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
     public bool RegisterContentPageApiCalled { get; private set; }
     public List<RegisteredContentPageApi> RegisteredContentPageApis { get; } = [];
 
-    public string Address { get; set; } = "";
+
+    public bool SavePersistableStateCalled { get; private set; }
+    public bool DisposeCalled { get; private set; }
+    public List<(string Address, bool SetManualAddress)> SetAddressInvocations { get; } = [];
+
+    public void SetAddress(string address, bool setManualAddress)
+    {
+        Address = address;
+        SetAddressInvocations.Add((address, setManualAddress));
+    }
+
+    public void SavePersistableState() => SavePersistableStateCalled = true;
+
+    public void Dispose() => DisposeCalled = true;
 
     public void SetZoomLevel(double level)
     {
@@ -87,6 +105,21 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
     {
         RegisterContentPageApiCalled = true;
         RegisteredContentPageApis.Add(new RegisteredContentPageApi(name, api));
+    }
+
+    public string GetAddressToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
+        Address;
+
+    public string GetTitleToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
+        Title;
+
+    public string? GetFaviconToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
+        Favicon;
+
+    public bool OriginalAddressRestored { get; private set; }
+    public void RestoreOriginalAddress()
+    {
+        OriginalAddressRestored = true;
     }
 
     public record FindInvocation(string SearchText, bool Forward, bool MatchCase, bool FindNext);

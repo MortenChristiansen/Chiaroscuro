@@ -1,6 +1,6 @@
 using BrowserHost.Features.DragDrop;
 
-namespace BrowserHost.Tests.Infrastructure;
+namespace BrowserHost.Tests.Fakes;
 
 internal class FakeDragDropHost : IDragDropHost
 {

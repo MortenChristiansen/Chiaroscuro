@@ -15,5 +15,5 @@ public record CommandExecutedEvent(string Command, bool Ctrl) : IEvent;
 public record ChangeActionDialogValueCommand(string Value) : ICommand;
 public record ActionDialogValueChangedEvent(string Value) : IEvent;
 
-public record StartNavigationCommand(string Address, bool UseCurrentTab, bool SaveInHistory, bool ActivateTab, TabBrowser? ReuseTabBrowser = null) : Utilities.ICommand;
-public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory, bool ActivateTab, TabBrowser? ReuseTabBrowser = null) : IEvent;
+public record StartNavigationCommand(string Address, bool UseCurrentTab, bool SaveInHistory, bool ActivateTab, ITabBrowser? ReuseTabBrowser = null) : Utilities.ICommand;
+public record NavigationStartedEvent(string Address, bool UseCurrentTab, bool SaveInHistory, bool ActivateTab, ITabBrowser? ReuseTabBrowser = null) : IEvent;

@@ -1,5 +1,6 @@
 ﻿using BrowserHost.Features;
 using BrowserHost.Features.ActionContext.PinnedTabs;
+using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
@@ -63,6 +64,9 @@ internal class TestBrowserContext : IBrowserContext
     public FakeDragDropHost FakeDragDropHost { get; } = new FakeDragDropHost();
     public IDragDropHost DragDropHost => FakeDragDropHost;
 
+    public FakeTabsHost FakeTabsHost { get; } = new FakeTabsHost();
+    public ITabsHost TabsHost => FakeTabsHost;
+
     public TabCustomizationStateManager TabCustomizationStateManager { get; }
     public DomainCustomizationStateManager DomainCustomizationStateManager { get; }
     public SettingsStateManager SettingsStateManager { get; }
@@ -111,6 +115,31 @@ internal class TestBrowserContext : IBrowserContext
     {
         CurrentTab = tab;
     }
+
+    public Queue<string> NewTabIdsToGenerate { get; } = new();
+    public List<TabCreationInvocation> TabCreations { get; } = [];
+    public List<FakeTabBrowser> CreatedTabs { get; } = [];
+
+    public ITabBrowser CreateNewTab(string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser)
+    {
+        var tabId = NewTabIdsToGenerate.Count > 0 ? NewTabIdsToGenerate.Dequeue() : $"{Guid.NewGuid()}";
+        return CreateExistingTab(tabId, address, tabsApi, pubSub, setManualAddress, favicon, isChildBrowser);
+    }
+
+    public ITabBrowser CreateExistingTab(string tabId, string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser)
+    {
+        TabCreations.Add(new(tabId, address, setManualAddress, favicon, isChildBrowser));
+        var tab = new FakeTabBrowser(tabId)
+        {
+            Address = address,
+            Favicon = favicon,
+            Title = "",
+        };
+        CreatedTabs.Add(tab);
+        return tab;
+    }
+
+    public record TabCreationInvocation(string TabId, string Address, bool SetManualAddress, string? Favicon, bool IsChildBrowser);
 
     public bool ActionRequiresDispatch { get; set; } = false;
 
@@ -249,5 +278,8 @@ internal class TestBrowserContext : IBrowserContext
 
         public PinnedTabsFeature BuildPinnedTabsFeature() =>
             BuildFeature((context) => new PinnedTabsFeature(null!, context.PubSub, context, context.TabsBrowserApi, context.PinnedTabsBrowserApi, context.PinnedTabsStateManager));
+
+        public TabsFeature BuildTabsFeature() =>
+            BuildFeature((context) => new TabsFeature(null!, context.PubSub, context, context.TabsBrowserApi));
     }
 }
