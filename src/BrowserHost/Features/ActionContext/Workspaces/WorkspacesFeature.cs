@@ -3,6 +3,7 @@ using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Logging;
+using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
@@ -11,8 +12,16 @@ using System.Windows.Media;
 
 namespace BrowserHost.Features.ActionContext.Workspaces;
 
-public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrowserApi workspacesApi, TabsBrowserApi tabsApi, WorkspaceStateManager stateManager) : Feature(window, pubSub)
+public class WorkspacesFeature(
+    MainWindow window,
+    PubSub pubSub,
+    IBrowserContext context,
+    WorkspacesBrowserApi workspacesApi,
+    TabsBrowserApi tabsApi,
+    WorkspaceStateManager stateManager
+) : Feature(window, pubSub)
 {
+    private readonly IBrowserContext _context = context;
     private WorkspaceDtoV1[] _workspaces = [];
     private string _currentWorkspaceId = null!;
     private bool _hasLoggedInitialWorkspaceTime = false;
@@ -21,9 +30,9 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
 
     public override void Configure()
     {
-        var tabsFeature = Window.GetFeature<TabsFeature>();
         PubSub.Handle<ChangeTabsCommand>(cmd =>
         {
+            var tabsFeature = _context.GetFeature<TabsFeature>();
             _workspaces = stateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
                 cmd.Tabs.Select(t => CreateTabState(t, tabsFeature)),
@@ -42,7 +51,7 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
         {
             _currentWorkspaceId = cmd.WorkspaceId;
             workspacesApi.WorkspaceActivated(cmd.WorkspaceId);
-            Window.WorkspaceColor = GetCurrentWorkspaceColor();
+            _context.WorkspaceColor = GetCurrentWorkspaceColor();
 
             if (!_hasLoggedInitialWorkspaceTime)
             {
@@ -81,7 +90,7 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
             _workspaces = stateManager.UpdateWorkspace(workspace);
 
             if (cmd.WorkspaceId == _currentWorkspaceId)
-                Window.WorkspaceColor = GetCurrentWorkspaceColor();
+                _context.WorkspaceColor = GetCurrentWorkspaceColor();
 
             NotifyFrontendOfUpdatedWorkspaces();
 
@@ -108,16 +117,16 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
         _currentWorkspaceId = _workspaces[0].WorkspaceId;
         RestoreFrontendWorkspaces();
 
-        Window.WorkspaceColor = GetCurrentWorkspaceColor();
+        _context.WorkspaceColor = GetCurrentWorkspaceColor();
         PubSub.Send(new ActivateWorkspaceCommand(_currentWorkspaceId));
 
-        if (App.Options.LaunchUrl != null)
-            PubSub.Send(new StartNavigationCommand(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+        if (_context.AppOptions.LaunchUrl != null)
+            PubSub.Send(new StartNavigationCommand(_context.AppOptions.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
     }
 
     private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, TabsFeature tabsFeature)
     {
-        var customization = Window.GetFeature<TabCustomizationFeature>().GetCustomizationsForTab(tab.Id);
+        var customization = _context.GetFeature<TabCustomizationFeature>().GetCustomizationsForTab(tab.Id);
         var isBookmarked = IsTabBookmarked(tab.Id);
         var browserTab = tabsFeature.GetTabBrowserById(tab.Id);
         return new WorkspaceTabStateDtoV1(
@@ -135,13 +144,13 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
+        if (e.Key == Key.R && _context.CurrentKeyboardModifiers == ModifierKeys.Control)
         {
             RestoreOriginalTabAddress();
             return true;
         }
 
-        if (Keyboard.Modifiers == ModifierKeys.Control || Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+        if (_context.CurrentKeyboardModifiers == ModifierKeys.Control || _context.CurrentKeyboardModifiers == (ModifierKeys.Control | ModifierKeys.Shift))
         {
             var index = e.Key switch
             {
@@ -160,13 +169,15 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
             if (index >= 0 && index < _workspaces.Length && _workspaces[index] != CurrentWorkspace)
             {
                 var targetWorkspace = _workspaces[index];
-                if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+                if (_context.CurrentKeyboardModifiers == (ModifierKeys.Control | ModifierKeys.Shift))
                 {
                     MoveCurrentTabToWorkspace(targetWorkspace);
+                    return true;
                 }
                 else
                 {
                     PubSub.Send(new ActivateWorkspaceCommand(targetWorkspace.WorkspaceId));
+                    return true;
                 }
             }
         }
@@ -175,11 +186,11 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
 
     private void MoveCurrentTabToWorkspace(WorkspaceDtoV1 targetWorkspace)
     {
-        var currentTab = Window.CurrentTab;
+        var currentTab = _context.CurrentTab;
         if (currentTab == null)
             return;
 
-        if (Window.GetFeature<PinnedTabsFeature>().IsTabPinned(currentTab.Id))
+        if (_context.GetFeature<PinnedTabsFeature>().IsTabPinned(currentTab.Id))
             return;
 
         var tab = GetTabById(currentTab.Id);
@@ -224,11 +235,11 @@ public class WorkspacesFeature(MainWindow window, PubSub pubSub, WorkspacesBrows
 
     private void RestoreOriginalTabAddress()
     {
-        var tab = Window.CurrentTab;
-        if (tab == null) return;
+        if (_context.CurrentTab is not TabBrowser tab)
+            return;
 
-        var isPinned = Window.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id);
-        var isBookmarked = Window.GetFeature<WorkspacesFeature>().IsTabBookmarked(tab.Id);
+        var isPinned = _context.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id);
+        var isBookmarked = IsTabBookmarked(tab.Id);
 
         if (!isPinned && !isBookmarked)
             return;

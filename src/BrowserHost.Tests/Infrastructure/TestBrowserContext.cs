@@ -1,4 +1,7 @@
-﻿using BrowserHost.Features.CustomWindowChrome;
+﻿using BrowserHost.Features;
+using BrowserHost.Features.ActionContext.PinnedTabs;
+using BrowserHost.Features.ActionContext.Workspaces;
+using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Settings;
@@ -11,12 +14,15 @@ using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using Testably.Abstractions.Testing;
 
 namespace BrowserHost.Tests.Infrastructure;
 
 internal class TestBrowserContext : IBrowserContext
 {
+    private readonly Dictionary<Type, Feature> _features = [];
+
     public TestBrowserContext(ITabBrowser? tab)
     {
         FileSystem = new MockFileSystem();
@@ -35,7 +41,11 @@ internal class TestBrowserContext : IBrowserContext
         TabCustomizationStateManager = new TabCustomizationStateManager(FileSystem);
         DomainCustomizationStateManager = new DomainCustomizationStateManager(FileSystem, new NoopFileOpener());
         SettingsStateManager = new SettingsStateManager(FileSystem);
+        WorkspaceStateManager = new WorkspaceStateManager(PubSub, FileSystem);
+        PinnedTabsStateManager = new PinnedTabsStateManager(FileSystem);
     }
+
+    public Options AppOptions { get; set; } = new();
 
     public MockFileSystem FileSystem { get; }
 
@@ -47,6 +57,8 @@ internal class TestBrowserContext : IBrowserContext
     public FakeTabsBrowserApi TabsBrowserApi { get; } = new();
     public FakeDomainCustomizationBrowserApi DomainCustomizationBrowserApi { get; } = new();
     public FakeCustomWindowChromeBrowserApi CustomWindowChromeBrowserApi { get; } = new();
+    public FakeWorkspacesBrowserApi WorkspacesBrowserApi { get; } = new();
+    public FakePinnedTabsBrowserApi PinnedTabsBrowserApi { get; } = new();
 
     public FakeDragDropHost FakeDragDropHost { get; } = new FakeDragDropHost();
     public IDragDropHost DragDropHost => FakeDragDropHost;
@@ -54,6 +66,8 @@ internal class TestBrowserContext : IBrowserContext
     public TabCustomizationStateManager TabCustomizationStateManager { get; }
     public DomainCustomizationStateManager DomainCustomizationStateManager { get; }
     public SettingsStateManager SettingsStateManager { get; }
+    public WorkspaceStateManager WorkspaceStateManager { get; }
+    public PinnedTabsStateManager PinnedTabsStateManager { get; }
 
     public ITabBrowser? CurrentTab { get; private set; }
     public string? CurrentTabId => CurrentTab?.Id;
@@ -65,6 +79,19 @@ internal class TestBrowserContext : IBrowserContext
     public void ToggleTabPaletteDevTools() => ToggleTabPaletteDevToolsCalled = true;
 
     public ModifierKeys CurrentKeyboardModifiers { get; set; }
+
+    public Color WorkspaceColor { get; set; } = Color.FromArgb(0, 0, 0, 0);
+
+    public TFeature GetFeature<TFeature>() where TFeature : Feature
+    {
+        if (_features.TryGetValue(typeof(TFeature), out var feature))
+            return (TFeature)feature;
+
+        throw new InvalidOperationException($"Feature of type {typeof(TFeature).Name} not found. Make sure to build the feature before accessing it.");
+    }
+
+    private void RegisterFeature<TFeature>(TFeature feature) where TFeature : Feature =>
+        _features[typeof(TFeature)] = feature;
 
     public WindowState WindowState { get; set; } = WindowState.Normal;
 
@@ -91,15 +118,11 @@ internal class TestBrowserContext : IBrowserContext
 
     public void ResetDispatchCalled() => DispatchCalled = false;
 
-    public void WaitForDispatch()
-    {
+    public void WaitForDispatch() =>
         WaitUntil(() => DispatchCalled);
-    }
 
-    public void WaitUntil(Func<bool> condition)
-    {
+    public void WaitUntil(Func<bool> condition) =>
         Assert.True(SpinWait.SpinUntil(condition, TimeSpan.FromSeconds(5)));
-    }
 
     public void Dispatch(Action action)
     {
@@ -110,6 +133,16 @@ internal class TestBrowserContext : IBrowserContext
         action();
     }
 
+    #region Application state setup helpers
+
+    public void PinTabs(params string[] tabIds)
+    {
+        foreach (var tabId in tabIds)
+            PubSub.Send(new PinTabCommand(tabId));
+    }
+
+    #endregion
+
     public static TestBrowserContextBuilder CreateFeature =>
         new();
 
@@ -118,6 +151,11 @@ internal class TestBrowserContext : IBrowserContext
         private ITabBrowser? _tab;
         private Action<TestBrowserContext>? _configureContext;
         private TestBrowserContext? _context;
+
+        public TestBrowserContextBuilder WithCurrentTab(string? tabId = null)
+        {
+            return WithCurrentTab(out _, tabId);
+        }
 
         public TestBrowserContextBuilder WithCurrentTab(out FakeTabBrowser tab, string? tabId = null, string? address = null, Action<FakeTabBrowser>? configureTab = null)
         {
@@ -148,85 +186,68 @@ internal class TestBrowserContext : IBrowserContext
             return this;
         }
 
-        public ZoomFeature BuildZoomFeature()
+        /// <summary>
+        /// Use any of the BuildXXXFeature methods to create and register required features.
+        /// </summary>
+        public TestBrowserContextBuilder IncludeRequiredFeature<TFeature>(Func<TestBrowserContextBuilder, TFeature> builder) where TFeature : Feature
+        {
+            _context ??= new TestBrowserContext(_tab);
+            _context.RegisterFeature(builder(this));
+            return this;
+        }
+
+        /// <summary>
+        /// Use any of the BuildXXXFeature methods to create and register required features.
+        /// </summary>
+        public TestBrowserContextBuilder IncludeRequiredFeature<TFeature>(Func<TestBrowserContextBuilder, TFeature> builder, out TFeature feature) where TFeature : Feature
+        {
+            _context ??= new TestBrowserContext(_tab);
+            feature = builder(this);
+            _context.RegisterFeature(feature);
+            return this;
+        }
+
+        private TFeature BuildFeature<TFeature>(Func<TestBrowserContext, TFeature> createFeature) where TFeature : Feature
         {
             var context = _context ?? new TestBrowserContext(_tab);
             _configureContext?.Invoke(context);
-            var feature = new ZoomFeature(null!, context.PubSub, context);
+            var feature = createFeature(context);
+            context.RegisterFeature(feature);
             feature.Configure();
             return feature;
         }
 
-        public TabPaletteFeature BuildTabPaletteFeature()
-        {
-            var context = _context ?? new TestBrowserContext(_tab);
-            _configureContext?.Invoke(context);
-            var feature = new TabPaletteFeature(null!, context.PubSub, context, context.TabPaletteBrowserApi);
-            feature.Configure();
-            return feature;
-        }
+        public ZoomFeature BuildZoomFeature() =>
+            BuildFeature((context) => new ZoomFeature(null!, context.PubSub, context));
 
-        public TabCustomizationFeature BuildTabCustomizationFeature()
-        {
-            var context = _context ?? new TestBrowserContext(_tab);
-            _configureContext?.Invoke(context);
-            var feature = new TabCustomizationFeature(null!, context.PubSub, context, context.TabCustomizationBrowserApi, context.TabsBrowserApi, context.TabCustomizationStateManager);
-            feature.Configure();
-            return feature;
-        }
+        public TabPaletteFeature BuildTabPaletteFeature() =>
+            BuildFeature((context) => new TabPaletteFeature(null!, context.PubSub, context, context.TabPaletteBrowserApi));
 
-        public FindTextFeature BuildFindTextFeature()
-        {
-            var context = _context ?? new TestBrowserContext(_tab);
-            _configureContext?.Invoke(context);
-            var feature = new FindTextFeature(null!, context.PubSub, context, context.FindTextBrowserApi);
-            feature.Configure();
-            return feature;
-        }
+        public TabCustomizationFeature BuildTabCustomizationFeature() =>
+            BuildFeature((context) => new TabCustomizationFeature(null!, context.PubSub, context, context.TabCustomizationBrowserApi, context.TabsBrowserApi, context.TabCustomizationStateManager));
 
-        public DomainCustomizationFeature BuildDomainCustomizationFeature()
-        {
-            var context = _context ?? new TestBrowserContext(_tab);
-            _configureContext?.Invoke(context);
-            var feature = new DomainCustomizationFeature(null!, context.PubSub, context, context.DomainCustomizationBrowserApi, context.DomainCustomizationStateManager);
-            feature.Configure();
-            return feature;
-        }
+        public FindTextFeature BuildFindTextFeature() =>
+            BuildFeature((context) => new FindTextFeature(null!, context.PubSub, context, context.FindTextBrowserApi));
 
-        public SettingsFeature BuildSettingsFeature()
-        {
-            var context = _context ?? new TestBrowserContext(_tab);
-            _configureContext?.Invoke(context);
-            var feature = new SettingsFeature(null!, context.PubSub, context.SettingsStateManager);
-            feature.Configure();
-            return feature;
-        }
+        public DomainCustomizationFeature BuildDomainCustomizationFeature() =>
+            BuildFeature((context) => new DomainCustomizationFeature(null!, context.PubSub, context, context.DomainCustomizationBrowserApi, context.DomainCustomizationStateManager));
 
-        public DevToolFeature BuildDevToolFeature()
-        {
-            var context = _context ?? new TestBrowserContext(_tab);
-            _configureContext?.Invoke(context);
-            var feature = new DevToolFeature(null!, context.PubSub, context);
-            feature.Configure();
-            return feature;
-        }
+        public SettingsFeature BuildSettingsFeature() =>
+            BuildFeature((context) => new SettingsFeature(null!, context.PubSub, context.SettingsStateManager));
 
-        public DragDropFeature BuildDragDropFeature()
-        {
-            var context = _context ?? new TestBrowserContext(_tab);
-            _configureContext?.Invoke(context);
-            var feature = new DragDropFeature(null!, context.PubSub, context, context.FileSystem);
-            feature.Configure();
-            return feature;
-        }
+        public DevToolFeature BuildDevToolFeature() =>
+            BuildFeature((context) => new DevToolFeature(null!, context.PubSub, context));
 
-        public CustomWindowChromeFeature BuildCustomWindowChromeFeature()
-        {
-            var context = _context ?? new TestBrowserContext(_tab);
-            _configureContext?.Invoke(context);
-            var feature = new CustomWindowChromeFeature(null!, context.PubSub, context, context.CustomWindowChromeBrowserApi, enableWindowIntegration: false);
-            feature.Configure();
-            return feature;
-        }
+        public DragDropFeature BuildDragDropFeature() =>
+            BuildFeature((context) => new DragDropFeature(null!, context.PubSub, context, context.FileSystem));
+
+        public CustomWindowChromeFeature BuildCustomWindowChromeFeature() =>
+            BuildFeature((context) => new CustomWindowChromeFeature(null!, context.PubSub, context, context.CustomWindowChromeBrowserApi, enableWindowIntegration: false));
+
+        public WorkspacesFeature BuildWorkspacesFeature() =>
+            BuildFeature((context) => new WorkspacesFeature(null!, context.PubSub, context, context.WorkspacesBrowserApi, context.TabsBrowserApi, context.WorkspaceStateManager));
+
+        public PinnedTabsFeature BuildPinnedTabsFeature() =>
+            BuildFeature((context) => new PinnedTabsFeature(null!, context.PubSub, context, context.TabsBrowserApi, context.PinnedTabsBrowserApi, context.PinnedTabsStateManager));
     }
 }

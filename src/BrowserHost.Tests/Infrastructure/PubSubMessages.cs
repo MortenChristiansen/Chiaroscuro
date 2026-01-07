@@ -28,6 +28,11 @@ public static class PubSubMessages
         _messages.Value = null;
     }
 
+    public static void Clear()
+    {
+        while (_messages.Value?.TryDequeue(out _) == true) { }
+    }
+
     private static IReadOnlyCollection<object?> MessagesSnapshot() =>
         _messages.Value?.ToArray() ?? [];
 
