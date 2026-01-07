@@ -47,6 +47,9 @@ This feature uses the following shortcuts:
 
 - **Ctrl-F**: Open tab palette and focus the Find in Page input.
 - **F3**: Open tab palette and focus the Find in Page input.
+- **Tab**: Navigate to the next match (while Find mode is active).
+- **Shift+Tab**: Navigate to the previous match (while Find mode is active).
+- **Esc**: Stop finding (while Find mode is active).
 
 ### Mouse interactions
 

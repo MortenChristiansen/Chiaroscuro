@@ -21,7 +21,6 @@ The Zoom feature lets you zoom web content in and out in the current tab.
 
 - Hold Ctrl and scroll the mouse wheel.
 - Scrolling up increases zoom, scrolling down decreases zoom.
-- Zoom changes in steps of 0.2 and is clamped to approximately [-10, 10].
 
 ### Reset zoom
 
