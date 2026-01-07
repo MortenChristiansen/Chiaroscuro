@@ -1,7 +1,5 @@
 using BrowserHost.Features.ActionContext.PinnedTabs;
-using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
-using System;
 using System.Windows.Input;
 using static BrowserHost.Tests.Infrastructure.TypeConstructor;
 
@@ -19,8 +17,6 @@ public class PinnedTabsFeatureTest
         context.NewTabIdsToGenerate.Enqueue("tab-1");
         context.PinnedTabsBrowserApi.ClearInvocations();
         context.TabsBrowserApi.ClearInvocations();
-        PubSubMessages.Clear();
-
         context.PubSub.Send(new StartNavigationCommand("https://example.com", UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
         var createdTab = Assert.Single(context.CreatedTabs, t => t.Id == "tab-1");
         createdTab.Title = "Example";
@@ -45,12 +41,9 @@ public class PinnedTabsFeatureTest
             .BuildPinnedTabsFeature();
         context.NewTabIdsToGenerate.Enqueue("tab-1");
         context.TabsBrowserApi.ClearInvocations();
-        PubSubMessages.Clear();
-
         context.PubSub.Send(new StartNavigationCommand("https://example.com", UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
         context.PubSub.Send(new PinTabCommand("tab-1"));
         context.TabsBrowserApi.ClearInvocations();
-        PubSubMessages.Clear();
 
         var handled = pinnedTabsFeature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.P));
 

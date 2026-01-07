@@ -2,7 +2,6 @@ using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Serialization;
 using BrowserHost.Utilities;
-using System;
 using System.Text.Json;
 using System.Windows.Input;
 using static BrowserHost.Tests.Infrastructure.TypeConstructor;
@@ -51,8 +50,6 @@ public class FoldersFeatureTest
             )
         );
         workspacesFeature.Start();
-        context.TabsBrowserApi.ClearInvocations();
-        PubSubMessages.Clear();
 
         var handled = foldersFeature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.G));
 
@@ -94,11 +91,10 @@ public class FoldersFeatureTest
                     )
                 ],
                 EphemeralTabStartIndex: 1
-            ) { Folders = [new FolderDtoV1("folder-1", "Folder", StartIndex: 0, EndIndex: 0)] }
+            )
+            { Folders = [new FolderDtoV1("folder-1", "Folder", StartIndex: 0, EndIndex: 0)] }
         );
         workspacesFeature.Start();
-        context.TabsBrowserApi.ClearInvocations();
-        PubSubMessages.Clear();
 
         var handled = foldersFeature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.G));
 

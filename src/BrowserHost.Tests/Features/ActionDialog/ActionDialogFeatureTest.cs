@@ -1,4 +1,3 @@
-using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
 using System.Net;
 using System.Windows.Input;
@@ -16,7 +15,6 @@ public class ActionDialogFeatureTest
             .IncludeRequiredFeature(b => b.BuildTabsFeature())
             .BuildActionDialogFeature();
         context.NewTabIdsToGenerate.Enqueue("tab-1");
-        PubSubMessages.Clear();
 
         context.PubSub.Send(new ExecuteCommandCommand("!g hello world", Ctrl: false));
 
@@ -35,7 +33,6 @@ public class ActionDialogFeatureTest
             .IncludeRequiredFeature(b => b.BuildTabsFeature())
             .BuildActionDialogFeature();
         context.NewTabIdsToGenerate.Enqueue("tab-1");
-        PubSubMessages.Clear();
 
         context.PubSub.Send(new ExecuteCommandCommand("/settings", Ctrl: false));
 
@@ -43,6 +40,7 @@ public class ActionDialogFeatureTest
         Assert.StartsWith("http", creation.Address, StringComparison.OrdinalIgnoreCase);
         Assert.EndsWith("/settings", creation.Address, StringComparison.OrdinalIgnoreCase);
         Assert.False(creation.SetManualAddress);
+        Assert.Contains(PubSubMessages.OfType<NavigationStartedEvent>(), e => !e.SaveInHistory);
     }
 
     [Fact]
@@ -54,7 +52,6 @@ public class ActionDialogFeatureTest
         var history = new NavigationHistoryStateManager(context.FileSystem);
         history.SaveNavigationEntry("https://example.com", "Example", favicon: null);
         context.ActionDialogBrowserApi.ClearInvocations();
-        PubSubMessages.Clear();
 
         context.PubSub.Send(new ChangeActionDialogValueCommand("ex"));
 
@@ -69,7 +66,6 @@ public class ActionDialogFeatureTest
             .CaptureContext(out var context)
             .BuildActionDialogFeature();
         context.ActionDialogWindowOperations.ShowActionDialog();
-        PubSubMessages.Clear();
 
         context.PubSub.Send(new DismissActionDialogCommand());
 
@@ -85,7 +81,6 @@ public class ActionDialogFeatureTest
             .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Control)
             .BuildActionDialogFeature();
         context.ActionDialogBrowserApi.ClearInvocations();
-        PubSubMessages.Clear();
 
         var handled = feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.T));
 
