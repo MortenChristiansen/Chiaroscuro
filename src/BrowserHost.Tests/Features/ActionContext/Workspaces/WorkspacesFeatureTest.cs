@@ -161,8 +161,8 @@ public class WorkspacesFeatureTest
         var feature = CreateFeature
             .WithCurrentTab("tab-1")
             .CaptureContext(out var context)
-            .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Control | ModifierKeys.Shift)
             .IncludeRequiredFeature(b => b.BuildPinnedTabsFeature())
+            .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Control | ModifierKeys.Shift)
             .BuildWorkspacesFeature();
         SeedWorkspaces(context,
             new WorkspaceDtoV1(
@@ -195,6 +195,8 @@ public class WorkspacesFeatureTest
         Assert.Contains(context.TabsBrowserApi.Invocations, i => i.Method == "addTab");
         Assert.Contains(PubSubMessages.OfType<WorkspaceActivatedEvent>(), e => e.WorkspaceId == "ws-2");
     }
+
+    // TODO: Test that you cannot move a pinned tab between workspaces, once the TabsFeature and PinnedTabsFeature are made testable
 
     private static void SeedWorkspaces(TestBrowserContext context, params WorkspaceDtoV1[] workspaces)
     {

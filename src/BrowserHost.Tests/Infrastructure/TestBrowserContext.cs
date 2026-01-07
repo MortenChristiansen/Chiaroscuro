@@ -133,6 +133,16 @@ internal class TestBrowserContext : IBrowserContext
         action();
     }
 
+    #region Application state setup helpers
+
+    public void PinTabs(params string[] tabIds)
+    {
+        foreach (var tabId in tabIds)
+            PubSub.Send(new PinTabCommand(tabId));
+    }
+
+    #endregion
+
     public static TestBrowserContextBuilder CreateFeature =>
         new();
 
@@ -176,6 +186,9 @@ internal class TestBrowserContext : IBrowserContext
             return this;
         }
 
+        /// <summary>
+        /// Use any of the BuildXXXFeature methods to create and register required features.
+        /// </summary>
         public TestBrowserContextBuilder IncludeRequiredFeature<TFeature>(Func<TestBrowserContextBuilder, TFeature> builder) where TFeature : Feature
         {
             _context ??= new TestBrowserContext(_tab);
@@ -183,6 +196,9 @@ internal class TestBrowserContext : IBrowserContext
             return this;
         }
 
+        /// <summary>
+        /// Use any of the BuildXXXFeature methods to create and register required features.
+        /// </summary>
         public TestBrowserContextBuilder IncludeRequiredFeature<TFeature>(Func<TestBrowserContextBuilder, TFeature> builder, out TFeature feature) where TFeature : Feature
         {
             _context ??= new TestBrowserContext(_tab);
@@ -232,6 +248,6 @@ internal class TestBrowserContext : IBrowserContext
             BuildFeature((context) => new WorkspacesFeature(null!, context.PubSub, context, context.WorkspacesBrowserApi, context.TabsBrowserApi, context.WorkspaceStateManager));
 
         public PinnedTabsFeature BuildPinnedTabsFeature() =>
-            BuildFeature((context) => new PinnedTabsFeature(null!, context.PubSub, context.TabsBrowserApi, context.PinnedTabsBrowserApi, context.PinnedTabsStateManager));
+            BuildFeature((context) => new PinnedTabsFeature(null!, context, context.PubSub, context.TabsBrowserApi, context.PinnedTabsBrowserApi, context.PinnedTabsStateManager));
     }
 }

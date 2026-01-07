@@ -101,7 +101,7 @@ public partial class MainWindow : Window
             new ActionContextFeature(this, pubSub),
             new ActionDialogFeature(this, pubSub, ActionDialogBrowserApi, new NavigationHistoryStateManager(fileSystem)),
             new TabsFeature(this, pubSub, TabsBrowserApi),
-            new PinnedTabsFeature(this, pubSub, TabsBrowserApi, PinnedTabsBrowserApi, new PinnedTabsStateManager(fileSystem)),
+            new PinnedTabsFeature(this, browserContext, pubSub, TabsBrowserApi, PinnedTabsBrowserApi, new PinnedTabsStateManager(fileSystem)),
             new DevToolFeature(this, pubSub, browserContext),
             new FileDownloadsFeature(this, pubSub, DownloadsBrowserApi),
             new ZoomFeature(this, pubSub, browserContext),
