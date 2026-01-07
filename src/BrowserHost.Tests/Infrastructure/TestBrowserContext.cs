@@ -248,6 +248,6 @@ internal class TestBrowserContext : IBrowserContext
             BuildFeature((context) => new WorkspacesFeature(null!, context.PubSub, context, context.WorkspacesBrowserApi, context.TabsBrowserApi, context.WorkspaceStateManager));
 
         public PinnedTabsFeature BuildPinnedTabsFeature() =>
-            BuildFeature((context) => new PinnedTabsFeature(null!, context, context.PubSub, context.TabsBrowserApi, context.PinnedTabsBrowserApi, context.PinnedTabsStateManager));
+            BuildFeature((context) => new PinnedTabsFeature(null!, context.PubSub, context, context.TabsBrowserApi, context.PinnedTabsBrowserApi, context.PinnedTabsStateManager));
     }
 }

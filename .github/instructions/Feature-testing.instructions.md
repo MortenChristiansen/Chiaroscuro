@@ -58,7 +58,7 @@ Feature tests follow a small set of conventions designed to keep tests readable,
 - Seed state by writing the expected persisted files into the fake filesystem (or by calling the state manager APIs).
 - ALL file system access must be done via the state manager abstraction. Features must not access the file system directly.
 
-## Cross feature dependencies
+## Cross-feature dependencies
 
 - If a feature depends on another feature, use the test context builder methods to add the dependent feature to the context.
 - Example: `IncludeRequiredFeature(b => b.BuildPinnedTabsFeature())`

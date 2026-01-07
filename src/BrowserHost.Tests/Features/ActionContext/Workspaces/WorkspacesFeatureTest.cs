@@ -134,7 +134,7 @@ public class WorkspacesFeatureTest
     }
 
     [Fact]
-    public void Trying_to_active_a_workspace_that_does_not_exist_is_ignored()
+    public void Trying_to_activate_a_workspace_that_does_not_exist_is_ignored()
     {
         var feature = CreateFeature
             .CaptureContext(out var context)
