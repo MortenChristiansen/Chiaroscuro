@@ -11,6 +11,7 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
     public double ZoomLevel { get; set; }
 
     public string Address { get; set; } = "";
+    public string? ManualAddress { get; private set; }
     public string Title { get; set; } = "";
     public string? Favicon { get; set; }
 
@@ -55,6 +56,7 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
     public void SetAddress(string address, bool setManualAddress)
     {
         Address = address;
+        ManualAddress = setManualAddress ? address : ManualAddress;
         SetAddressInvocations.Add((address, setManualAddress));
     }
 

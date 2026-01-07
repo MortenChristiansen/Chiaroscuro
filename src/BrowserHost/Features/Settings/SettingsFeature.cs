@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace BrowserHost.Features.Settings;
 
-public class SettingsFeature(MainWindow window, PubSub pubSub, SettingsStateManager settingsStateManager) : Feature(window, pubSub)
+public class SettingsFeature(PubSub pubSub, SettingsStateManager settingsStateManager) : Feature(pubSub)
 {
     private SettingsBackendApi _backendApi = null!;
     private readonly Lock _autoAddSsoLock = new();

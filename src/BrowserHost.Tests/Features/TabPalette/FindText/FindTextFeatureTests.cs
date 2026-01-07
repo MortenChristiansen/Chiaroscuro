@@ -90,7 +90,7 @@ public class FindTextFeatureTests
 
         Assert.True(handled);
         Assert.Single(PubSubMessages.OfType<TabPaletteRequestedEvent>());
-        Assert.True(context.FocusTabPaletteCalled);
+        Assert.Equal(1, context.TabPaletteWindowOperations.FocusCallCount);
         Assert.True(context.FindTextBrowserApi.WasCalledWith("focusFindTextInput"));
     }
 

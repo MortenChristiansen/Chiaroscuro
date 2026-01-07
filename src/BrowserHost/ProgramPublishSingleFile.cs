@@ -59,7 +59,7 @@ public class ProgramPublishSingleFile
         if (App.Options.ForceAppRegistration)
             WindowsRegistrator.RegisterApplication(new SemanticVersion(0, 0, 0));
 
-        SettingsFeature = new SettingsFeature(null!, PubSub, new SettingsStateManager(FileSystem));
+        SettingsFeature = new SettingsFeature(PubSub, new SettingsStateManager(FileSystem));
 
         var cacheFolder = Debugger.IsAttached ? "CefSharp\\DevCache" : "CefSharp\\Cache";
 

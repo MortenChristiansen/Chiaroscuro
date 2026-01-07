@@ -18,11 +18,10 @@ public class DomainCustomizationFeature : Feature
     private IDisposable? _cssWatcherSubscription;
 
     public DomainCustomizationFeature(
-        MainWindow window,
         PubSub pubSub,
         IBrowserContext browserContext,
         DomainCustomizationBrowserApi domainCustomizationApi,
-        DomainCustomizationStateManager stateManager) : base(window, pubSub)
+        DomainCustomizationStateManager stateManager) : base(pubSub)
     {
         _browserContext = browserContext ?? throw new ArgumentNullException(nameof(browserContext));
         _domainCustomizationApi = domainCustomizationApi ?? throw new ArgumentNullException(nameof(domainCustomizationApi));

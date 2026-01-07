@@ -6,7 +6,7 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.DevTool;
 
-public class DevToolFeature(MainWindow window, PubSub pubSub, IBrowserContext browserContext) : Feature(window, pubSub)
+public class DevToolFeature(PubSub pubSub, IBrowserContext browserContext, DevToolWindowOperations windowOperations) : Feature(pubSub)
 {
     public override void Configure()
     {
@@ -31,7 +31,7 @@ public class DevToolFeature(MainWindow window, PubSub pubSub, IBrowserContext br
         // For some reason, F10 needs to be handled as SystemKey
         if ((e.Key == Key.F10 || e.SystemKey == Key.F10) && Debugger.IsAttached)
         {
-            ToggleTabPalettetDevTools();
+            ToggleTabPaletteDevTools();
             return true;
         }
 
@@ -45,12 +45,12 @@ public class DevToolFeature(MainWindow window, PubSub pubSub, IBrowserContext br
 
     private void ToggleActionContextDevTools()
     {
-        browserContext.ToggleActionContextDevTools();
+        windowOperations.ToggleActionContextDevTools();
     }
 
-    private void ToggleTabPalettetDevTools()
+    private void ToggleTabPaletteDevTools()
     {
-        browserContext.ToggleTabPaletteDevTools();
+        windowOperations.ToggleTabPaletteDevTools();
     }
 
     private static void ToggleDevTools(ITabBrowser? browser)

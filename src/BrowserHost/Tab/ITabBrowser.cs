@@ -13,6 +13,7 @@ public interface ITabBrowser
     string Id { get; }
     string? CurrentDomain { get; }
     string Address { get; }
+    string? ManualAddress { get; }
     string? Favicon { get; }
     string Title { get; set; }
 

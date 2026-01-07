@@ -33,13 +33,6 @@ public interface IBrowserContext
     ITabBrowser CreateNewTab(string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser);
     ITabBrowser CreateExistingTab(string tabId, string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser);
 
-    void ToggleActionContextDevTools();
-    void ToggleTabPaletteDevTools();
-
-    void ShowTabPalette();
-    void HideTabPalette();
-    void FocusTabPalette();
-
     bool ActionRequiresDispatch { get; }
     void Dispatch(Action action);
 }

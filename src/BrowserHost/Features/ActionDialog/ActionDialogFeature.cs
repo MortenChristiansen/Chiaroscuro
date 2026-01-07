@@ -5,10 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
 
 namespace BrowserHost.Features.ActionDialog;
 
@@ -20,8 +17,7 @@ public enum ActionType
     Search,
     OpenSystemPage,
 }
-
-public partial class ActionDialogFeature(MainWindow window, PubSub pubSub, ActionDialogBrowserApi actionDialogApi, NavigationHistoryStateManager navigationHistoryStateManager) : Feature(window, pubSub)
+public partial class ActionDialogFeature(PubSub pubSub, IBrowserContext context, ActionDialogBrowserApi actionDialogApi, NavigationHistoryStateManager navigationHistoryStateManager, ActionDialogWindowOperations windowOperations) : Feature(pubSub)
 {
     [GeneratedRegex(@"^!(\w+)|\s+!(\w+)$")]
     private static partial Regex SearchProviderRegex();
@@ -139,7 +135,7 @@ public partial class ActionDialogFeature(MainWindow window, PubSub pubSub, Actio
 
     private void HandlePageHistoryChange(string tabId)
     {
-        var currentTab = Window.CurrentTab;
+        var currentTab = context.CurrentTab;
         if (currentTab == null || currentTab.Id != tabId || string.IsNullOrEmpty(currentTab.ManualAddress))
             return;
 
@@ -157,7 +153,7 @@ public partial class ActionDialogFeature(MainWindow window, PubSub pubSub, Actio
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
+        if (e.Key == Key.T && context.CurrentKeyboardModifiers == ModifierKeys.Control)
         {
             ShowDialog();
             return true;
@@ -167,38 +163,13 @@ public partial class ActionDialogFeature(MainWindow window, PubSub pubSub, Actio
 
     private void ShowDialog()
     {
-        if (Window.ActionDialog.Visibility == Visibility.Visible)
+        if (windowOperations.ActionDialogIsVisible)
             return;
 
-        ShowActionDialogControl();
-        AddGlassOverlayToCurrentTab();
-    }
-
-    private void ShowActionDialogControl()
-    {
-        Window.ActionDialog.Opacity = 0;
-        Window.ActionDialog.Visibility = Visibility.Visible;
-        Window.ActionDialog.Focus();
+        windowOperations.ShowActionDialog();
         actionDialogApi.ShowActionDialog();
         PubSub.Publish(new ActionDialogShownEvent());
-
-        if (Window.ActionDialog.RenderTransform is not ScaleTransform)
-        {
-            var scale = new ScaleTransform(0, 0, 0.5, 0.5);
-            Window.ActionDialog.RenderTransform = scale;
-            Window.ActionDialog.RenderTransformOrigin = new Point(0.5, 0.5);
-        }
-        else
-        {
-            ((ScaleTransform)Window.ActionDialog.RenderTransform).ScaleX = 0;
-            ((ScaleTransform)Window.ActionDialog.RenderTransform).ScaleY = 0;
-        }
-
-        var fadeIn = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(250)));
-        var scaleIn = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(250))) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
-        Window.ActionDialog.BeginAnimation(UIElement.OpacityProperty, fadeIn);
-        ((ScaleTransform)Window.ActionDialog.RenderTransform).BeginAnimation(ScaleTransform.ScaleXProperty, scaleIn);
-        ((ScaleTransform)Window.ActionDialog.RenderTransform).BeginAnimation(ScaleTransform.ScaleYProperty, scaleIn);
+        AddGlassOverlayToCurrentTab();
     }
 
     private void AddGlassOverlayToCurrentTab()
@@ -209,27 +180,11 @@ public partial class ActionDialogFeature(MainWindow window, PubSub pubSub, Actio
 
     private void DismissDialog()
     {
-        if (Window.ActionDialog.Visibility == Visibility.Hidden)
+        if (!windowOperations.ActionDialogIsVisible)
             return;
 
-        HideActionDialogControl();
+        windowOperations.HideActionDialog();
         HideGlassOverlayFromCurrentTab();
-    }
-
-    private void HideActionDialogControl()
-    {
-        var fadeOut = new DoubleAnimation(1, 0, new Duration(TimeSpan.FromMilliseconds(250)));
-        var scaleOut = new DoubleAnimation(1, 0, new Duration(TimeSpan.FromMilliseconds(250))) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
-        fadeOut.Completed += (s, e) =>
-        {
-            Window.ActionDialog.Visibility = Visibility.Hidden;
-        };
-        Window.ActionDialog.BeginAnimation(UIElement.OpacityProperty, fadeOut);
-        if (Window.ActionDialog.RenderTransform is ScaleTransform scale)
-        {
-            scale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleOut);
-            scale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleOut);
-        }
     }
 
     private void HideGlassOverlayFromCurrentTab()

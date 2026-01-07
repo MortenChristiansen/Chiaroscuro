@@ -13,13 +13,12 @@ using System.Windows.Media;
 namespace BrowserHost.Features.ActionContext.Workspaces;
 
 public class WorkspacesFeature(
-    MainWindow window,
     PubSub pubSub,
     IBrowserContext context,
     WorkspacesBrowserApi workspacesApi,
     TabsBrowserApi tabsApi,
     WorkspaceStateManager stateManager
-) : Feature(window, pubSub)
+) : Feature(pubSub)
 {
     private WorkspaceDtoV1[] _workspaces = [];
     private string _currentWorkspaceId = null!;
