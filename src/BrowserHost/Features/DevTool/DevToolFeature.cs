@@ -31,7 +31,7 @@ public class DevToolFeature(PubSub pubSub, IBrowserContext browserContext, DevTo
         // For some reason, F10 needs to be handled as SystemKey
         if ((e.Key == Key.F10 || e.SystemKey == Key.F10) && Debugger.IsAttached)
         {
-            ToggleTabPalettetDevTools();
+            ToggleTabPaletteDevTools();
             return true;
         }
 
@@ -48,7 +48,7 @@ public class DevToolFeature(PubSub pubSub, IBrowserContext browserContext, DevTo
         windowOperations.ToggleActionContextDevTools();
     }
 
-    private void ToggleTabPalettetDevTools()
+    private void ToggleTabPaletteDevTools()
     {
         windowOperations.ToggleTabPaletteDevTools();
     }
