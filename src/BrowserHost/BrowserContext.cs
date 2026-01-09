@@ -1,6 +1,7 @@
 ﻿using BrowserHost.Features;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.DragDrop;
+using BrowserHost.Features.Settings;
 using BrowserHost.Tab;
 using System;
 using System.Windows;
@@ -64,7 +65,7 @@ public class BrowserContext : IBrowserContext
         CreateExistingTab($"{Guid.NewGuid()}", address, tabsApi, pubSub, setManualAddress, favicon, isChildBrowser);
 
     public ITabBrowser CreateExistingTab(string tabId, string address, TabsBrowserApi tabsApi, global::BrowserHost.Utilities.PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser) =>
-        new TabBrowser(tabId, address, tabsApi, pubSub, setManualAddress: setManualAddress, favicon: favicon, isChildBrowser: isChildBrowser);
+        new TabBrowser(tabId, address, tabsApi, pubSub, setManualAddress: setManualAddress, favicon: favicon, isChildBrowser: isChildBrowser, GetFeature<SettingsFeature>());
 
     public bool ActionRequiresDispatch
     {

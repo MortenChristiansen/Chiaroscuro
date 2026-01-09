@@ -1,4 +1,5 @@
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.Settings;
 using BrowserHost.Interop;
 using BrowserHost.Tab;
 using BrowserHost.Utilities;
@@ -76,7 +77,7 @@ public class ChildBrowserWindow : OverlayWindow
         EnsureSubscriptions(pubSub);
         _pubSub = pubSub;
 
-        _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.TabsBrowserApi, pubSub, setManualAddress: false, favicon: null, isChildBrowser: true);
+        _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.TabsBrowserApi, pubSub, setManualAddress: false, favicon: null, isChildBrowser: true, MainWindow.Instance.GetFeature<SettingsFeature>());
         _browser.PageLoadEnded += Browser_PageLoadEnded;
         _browser.Opacity = 0.0; // Keep child browser hidden until first load completes
         _browser.RenderTransformOrigin = new Point(0.5, 0.5);
