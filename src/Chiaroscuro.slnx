@@ -6,6 +6,7 @@
     <File Path=".editorconfig" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="BrowserHost.E2E/BrowserHost.E2E.csproj" Id="70ddbcfe-362c-4ead-b01e-67464fc53749" />
     <Project Path="BrowserHost.Tests/BrowserHost.Tests.csproj" Id="20581dcf-553b-48de-98b7-34d3343aff57" />
     <Project Path="BrowserHost/BrowserHost.csproj">
       <Platform Project="x64" />
