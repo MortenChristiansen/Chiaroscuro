@@ -4,6 +4,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BrowserHost;
@@ -52,10 +53,13 @@ public static class ContentServer
     public static IDisposable StartStaticServerForTests(string chromeAppRoot)
     {
         var server = CreateWebServer(chromeAppRoot, Host);
-        Task.Run(async () =>
+
+        _ = Task.Run(async () =>
         {
             await server.RunAsync();
         });
+        WaitUntilRunning(server, TimeSpan.FromSeconds(10));
+
         return server;
     }
 
@@ -126,4 +130,40 @@ public static class ContentServer
         ;
     }
 
+    private static void WaitUntilRunning(WebServer server, TimeSpan timeout)
+    {
+        // If already running, return immediately.
+        if (server.State == WebServerState.Listening)
+            return;
+
+        using var started = new ManualResetEventSlim(false);
+        using var stopped = new ManualResetEventSlim(false);
+
+        void onStateChanged(object? _, WebServerStateChangedEventArgs e)
+        {
+            if (e.NewState == WebServerState.Listening)
+                started.Set();
+            else if (e.NewState == WebServerState.Stopped)
+                stopped.Set();
+        }
+
+        server.StateChanged += onStateChanged;
+        try
+        {
+            // Re-check after subscription to avoid races.
+            if (server.State == WebServerState.Listening)
+                return;
+
+            // If it stops before it starts listening, treat as failure.
+            var signaledIndex = WaitHandle.WaitAny([started.WaitHandle, stopped.WaitHandle], timeout);
+            if (signaledIndex == WaitHandle.WaitTimeout)
+                throw new TimeoutException($"Timed out waiting for content server to reach state {WebServerState.Listening}.");
+            if (signaledIndex == 1)
+                throw new InvalidOperationException("Content server transitioned to Stopped before reaching Listening state.");
+        }
+        finally
+        {
+            server.StateChanged -= onStateChanged;
+        }
+    }
 }
