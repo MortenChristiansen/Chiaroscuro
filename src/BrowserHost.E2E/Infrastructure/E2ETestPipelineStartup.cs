@@ -6,12 +6,15 @@ using Xunit.v3;
 
 namespace BrowserHost.E2E.Infrastructure;
 
-public sealed class E2EContentServerFixture : ITestPipelineStartup
+public sealed class E2ETestPipelineStartup : ITestPipelineStartup
 {
     private IDisposable? _server;
 
     public ValueTask StartAsync(IMessageSink diagnosticMessageSink)
     {
+        // We need to do it before starting the tests, otherwise there might be a file lock preventing deletion
+        ClearCefFolder();
+
         var chromeAppRoot = FindChromeAppRoot();
         var hostForTests = $"http://localhost:{GetFreeTcpPort()}";
 
@@ -19,6 +22,14 @@ public sealed class E2EContentServerFixture : ITestPipelineStartup
         _server = ContentServer.StartStaticServerForTests(chromeAppRoot);
 
         return ValueTask.CompletedTask;
+    }
+
+    private static void ClearCefFolder()
+    {
+        var cefFolder = Path.Combine(Path.GetTempPath(), "BrowserHost.E2E");
+        // Delete all folders in cefFolder
+        foreach (var dir in Directory.GetDirectories(cefFolder))
+            Directory.Delete(dir, true);
     }
 
     private static int GetFreeTcpPort()
