@@ -6,18 +6,39 @@ internal static class StaTestRunner
 {
     private static readonly Lazy<StaDispatcherThread> _sta = new(() => new StaDispatcherThread());
 
-    public static async Task RunAsync(Func<Task> action)
+    public static async Task RunAsync(Func<Task> test)
     {
-        var attemptsLeft = 3;
-        for (var attempt = 1; attempt <= attemptsLeft; attempt++)
+        var maxAttempts = 3;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
             try
             {
-                await _sta.Value.RunAsync(action);
+                await _sta.Value.RunAsync(test);
                 return;
             }
-            catch when (attempt < attemptsLeft) { }
+            catch (Exception ex) when (attempt < maxAttempts)
+            {
+                WriteRetryWarning(attempt, maxAttempts, ex);
+            }
         }
+    }
+
+    private static void WriteRetryWarning(int attempt, int maxAttempts, Exception ex)
+    {
+        var message = $"E2E test attempt {attempt}/{maxAttempts} failed; retrying ({attempt + 1}/{maxAttempts}). {ex.GetType().Name}: {ex.Message}";
+
+        if (string.Equals(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"), "true", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine($"::warning::{EscapeGitHubActionsCommandData(message)}");
+            return;
+        }
+
+        Console.WriteLine($"WARNING: {message}");
+    }
+
+    private static string EscapeGitHubActionsCommandData(string value)
+    {
+        return value.Replace("%", "%25").Replace("\r", "%0D").Replace("\n", "%0A");
     }
 
     private sealed class StaDispatcherThread
