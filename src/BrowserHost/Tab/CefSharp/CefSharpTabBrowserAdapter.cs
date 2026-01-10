@@ -58,30 +58,6 @@ public class CefSharpTabBrowserAdapter : ITabWebBrowser
         else return _cefBrowser.Dispatcher.Invoke(action);
     }
 
-    private T WaitForBrowser<T>(Func<T> action)
-    {
-        if (_cefBrowser.IsDisposed)
-            throw new ObjectDisposedException("CefSharpTabBrowserAdapter");
-
-        if (_cefBrowser.IsBrowserInitialized)
-        {
-            return action();
-        }
-        else
-        {
-            T result = default!;
-            void handler(object s, DependencyPropertyChangedEventArgs e)
-            {
-                _cefBrowser.IsBrowserInitializedChanged -= handler;
-                if (_cefBrowser.IsDisposed)
-                    throw new ObjectDisposedException("CefSharpTabBrowserAdapter");
-                result = action();
-            }
-            _cefBrowser.IsBrowserInitializedChanged += handler;
-            return result;
-        }
-    }
-
     private void WaitForBrowser(Action action, bool throwOnDisposed)
     {
         if (_cefBrowser.IsDisposed)
