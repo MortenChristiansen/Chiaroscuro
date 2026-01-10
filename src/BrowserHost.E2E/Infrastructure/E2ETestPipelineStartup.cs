@@ -27,6 +27,9 @@ public sealed class E2ETestPipelineStartup : ITestPipelineStartup
     private static void ClearCefFolder()
     {
         var cefFolder = Path.Combine(Path.GetTempPath(), "BrowserHost.E2E");
+        if (!Directory.Exists(cefFolder))
+            return;
+
         // Delete all folders in cefFolder
         foreach (var dir in Directory.GetDirectories(cefFolder))
             Directory.Delete(dir, true);
