@@ -45,7 +45,7 @@ public class CefSharpTabBrowser : Browser
         LifeSpanHandler = new PopupLifeSpanHandler(this, pubSub);
         FindHandler = new FindHandler(pubSub);
         PermissionHandler = new CefSharpPermissionHandler();
-        MenuHandler = new WebContentContextMenuHandler();
+        MenuHandler = new WebContentContextMenuHandler(pubSub);
 
         BrowserSettings.BackgroundColor = Cef.ColorSetARGB(255, 255, 255, 255);
     }

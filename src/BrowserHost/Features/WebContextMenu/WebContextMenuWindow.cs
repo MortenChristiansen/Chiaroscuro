@@ -1,4 +1,5 @@
 ﻿using BrowserHost.XamlUtilities;
+using BrowserHost.Utilities;
 using System;
 using System.ComponentModel;
 using System.Threading;
@@ -11,20 +12,22 @@ namespace BrowserHost.Features.WebContextMenu;
 public class WebContextMenuWindow : OverlayWindow
 {
     private readonly Border _container;
-    private readonly WebContextMenuBrowser _browser = new()
-    {
-        // Ensure a non-zero initial size so CefSharp can initialize
-        MinWidth = 1,
-        MinHeight = 1,
-    };
+    private readonly WebContextMenuBrowser _browser;
 
-    public WebContextMenuWindow(Window owner, double x, double y)
+    public WebContextMenuWindow(Window owner, double x, double y, PubSub pubSub)
     {
         Owner = owner;
         // Ensure OverlayWindow can track and size relative to the owner window
         OwnerWindow = owner;
         Left = x;
         Top = y;
+
+        _browser = new WebContextMenuBrowser(pubSub)
+        {
+            // Ensure a non-zero initial size so CefSharp can initialize
+            MinWidth = 1,
+            MinHeight = 1,
+        };
 
         _browser.BeginInit();
         _browser.EndInit();

@@ -16,7 +16,7 @@ public enum ContentPageUrlMode
     Absolute
 }
 
-static class ContentServer
+public static class ContentServer
 {
     private const string SettingsFavicon = "FA:Settings";
 
@@ -49,10 +49,9 @@ static class ContentServer
 #endif
     }
 
-    internal static IDisposable StartStaticServerForTests(string chromeAppRoot, string? hostOverride = null)
+    public static IDisposable StartStaticServerForTests(string chromeAppRoot)
     {
-        var host = string.IsNullOrWhiteSpace(hostOverride) ? Host : hostOverride.TrimEnd('/');
-        var server = CreateWebServer(chromeAppRoot, host);
+        var server = CreateWebServer(chromeAppRoot, Host);
         Task.Run(async () =>
         {
             await server.RunAsync();

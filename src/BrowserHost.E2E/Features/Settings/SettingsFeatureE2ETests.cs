@@ -6,6 +6,19 @@ namespace BrowserHost.E2E.Features.Settings;
 public class SettingsFeatureE2ETests
 {
     [Fact]
+    public Task Open_settings_via_action_dialog_command() =>
+        StaTestRunner.RunAsync(async () =>
+        {
+            using var host = E2EApplicationHost.Create();
+
+            await host.PressCtrlTAsync();
+            await host.TypeInActionDialogAsync("/settings");
+            await host.PressEnterInActionDialogAsync();
+
+            await host.WaitForSettingsPageReadyAsync();
+        });
+
+    [Fact]
     public Task Save_user_agent_from_settings_page() =>
         StaTestRunner.RunAsync(async () =>
         {

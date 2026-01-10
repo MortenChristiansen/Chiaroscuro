@@ -419,7 +419,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 
             var cursorPos = VisualDpiUtil.GetCursorPositionInDips(owner);
             var offset = VisualDpiUtil.GetDpiAwareOffset(owner, 12, 12); // 12px right and down, scaled for DPI
-            var window = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
+            var window = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y, _pubSub);
             var parameters = new ContextMenuParameters(linkUrlSnapshot, imageUrl);
             window.Prepare(parameters);
             window.Show();

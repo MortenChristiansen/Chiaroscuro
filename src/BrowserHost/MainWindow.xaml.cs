@@ -10,6 +10,7 @@ using BrowserHost.Features.AppState;
 using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.DevTool;
 using BrowserHost.Features.DragDrop;
+using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
@@ -23,6 +24,7 @@ using CefSharp.Wpf;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -43,8 +45,15 @@ public partial class MainWindow : Window
     private const int CornerRadiusDip = 8;
     private readonly AppStateStateManager _appStateStateManager;
 
+    public CustomWindowChromeBrowser ChromeUI { get; }
+    public ActionContextBrowser ActionContext { get; }
+    public TabPaletteBrowser TabPaletteBrowserControl { get; }
+    public ActionDialogBrowser ActionDialog { get; }
+
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
+
+    public ChromiumWebBrowser ActionDialogUi => ActionDialog;
 
     public static MainWindow Instance { get; private set; } = null!; // Initialized in constructor
 
@@ -70,12 +79,36 @@ public partial class MainWindow : Window
     public TabCustomizationBrowserApi TabCustomizationBrowserApi { get; }
 
     public MainWindow()
+        : this(App.SettingsFeature, App.PubSub, App.FileSystem, browserContext: null, enableUpdateCheck: true, startContentServer: true)
+    {
+    }
+
+    public MainWindow(SettingsFeature settingsFeature, PubSub pubSub, IFileSystem fileSystem, IBrowserContext? browserContext, bool enableUpdateCheck, bool startContentServer)
     {
         InitializeComponent();
 
-        // Defer update check until the window is fully initialized (owner is non-null).
-        // Queued at ContextIdle to avoid competing with startup work.
-        Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, CheckForUpdates);
+        ChromeUI = new CustomWindowChromeBrowser(pubSub);
+        ActionContext = new ActionContextBrowser(pubSub);
+        TabPaletteBrowserControl = new TabPaletteBrowser(pubSub)
+        {
+            Visibility = Visibility.Collapsed
+        };
+        ActionDialog = new ActionDialogBrowser(pubSub)
+        {
+            Visibility = Visibility.Hidden
+        };
+
+        ChromeUIHost.Content = ChromeUI;
+        ActionContextHost.Content = ActionContext;
+        TabPaletteBrowserHost.Content = TabPaletteBrowserControl;
+        ActionDialogHost.Content = ActionDialog;
+
+        if (enableUpdateCheck)
+        {
+            // Defer update check until the window is fully initialized (owner is non-null).
+            // Queued at ContextIdle to avoid competing with startup work.
+            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, CheckForUpdates);
+        }
 
         CustomWindowChromeBrowserApi = new CustomWindowChromeBrowserApi(ChromeUI);
         ActionDialogBrowserApi = new ActionDialogBrowserApi(ActionDialog);
@@ -88,9 +121,8 @@ public partial class MainWindow : Window
         TabPaletteBrowserApi = new TabPaletteBrowserApi(TabPaletteBrowserControl);
         TabCustomizationBrowserApi = new TabCustomizationBrowserApi(TabPaletteBrowserControl);
 
-        var browserContext = new BrowserContext(this);
-        var pubSub = ProgramPublishSingleFile.PubSub;
-        var fileSystem = App.FileSystem;
+        browserContext ??= new BrowserContext(this);
+
         var timeSystem = new RealTimeSystem();
         var shellFileOpener = new ShellFileOpener();
 
@@ -104,7 +136,7 @@ public partial class MainWindow : Window
 
         _features =
         [
-            App.SettingsFeature,
+            settingsFeature,
             new CustomWindowChromeFeature(pubSub, browserContext, CustomWindowChromeBrowserApi, customWindowChromeWindowOperations),
             new ActionContextFeature(pubSub, browserContext, actionContextWindowOperations),
             new ActionDialogFeature(pubSub, browserContext, ActionDialogBrowserApi, new NavigationHistoryStateManager(fileSystem), actionDialogWindowOperations),
@@ -130,10 +162,14 @@ public partial class MainWindow : Window
             }
         });
 
-        using (Measurement.Operation("Starting content server"))
+        if (startContentServer)
         {
-            ContentServer.Run();
+            using (Measurement.Operation("Starting content server"))
+            {
+                ContentServer.Run();
+            }
         }
+
         Instance = this;
     }
 

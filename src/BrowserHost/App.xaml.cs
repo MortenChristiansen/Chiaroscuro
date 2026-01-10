@@ -14,7 +14,11 @@ namespace BrowserHost;
 
 public partial class App : Application
 {
-    public static UpdateManager UpdateManager { get; } = new(new GithubSource("https://github.com/MortenChristiansen/Chiaroscuro", accessToken: null, prerelease: false, downloader: null));
+    private static readonly Lazy<UpdateManager> _updateManager = new(() =>
+        new UpdateManager(new GithubSource("https://github.com/MortenChristiansen/Chiaroscuro", accessToken: null, prerelease: false, downloader: null))
+    );
+
+    public static UpdateManager UpdateManager => _updateManager.Value;
     public static Options Options { get; } = Options.Parse(Environment.GetCommandLineArgs());
     public static SettingsFeature SettingsFeature => ProgramPublishSingleFile.SettingsFeature;
     public static IFileSystem FileSystem => ProgramPublishSingleFile.FileSystem;

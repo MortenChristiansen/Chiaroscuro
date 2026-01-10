@@ -1,11 +1,12 @@
-﻿using BrowserHost.XamlUtilities;
+﻿using BrowserHost.Utilities;
+using BrowserHost.XamlUtilities;
 using CefSharp;
 using CefSharp.Handler;
 using System.Windows;
 
 namespace BrowserHost.Features.WebContextMenu;
 
-public partial class WebContentContextMenuHandler : ContextMenuHandler
+public partial class WebContentContextMenuHandler(PubSub pubSub) : ContextMenuHandler
 {
     protected override void OnBeforeContextMenu(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IContextMenuParams parameters, IMenuModel model)
     {
@@ -20,7 +21,7 @@ public partial class WebContentContextMenuHandler : ContextMenuHandler
 
             var cursorPos = VisualDpiUtil.GetCursorPositionInDips(owner);
             var offset = VisualDpiUtil.GetDpiAwareOffset(owner, 12, 12); // 12px right and down, scaled for DPI
-            var window = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
+            var window = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y, pubSub);
             window.Prepare(mappedParameters);
             window.Show();
             window.Activate(); // Ensure the menu gets focus so Deactivated will fire on outside click
