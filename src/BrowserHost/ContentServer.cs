@@ -23,11 +23,23 @@ static class ContentServer
 {
     private const string SettingsFavicon = "FA:Settings";
 
+    private const string HostOverrideEnvVar = "CHIAROSCURO_UI_HOST";
+
 #if DEBUG
-    private const string _host = "http://localhost:4200";
+    private const string DefaultHost = "http://localhost:4200";
 #else
-    private const string _host = "http://localhost:9696";
+    private const string DefaultHost = "http://localhost:9696";
 #endif
+
+    private static string Host
+    {
+        get
+        {
+            var overridden = Environment.GetEnvironmentVariable(HostOverrideEnvVar);
+            var host = string.IsNullOrWhiteSpace(overridden) ? DefaultHost : overridden;
+            return host.TrimEnd('/');
+        }
+    }
 
     public static void Run()
     {
@@ -41,13 +53,13 @@ static class ContentServer
     }
 
     public static string GetUiAddress(string path) =>
-        _host + path;
+        Host + path;
 
     public static bool IsContentServerUrl(string url)
     {
         if (string.IsNullOrEmpty(url))
             return false;
-        return url.StartsWith(_host, StringComparison.OrdinalIgnoreCase);
+        return url.StartsWith(Host, StringComparison.OrdinalIgnoreCase);
     }
 
     // Note that this information is duplicated in app.routes.ts
@@ -56,7 +68,7 @@ static class ContentServer
     public static bool IsContentPage(string url, [NotNullWhen(true)] out ContentPage? contentPage, ContentPageUrlMode urlMode = ContentPageUrlMode.Relative)
     {
         // Make sure that other /settings pages are not matched
-        if (!url.StartsWith('/') && !url.StartsWith(_host + "/"))
+        if (!url.StartsWith('/') && !url.StartsWith(Host + "/"))
         {
             contentPage = null;
             return false;

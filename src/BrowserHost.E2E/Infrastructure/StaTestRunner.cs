@@ -4,39 +4,45 @@ namespace BrowserHost.E2E.Infrastructure;
 
 internal static class StaTestRunner
 {
-    public static Task RunAsync(Func<Task> action)
+    private static readonly Lazy<StaDispatcherThread> _sta = new(() => new StaDispatcherThread());
+
+    public static Task RunAsync(Func<Task> action) => _sta.Value.RunAsync(action);
+
+    private sealed class StaDispatcherThread
     {
-        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly Dispatcher _dispatcher;
+        private readonly SemaphoreSlim _gate = new(1, 1);
 
-        var thread = new Thread(() =>
+        public StaDispatcherThread()
         {
-            var dispatcher = Dispatcher.CurrentDispatcher;
-            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(dispatcher));
+            var ready = new TaskCompletionSource<Dispatcher>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            dispatcher.InvokeAsync(async () =>
+            var thread = new Thread(() =>
             {
-                try
-                {
-                    await action();
-                    tcs.TrySetResult();
-                }
-                catch (Exception ex)
-                {
-                    tcs.TrySetException(ex);
-                }
-                finally
-                {
-                    dispatcher.BeginInvokeShutdown(DispatcherPriority.Background);
-                }
+                var dispatcher = Dispatcher.CurrentDispatcher;
+                SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(dispatcher));
+                ready.TrySetResult(dispatcher);
+                Dispatcher.Run();
             });
 
-            Dispatcher.Run();
-        });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.IsBackground = true;
+            thread.Start();
 
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.IsBackground = true;
-        thread.Start();
+            _dispatcher = ready.Task.GetAwaiter().GetResult();
+        }
 
-        return tcs.Task;
+        public async Task RunAsync(Func<Task> action)
+        {
+            await _gate.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                await _dispatcher.InvokeAsync(action).Task.Unwrap().ConfigureAwait(false);
+            }
+            finally
+            {
+                _gate.Release();
+            }
+        }
     }
 }
