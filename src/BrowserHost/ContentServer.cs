@@ -1,6 +1,7 @@
 ﻿using EmbedIO;
 using EmbedIO.Files;
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -54,10 +55,9 @@ public static class ContentServer
     {
         var server = CreateWebServer(chromeAppRoot, Host);
 
-        _ = Task.Run(async () =>
-        {
-            await server.RunAsync();
-        });
+        _ = Task.Run(() => server.RunAsync())
+            .ContinueWith(t => Debug.WriteLine($"ContentServer failed: {t.Exception}"), TaskContinuationOptions.OnlyOnFaulted);
+
         WaitUntilRunning(server, TimeSpan.FromSeconds(10));
 
         return server;
