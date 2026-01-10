@@ -1,7 +1,6 @@
 using BrowserHost.Features;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionContext.Workspaces;
-using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Settings;
 using BrowserHost.Tab;
@@ -30,14 +29,12 @@ internal sealed class E2EApplicationHost : IDisposable
 
     public MainWindow MainWindow { get; }
     public SettingsFeature Settings { get; }
-    public PubSub PubSub { get; }
 
-    private E2EApplicationHost(Window window, MainWindow mainWindow, SettingsFeature settings, PubSub pubSub, E2EBrowserContext context)
+    private E2EApplicationHost(Window window, MainWindow mainWindow, SettingsFeature settings, E2EBrowserContext context)
     {
         _window = window;
         MainWindow = mainWindow;
         Settings = settings;
-        PubSub = pubSub;
         _context = context;
     }
 
@@ -63,7 +60,7 @@ internal sealed class E2EApplicationHost : IDisposable
             ShowInTaskbar = false,
         };
 
-        var host = new E2EApplicationHost(window, window, settingsFeature, pubSub, context);
+        var host = new E2EApplicationHost(window, window, settingsFeature, context);
 
         window.ContentRendered += (_, __) => host._contentRenderedTcs.TrySetResult();
 
@@ -145,23 +142,27 @@ internal sealed class E2EApplicationHost : IDisposable
 
         await WaitForActionDialogInputAsync(actionDialogBrowser, _defaultTimeout);
 
+        // End-to-end: let the Angular UI handle Enter and call ActionDialogBackendApi via the JS bridge.
         await EvaluateDomScriptAsync(actionDialogBrowser, @"(() => {
             const input = document.querySelector('input[type=""text""], input:not([type]), textarea');
             if (!input) throw new Error('No input found in action dialog');
-            const evt = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true });
-            input.dispatchEvent(evt);
-            const evtUp = new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true });
-            input.dispatchEvent(evtUp);
+
+            input.focus();
+
+            const keyEventInit = {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true,
+                cancelable: true,
+            };
+
+            input.dispatchEvent(new KeyboardEvent('keydown', keyEventInit));
+            input.dispatchEvent(new KeyboardEvent('keypress', keyEventInit));
+            input.dispatchEvent(new KeyboardEvent('keyup', keyEventInit));
             return true;
         })()", _defaultTimeout);
-
-        var value = await EvaluateStringAsync(actionDialogBrowser, @"(() => {
-            const input = document.querySelector('input[type=""text""], input:not([type]), textarea');
-            return input ? (input.value || '') : '';
-        })()");
-
-        // Deterministic path: mimic the frontend calling ActionDialogBackendApi.Execute(...)
-        PubSub.Send(new ExecuteCommandCommand(value, Ctrl: false));
     }
 
     private static async Task WaitForActionDialogInputAsync(ChromiumWebBrowser browser, TimeSpan timeout)
@@ -183,19 +184,6 @@ internal sealed class E2EApplicationHost : IDisposable
             browser,
             "document.querySelector('input[type=\\\"text\\\"], input:not([type]), textarea') != null",
             timeout);
-    }
-
-    private static async Task<string> EvaluateStringAsync(ChromiumWebBrowser browser, string script)
-    {
-        var response = await browser.Dispatcher
-            .InvokeAsync(() => browser.EvaluateScriptAsync(script))
-            .Task
-            .Unwrap();
-
-        if (!response.Success || response.Result is null)
-            return string.Empty;
-
-        return response.Result.ToString() ?? string.Empty;
     }
 
     public async Task WaitForSettingsPageReadyAsync(TimeSpan? timeout = null)
