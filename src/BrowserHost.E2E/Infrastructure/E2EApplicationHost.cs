@@ -19,7 +19,7 @@ namespace BrowserHost.E2E.Infrastructure;
 
 internal sealed class E2EApplicationHost : IDisposable
 {
-    private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(4);
     private static readonly string _cefCachePath = Path.Combine(Path.GetTempPath(), "BrowserHost.E2E", $"CefCache-{Guid.NewGuid():N}");
 
     private readonly TaskCompletionSource _contentRenderedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);

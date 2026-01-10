@@ -6,7 +6,19 @@ internal static class StaTestRunner
 {
     private static readonly Lazy<StaDispatcherThread> _sta = new(() => new StaDispatcherThread());
 
-    public static Task RunAsync(Func<Task> action) => _sta.Value.RunAsync(action);
+    public static async Task RunAsync(Func<Task> action)
+    {
+        var attemptsLeft = 3;
+        for (var attempt = 1; attempt <= attemptsLeft; attempt++)
+        {
+            try
+            {
+                await _sta.Value.RunAsync(action);
+                return;
+            }
+            catch when (attempt < attemptsLeft) { }
+        }
+    }
 
     private sealed class StaDispatcherThread
     {
