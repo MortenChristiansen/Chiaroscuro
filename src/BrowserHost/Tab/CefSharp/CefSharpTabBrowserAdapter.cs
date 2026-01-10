@@ -98,7 +98,17 @@ public class CefSharpTabBrowserAdapter : ITabWebBrowser
     public Task<double> GetZoomLevelAsync() => _cefBrowser.GetZoomLevelAsync();
     public void SetZoomLevel(double level) => _cefBrowser.SetZoomLevel(level);
     public void Find(string searchText, bool forward, bool matchCase, bool findNext) => _cefBrowser.Find(searchText, forward, matchCase, findNext);
-    public void StopFinding(bool clearSelection) => _cefBrowser.StopFinding(clearSelection);
+    public void StopFinding(bool clearSelection)
+    {
+        try
+        {
+            _cefBrowser.StopFinding(clearSelection);
+        }
+        catch (Exception e) when (e.Message.Contains("IBrowser instance is null"))
+        {
+            // Ignore
+        }
+    }
     public UIElement AsUIElement() => _cefBrowser;
     public void ShowDevTools() => _cefBrowser.ShowDevTools();
     public void CloseDevTools()
