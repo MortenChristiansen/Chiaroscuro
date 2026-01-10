@@ -3,7 +3,6 @@ using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Utilities;
 using CefSharp;
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -71,17 +70,14 @@ public class CefSharpTabBrowserAdapter : ITabWebBrowser
         else
         {
             T result = default!;
-            var waitHandle = new AutoResetEvent(false);
             void handler(object s, DependencyPropertyChangedEventArgs e)
             {
                 _cefBrowser.IsBrowserInitializedChanged -= handler;
                 if (_cefBrowser.IsDisposed)
                     throw new ObjectDisposedException("CefSharpTabBrowserAdapter");
                 result = action();
-                waitHandle.Set();
             }
             _cefBrowser.IsBrowserInitializedChanged += handler;
-            waitHandle.WaitOne();
             return result;
         }
     }
