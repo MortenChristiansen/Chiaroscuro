@@ -1,7 +1,10 @@
 using BrowserHost.Features;
+using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Features.ActionDialog;
+using BrowserHost.Features.DragDrop;
 using BrowserHost.Features.Settings;
+using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using CefSharp;
 using CefSharp.Wpf;
@@ -235,7 +238,7 @@ internal sealed class E2EApplicationHost : IDisposable
 
     private static ChromiumWebBrowser GetChromiumBrowser(object browser)
     {
-        if (browser is Tab.TabBrowser tabBrowser)
+        if (browser is TabBrowser tabBrowser)
         {
             if (tabBrowser.Content is ChromiumWebBrowser tabCef)
                 return tabCef;
@@ -357,15 +360,15 @@ internal sealed class E2EApplicationHost : IDisposable
         }
     }
 
-    private sealed class E2EBrowserContext(SettingsFeature settingsFeature) : global::BrowserHost.IBrowserContext
+    private sealed class E2EBrowserContext(SettingsFeature settingsFeature) : IBrowserContext
     {
         private readonly SettingsFeature _settingsFeature = settingsFeature;
-        private global::BrowserHost.MainWindow _window = null!;
+        private MainWindow _window = null!;
 
-        public void Attach(global::BrowserHost.MainWindow window)
+        public void Attach(MainWindow window)
         {
             _window = window;
-            TabsHost = new BrowserHost.Features.ActionContext.Tabs.MainWindowTabsHost(_window);
+            TabsHost = new MainWindowTabsHost(_window);
         }
 
         private ModifierKeys? _testKeyboardModifiers;
@@ -373,7 +376,7 @@ internal sealed class E2EApplicationHost : IDisposable
 
         public Options AppOptions => new();
 
-        public global::BrowserHost.Tab.ITabBrowser? CurrentTab => _window.CurrentTab;
+        public ITabBrowser? CurrentTab => _window.CurrentTab;
         public string? CurrentTabId => _window.CurrentTab?.Id;
 
         public ModifierKeys CurrentKeyboardModifiers => _testKeyboardModifiers ?? Keyboard.Modifiers;
@@ -390,12 +393,12 @@ internal sealed class E2EApplicationHost : IDisposable
             set => _window.WindowState = value;
         }
 
-        public global::BrowserHost.Features.DragDrop.IDragDropHost DragDropHost { get; } = new NullDragDropHost();
-        public global::BrowserHost.Features.ActionContext.Tabs.ITabsHost TabsHost { get; private set; } = null!;
+        public IDragDropHost DragDropHost { get; } = new NullDragDropHost();
+        public ITabsHost TabsHost { get; private set; } = null!;
 
         public void SetClipboardText(string text) => Clipboard.SetText(text);
 
-        public void SetCurrentTab(global::BrowserHost.Tab.ITabBrowser? tab)
+        public void SetCurrentTab(ITabBrowser? tab)
         {
             if (tab is null)
             {
@@ -403,17 +406,17 @@ internal sealed class E2EApplicationHost : IDisposable
                 return;
             }
 
-            if (tab is not global::BrowserHost.Tab.TabBrowser tabBrowser)
+            if (tab is not TabBrowser tabBrowser)
                 throw new InvalidOperationException("Cannot set a non-TabBrowser instance as current tab.");
 
             _window.SetCurrentTab(tabBrowser);
         }
 
-        public global::BrowserHost.Tab.ITabBrowser CreateNewTab(string address, global::BrowserHost.Features.ActionContext.Tabs.TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser) =>
+        public ITabBrowser CreateNewTab(string address, global::BrowserHost.Features.ActionContext.Tabs.TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser) =>
             CreateExistingTab($"{Guid.NewGuid()}", address, tabsApi, pubSub, setManualAddress, favicon, isChildBrowser);
 
-        public global::BrowserHost.Tab.ITabBrowser CreateExistingTab(string tabId, string address, global::BrowserHost.Features.ActionContext.Tabs.TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser) =>
-            new global::BrowserHost.Tab.TabBrowser(tabId, address, tabsApi, pubSub, setManualAddress, favicon, isChildBrowser, _settingsFeature);
+        public ITabBrowser CreateExistingTab(string tabId, string address, global::BrowserHost.Features.ActionContext.Tabs.TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser) =>
+            new TabBrowser(tabId, address, tabsApi, pubSub, setManualAddress, favicon, isChildBrowser, _settingsFeature);
 
         public bool ActionRequiresDispatch => !_window.Dispatcher.CheckAccess();
 
