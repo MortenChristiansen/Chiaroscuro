@@ -1,6 +1,5 @@
 using BrowserHost.E2E.Infrastructure;
 using BrowserHost.Features.Settings;
-using System;
 
 namespace BrowserHost.E2E.Features.Settings;
 

@@ -1,13 +1,10 @@
-﻿#if !DEBUG
-using EmbedIO;
+﻿using EmbedIO;
 using EmbedIO.Files;
-using System.IO;
-using System.Threading.Tasks;
-#endif
-
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace BrowserHost;
 
@@ -44,12 +41,23 @@ static class ContentServer
     public static void Run()
     {
 #if !DEBUG
-        var server = CreateWebServer();
+        var server = CreateWebServer(GetDefaultChromeAppRoot(), Host);
         Task.Run(async () =>
         {
             await server.RunAsync();
         });
 #endif
+    }
+
+    internal static IDisposable StartStaticServerForTests(string chromeAppRoot, string? hostOverride = null)
+    {
+        var host = string.IsNullOrWhiteSpace(hostOverride) ? Host : hostOverride.TrimEnd('/');
+        var server = CreateWebServer(chromeAppRoot, host);
+        Task.Run(async () =>
+        {
+            await server.RunAsync();
+        });
+        return server;
     }
 
     public static string GetUiAddress(string path) =>
@@ -89,26 +97,34 @@ static class ContentServer
         contentPage.Address.Equals("/settings", StringComparison.OrdinalIgnoreCase);
 
 #if !DEBUG
-    private static WebServer CreateWebServer()
+    private static string GetDefaultChromeAppRoot()
     {
-        // Determine the path to the chrome-app folder in the output directory
         var baseDir = AppContext.BaseDirectory;
-        var chromeAppRoot = Path.Combine(baseDir, "chrome-app");
-        var chromeAppActionDialog = Path.Combine(baseDir, "chrome-app", "action-dialog");
-        var tabs = Path.Combine(baseDir, "chrome-app", "tabs");
+        return Path.Combine(baseDir, "chrome-app");
+    }
+#endif
+
+    private static WebServer CreateWebServer(string chromeAppRoot, string host)
+    {
+        var urlPrefix = host.TrimEnd('/') + "/";
+
+        var chromeAppActionDialog = Path.Combine(chromeAppRoot, "action-dialog");
+        var chromeAppActionContext = Path.Combine(chromeAppRoot, "action-context");
+        var chromeAppTabPalette = Path.Combine(chromeAppRoot, "tab-palette");
+        var chromeAppContextMenu = Path.Combine(chromeAppRoot, "context-menu");
+        var chromeAppSettings = Path.Combine(chromeAppRoot, "settings");
 
         return new WebServer(o => o
-            .WithUrlPrefix(_host)
+            .WithUrlPrefix(urlPrefix)
             .WithMode(HttpListenerMode.EmbedIO)
         )
         .WithStaticFolder("/", chromeAppRoot, true, m => m.WithContentCaching())
         .WithStaticFolder("/action-dialog", chromeAppActionDialog, true, m => m.WithContentCaching())
-        .WithStaticFolder("/action-context", tabs, true, m => m.WithContentCaching())
-        .WithStaticFolder("/tab-palette", tabs, true, m => m.WithContentCaching())
-        .WithStaticFolder("/context-menu", tabs, true, m => m.WithContentCaching())
-        .WithStaticFolder("/settings", tabs, true, m => m.WithContentCaching())
+        .WithStaticFolder("/action-context", chromeAppActionContext, true, m => m.WithContentCaching())
+        .WithStaticFolder("/tab-palette", chromeAppTabPalette, true, m => m.WithContentCaching())
+        .WithStaticFolder("/context-menu", chromeAppContextMenu, true, m => m.WithContentCaching())
+        .WithStaticFolder("/settings", chromeAppSettings, true, m => m.WithContentCaching())
         ;
     }
-#endif
 
 }

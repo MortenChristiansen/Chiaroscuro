@@ -26,14 +26,12 @@ internal sealed class E2ETabBrowserHost : IDisposable
     private readonly List<Feature> _features;
     private readonly E2EBrowserContext _context;
     private readonly PubSub _pubSub;
-    private readonly E2EStaticUiServer _uiServer;
-    private readonly string? _previousUiHostOverride;
 
     public TabBrowser Tab { get; }
     public SettingsFeature Settings { get; }
     public PubSub PubSub => _pubSub;
 
-    private E2ETabBrowserHost(Window window, TabBrowser tab, E2EBrowserContext context, List<Feature> features, SettingsFeature settings, PubSub pubSub, E2EStaticUiServer uiServer, string? previousUiHostOverride)
+    private E2ETabBrowserHost(Window window, TabBrowser tab, E2EBrowserContext context, List<Feature> features, SettingsFeature settings, PubSub pubSub)
     {
         _window = window;
         Tab = tab;
@@ -41,8 +39,6 @@ internal sealed class E2ETabBrowserHost : IDisposable
         _features = features;
         Settings = settings;
         _pubSub = pubSub;
-        _uiServer = uiServer;
-        _previousUiHostOverride = previousUiHostOverride;
     }
 
     public static E2ETabBrowserHost Create()
@@ -89,12 +85,6 @@ internal sealed class E2ETabBrowserHost : IDisposable
             f.Configure();
         }
 
-        // Local UI server for content pages (e.g. /settings) so E2E tests don't depend on an external Angular dev server.
-        var chromeAppRoot = Path.Combine(AppContext.BaseDirectory, "chrome-app");
-        var uiServer = E2EStaticUiServer.Start(chromeAppRoot);
-        var previousOverride = Environment.GetEnvironmentVariable("CHIAROSCURO_UI_HOST");
-        Environment.SetEnvironmentVariable("CHIAROSCURO_UI_HOST", uiServer.BaseUrl);
-
         // Note: we publish TabBrowserCreatedEvent after navigating to a content page in OpenSettingsPageAsync,
         // because this harness creates the initial tab as about:blank.
 
@@ -104,7 +94,7 @@ internal sealed class E2ETabBrowserHost : IDisposable
 
         ResetBrowserState(tab);
 
-        return new E2ETabBrowserHost(window, tab, context, features, settingsFeature, pubSub, uiServer, previousOverride);
+        return new E2ETabBrowserHost(window, tab, context, features, settingsFeature, pubSub);
     }
 
     private static void ResetBrowserState(TabBrowser tab)
@@ -115,7 +105,7 @@ internal sealed class E2ETabBrowserHost : IDisposable
 
     public Task OpenSettingsPageAsync()
     {
-        Tab.SetAddress(_uiServer.BaseUrl + "/settings", setManualAddress: false);
+        Tab.SetAddress(ContentServer.GetUiAddress("/settings"), setManualAddress: false);
 
         // Let SettingsFeature register the settingsApi bridge for this content page.
         _pubSub.Publish(new TabBrowserCreatedEvent(Tab));
@@ -374,14 +364,6 @@ internal sealed class E2ETabBrowserHost : IDisposable
 
     public void Dispose()
     {
-        try
-        {
-            Environment.SetEnvironmentVariable("CHIAROSCURO_UI_HOST", _previousUiHostOverride);
-        }
-        catch { }
-
-        try { _uiServer.Dispose(); } catch { }
-
         try { _window.Dispatcher.Invoke(() => _window.Close()); } catch { }
     }
 
