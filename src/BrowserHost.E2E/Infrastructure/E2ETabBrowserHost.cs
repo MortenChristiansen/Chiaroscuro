@@ -147,21 +147,44 @@ internal sealed class E2ETabBrowserHost : IDisposable
     {
         await WaitForJavascriptReadyAsync(_defaultTimeout);
 
-        await ExecuteDomScriptAsync($@"(() => {{
-            const rows = Array.from(document.querySelectorAll('.setting-row'));
-            const row = rows.find(r => (r.querySelector('.text-sm.font-medium')?.textContent || '').trim() === {Json(settingName)});
-            if (!row) throw new Error('Setting row not found: ' + {Json(settingName)});
-            const input = row.querySelector('input[type=""checkbox""]');
-            if (!input) throw new Error('Checkbox not found for: ' + {Json(settingName)});
-            if (input.checked !== {Json(checkedValue)}) input.click();
-        }})()");
+        // Angular loads settings asynchronously. On slow machines, the first interaction can be overwritten
+        // when the page finishes initializing. To avoid flakiness, we keep re-applying the desired value
+        // (via checked + input/change events) until it sticks or we time out.
+        var timeout = TimeSpan.FromSeconds(12);
+        var stopAt = DateTimeOffset.UtcNow + timeout;
 
-        await WaitForConditionAsync($@"(() => {{
-            const rows = Array.from(document.querySelectorAll('.setting-row'));
-            const row = rows.find(r => (r.querySelector('.text-sm.font-medium')?.textContent || '').trim() === {Json(settingName)});
-            const input = row && row.querySelector('input[type=""checkbox""]');
-            return !!input && input.checked === {Json(checkedValue)};
-        }})()", _defaultTimeout);
+        while (DateTimeOffset.UtcNow < stopAt)
+        {
+            var ok = await EvaluateBoolAsync($@"(() => {{
+                const rows = Array.from(document.querySelectorAll('.setting-row'));
+                const row = rows.find(r => (r.querySelector('.text-sm.font-medium')?.textContent || '').trim() === {Json(settingName)});
+                if (!row) return false;
+
+                const input = row.querySelector('input[type=""checkbox""]');
+                if (!input) return false;
+
+                try {{ input.scrollIntoView(); }} catch (e) {{ }}
+
+                if (input.disabled) return false;
+
+                const desired = {Json(checkedValue)};
+                if (input.checked !== desired) {{
+                    input.checked = desired;
+                    input.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    input.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                }}
+
+                return input.checked === desired;
+            }})()")
+                .ConfigureAwait(true);
+
+            if (ok)
+                return;
+
+            await Task.Delay(75).ConfigureAwait(true);
+        }
+
+        throw new TimeoutException($"Timed out waiting to set checkbox setting '{settingName}' to {checkedValue}.");
     }
 
     public async Task AddStringArrayItemAsync(string settingName, string value)
