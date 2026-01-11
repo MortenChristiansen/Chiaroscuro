@@ -88,6 +88,8 @@ public sealed class E2ETestPipelineStartup : ITestPipelineStartup
         try { _server?.Dispose(); } catch { }
         _server = null;
 
+        Environment.SetEnvironmentVariable("CHIAROSCURO_UI_HOST", null);
+
         return ValueTask.CompletedTask;
     }
 }
