@@ -58,6 +58,38 @@ public class CefSharpTabBrowserAdapter : ITabWebBrowser
         else return _cefBrowser.Dispatcher.Invoke(action);
     }
 
+    // Note that this is a fire-and-forget operation if the browser is not yet initialized.
+    // We may consider adding a Task-based API in the future if needed.
+    private void WaitForBrowser(Action action, bool throwOnDisposed)
+    {
+        if (_cefBrowser.IsDisposed)
+        {
+            if (throwOnDisposed)
+                throw new ObjectDisposedException("CefSharpTabBrowserAdapter");
+            return;
+        }
+
+        if (_cefBrowser.IsBrowserInitialized)
+        {
+            action();
+        }
+        else
+        {
+            void handler(object s, DependencyPropertyChangedEventArgs e)
+            {
+                _cefBrowser.IsBrowserInitializedChanged -= handler;
+                if (_cefBrowser.IsDisposed)
+                {
+                    if (throwOnDisposed)
+                        throw new ObjectDisposedException("CefSharpTabBrowserAdapter");
+                    return;
+                }
+                action();
+            }
+            _cefBrowser.IsBrowserInitializedChanged += handler;
+        }
+    }
+
     public void SetAddress(string address, bool setManualAddress) => _cefBrowser.SetAddress(address, setManualAddress);
     public void RegisterContentPageApi(BackendApi api, string name) => _cefBrowser.RegisterContentPageApi(api, name);
     public void Reload(bool ignoreCache = false) => _cefBrowser.Reload(ignoreCache);
@@ -71,45 +103,15 @@ public class CefSharpTabBrowserAdapter : ITabWebBrowser
     public Task CallClientApi(string api, string? arguments = null) { _browserApi.CallClientApi(api, arguments); return Task.CompletedTask; }
     public Task ExecuteScriptAsync(string script)
     {
-        if (_cefBrowser.IsDisposed)
-            return Task.CompletedTask;
-
-        if (_cefBrowser.IsBrowserInitialized)
-        {
-            _cefBrowser.ExecuteScriptAsync(script);
-        }
-        else
-        {
-            void handler(object s, DependencyPropertyChangedEventArgs e)
-            {
-                _cefBrowser.IsBrowserInitializedChanged -= handler;
-                if (_cefBrowser.IsDisposed)
-                    return;
-
-                _cefBrowser.ExecuteScriptAsync(script);
-            }
-
-            _cefBrowser.IsBrowserInitializedChanged += handler;
-
-        }
+        WaitForBrowser(() => _cefBrowser.ExecuteScriptAsync(script), throwOnDisposed: false);
         return Task.CompletedTask;
     }
     public object? GetBrowserHost() => _cefBrowser.GetBrowserHost();
     public Task<double> GetZoomLevelAsync() => _cefBrowser.GetZoomLevelAsync();
-    public void SetZoomLevel(double level) => _cefBrowser.SetZoomLevel(level);
+    public void SetZoomLevel(double level) => WaitForBrowser(() => _cefBrowser.SetZoomLevel(level), throwOnDisposed: false);
     public void Find(string searchText, bool forward, bool matchCase, bool findNext) => _cefBrowser.Find(searchText, forward, matchCase, findNext);
-    public void StopFinding(bool clearSelection) => _cefBrowser.StopFinding(clearSelection);
+    public void StopFinding(bool clearSelection) => WaitForBrowser(() => _cefBrowser.StopFinding(clearSelection), throwOnDisposed: false);
     public UIElement AsUIElement() => _cefBrowser;
     public void ShowDevTools() => _cefBrowser.ShowDevTools();
-    public void CloseDevTools()
-    {
-        try
-        {
-            _cefBrowser.CloseDevTools();
-        }
-        catch
-        {
-            // Might fail if the tab is disposed
-        }
-    }
+    public void CloseDevTools() => WaitForBrowser(_cefBrowser.CloseDevTools, throwOnDisposed: false);
 }

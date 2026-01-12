@@ -40,6 +40,7 @@ using System.Windows;
 )]
 
 [assembly: InternalsVisibleTo("BrowserHost.Tests")]
+[assembly: InternalsVisibleTo("BrowserHost.E2E")]
 
 
 // Version information for an assembly consists of the following four values:

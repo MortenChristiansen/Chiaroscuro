@@ -5,5 +5,7 @@
     "src/BrowserHost/.github/agents/**/*.agent.md": true
   },
   "chat.instructionsFilesLocations": {},
-  "chat.promptFilesLocations": {}
+  "chat.promptFilesLocations": {},
+  "chat.useAgentSkills": true,
+  "chat.tools.terminal.preventShellHistory": true
 }

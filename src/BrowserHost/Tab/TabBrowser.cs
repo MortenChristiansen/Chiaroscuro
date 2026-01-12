@@ -21,6 +21,7 @@ public class TabBrowser : UserControl, ITabBrowser
     private readonly TabsBrowserApi _tabsApi;
     private readonly PubSub _pubSub;
     private bool _isChildBrowser;
+    private readonly SettingsFeature _settingsFeature;
     private PersistableState? _persistableState;
 
     private event DependencyPropertyChangedEventHandler? _addressChanged;
@@ -58,11 +59,12 @@ public class TabBrowser : UserControl, ITabBrowser
     public bool HasDevTools => _browser.HasDevTools;
     public bool SupportsPromotionToFullTab => _isChildBrowser && _browser.SupportsPromotionToFullTab;
 
-    public TabBrowser(string id, string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser)
+    public TabBrowser(string id, string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser, SettingsFeature settingsFeature)
     {
         _tabsApi = tabsApi;
         _pubSub = pubSub;
         _isChildBrowser = isChildBrowser;
+        _settingsFeature = settingsFeature;
         favicon ??= FileFaviconProvider.TryGetFaviconForAddress(address);
         _browser = CreateBrowser(id, address, setManualAddress, favicon, isChildBrowser);
         Content = _browser.AsUIElement();
@@ -91,10 +93,10 @@ public class TabBrowser : UserControl, ITabBrowser
     public string? GetFaviconToPersist(bool isBookmarkedOrPinned, TabCustomizationDataV1 tabCustomizations) =>
         isBookmarkedOrPinned && tabCustomizations.DisableFixedAddress != true ? _persistableState?.Favicon ?? _browser.Favicon : _browser.Favicon;
 
-    private static bool ShouldUseWebView2(string address)
+    private bool ShouldUseWebView2(string address)
     {
         if (ContentServer.IsContentServerUrl(address)) return false;
-        return App.SettingsFeature.ExecutionSettings.SsoEnabledDomains?.Any(domain => HasDomain(address, domain)) == true;
+        return _settingsFeature.ExecutionSettings.SsoEnabledDomains?.Any(domain => HasDomain(address, domain)) == true;
     }
 
     public void PromoteToFullTab()
@@ -143,7 +145,7 @@ public class TabBrowser : UserControl, ITabBrowser
                 UpgradeToWebView2(newAddress);
             }
             else if (
-                App.SettingsFeature.ExecutionSettings.AutoAddSsoDomains == true &&
+                _settingsFeature.ExecutionSettings.AutoAddSsoDomains == true &&
                 IsSsoLoginPage(newAddress) &&
                 e.OldValue is string oldAddress &&
                 Uri.TryCreate(oldAddress, UriKind.Absolute, out var oldUri) &&

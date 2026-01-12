@@ -34,6 +34,7 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bac
 {
     private readonly string? _uiAddress;
     private readonly bool _disableContextMenu;
+    private bool _configured;
 
     public abstract TApi Api { get; }
 
@@ -43,10 +44,24 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bac
 
         _uiAddress = uiAddress;
         _disableContextMenu = disableContextMenu;
+
+        // When browsers are created in code (not XAML), WPF does not necessarily call BeginInit/EndInit.
+        // Ensure required CefSharp configuration runs once when the control becomes initialized.
+        Initialized += (_, __) => ConfigureOnce();
     }
 
     public override void BeginInit()
     {
+        ConfigureOnce();
+
+        base.BeginInit();
+    }
+
+    private void ConfigureOnce()
+    {
+        if (_configured)
+            return;
+
         JavascriptObjectRepository.Register("api", Api);
         if (_uiAddress != null)
             Address = ContentServer.GetUiAddress(_uiAddress);
@@ -68,7 +83,7 @@ public abstract class Browser<TApi> : BaseBrowser, IBaseBrowser where TApi : Bac
         if (_disableContextMenu)
             MenuHandler = new DisabledContextMenuHandler();
 
-        base.BeginInit();
+        _configured = true;
     }
 }
 
