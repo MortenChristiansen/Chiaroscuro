@@ -58,6 +58,8 @@ public class CefSharpTabBrowserAdapter : ITabWebBrowser
         else return _cefBrowser.Dispatcher.Invoke(action);
     }
 
+    // Note that this is a fire-and-forget operation if the browser is not yet initialized.
+    // We may consider adding a Task-based API in the future if needed.
     private void WaitForBrowser(Action action, bool throwOnDisposed)
     {
         if (_cefBrowser.IsDisposed)
