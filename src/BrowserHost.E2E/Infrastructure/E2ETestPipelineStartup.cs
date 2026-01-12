@@ -53,6 +53,7 @@ public sealed class E2ETestPipelineStartup : ITestPipelineStartup
     {
         // VS test runner can shadow-copy to TestResults/.../Out, so don't rely on a fixed relative path.
         // We search upwards for: src/BrowserHost/chrome-app/index.html
+        // TODO: Figure out which of these things is actually necessary.
 
         var candidates = new[]
         {
