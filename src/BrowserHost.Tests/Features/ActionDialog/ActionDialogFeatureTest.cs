@@ -7,6 +7,41 @@ namespace BrowserHost.Tests.Features.ActionDialog;
 
 public class ActionDialogFeatureTest
 {
+    [Theory]
+    [InlineData("http://localhost")]
+    [InlineData("https://localhost")]
+    [InlineData("localhost")]
+    [InlineData("localhost:5000")]
+    [InlineData("127.0.0.1")]
+    [InlineData("127.0.0.1:5000")]
+    public void Executing_a_localhost_address_navigates_to_it_instead_of_searching(string address)
+    {
+        CreateFeature
+            .CaptureContext(out var context)
+            .IncludeRequiredFeature(b => b.BuildTabsFeature())
+            .BuildActionDialogFeature();
+        context.NewTabIdsToGenerate.Enqueue("tab-1");
+
+        context.PubSub.Send(new ExecuteCommandCommand(address, Ctrl: false));
+
+        var creation = Assert.Single(context.TabCreations);
+        Assert.Equal(address, creation.Address);
+    }
+
+    [Theory]
+    [InlineData("http://localhost")]
+    [InlineData("https://localhost")]
+    [InlineData("localhost")]
+    [InlineData("localhost:5000")]
+    [InlineData("127.0.0.1")]
+    [InlineData("127.0.0.1:5000")]
+    public void A_localhost_address_is_classified_as_a_navigation_command(string address)
+    {
+        var actionType = ActionDialogFeature.GetActionType(address);
+
+        Assert.Equal(ActionType.Navigate, actionType);
+    }
+
     [Fact]
     public void Executing_a_command_with_a_search_provider_navigates_to_the_provider_search_url()
     {

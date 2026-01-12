@@ -123,8 +123,30 @@ public partial class ActionDialogFeature(PubSub pubSub, IBrowserContext context,
         return false;
     }
 
-    private static bool HandleUsingDefaultSearchProvider(CommandExecutedEvent e) =>
-        e.Command.Trim().Contains(' ') || !e.Command.Contains('.');
+    private static bool HandleUsingDefaultSearchProvider(CommandExecutedEvent e)
+    {
+        var command = e.Command.Trim();
+
+        if (LooksLikeLocalhostAddress(command))
+            return false;
+
+        return command.Contains(' ') || !command.Contains('.');
+    }
+
+    private static bool LooksLikeLocalhostAddress(string command)
+    {
+        if (Uri.TryCreate(command, UriKind.Absolute, out var uri) && !string.IsNullOrEmpty(uri.Host))
+            return IsLocalhostHost(uri.Host);
+
+        if (Uri.TryCreate("http://" + command, UriKind.Absolute, out var uriWithScheme) && !string.IsNullOrEmpty(uriWithScheme.Host))
+            return IsLocalhostHost(uriWithScheme.Host);
+
+        return false;
+    }
+
+    private static bool IsLocalhostHost(string host) =>
+        string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(host, "127.0.0.1", StringComparison.OrdinalIgnoreCase);
 
     private void ExecuteProviderQuery(CommandExecutedEvent e, string query, SearchProvider provider)
     {
