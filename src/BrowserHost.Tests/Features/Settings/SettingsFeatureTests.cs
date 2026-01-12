@@ -12,12 +12,13 @@ public class SettingsFeatureTests
     public void Configuring_the_feature_restores_execution_settings_from_the_state_manager()
     {
         var feature = CreateFeature
-            .ConfigureContext(c => SeedSettings(c, new("UA", ["sso.example"], true)))
+            .ConfigureContext(c => SeedSettings(c, new("UA", ["sso.example"], AutoAddSsoDomains: true, EnableGpuCompositing: false)))
             .BuildSettingsFeature();
 
         Assert.Equal("UA", feature.ExecutionSettings.UserAgent);
         Assert.Equal(["sso.example"], feature.ExecutionSettings.SsoEnabledDomains!);
         Assert.True(feature.ExecutionSettings.AutoAddSsoDomains);
+        Assert.False(feature.ExecutionSettings.EnableGpuCompositing);
     }
 
     [Fact]
@@ -54,27 +55,29 @@ public class SettingsFeatureTests
         var feature = CreateFeature
             .ConfigureContext(c =>
             {
-                SeedSettings(c, new("before", ["before.com"], false));
+                SeedSettings(c, new("before", ["before.com"], AutoAddSsoDomains: false, EnableGpuCompositing: false));
             })
             .CaptureContext(out var context)
             .BuildSettingsFeature();
 
-        context.PubSub.Send(new SaveSettingsCommand(new SettingUiStateDto("UA2", ["a.com"], true)));
+        context.PubSub.Send(new SaveSettingsCommand(new SettingUiStateDto("UA2", ["a.com"], AutoAddSsoDomains: true, EnableGpuCompositing: true)));
 
         Assert.Equal("UA2", feature.ExecutionSettings.UserAgent);
         Assert.Equal(["a.com"], feature.ExecutionSettings.SsoEnabledDomains!);
         Assert.True(feature.ExecutionSettings.AutoAddSsoDomains);
+        Assert.True(feature.ExecutionSettings.EnableGpuCompositing);
         var restored = new SettingsStateManager(context.FileSystem).RestoreSettingsFromDisk();
         Assert.Equal("UA2", restored.UserAgent);
         Assert.Equal(["a.com"], restored.SsoEnabledDomains!);
         Assert.True(restored.AutoAddSsoDomains);
+        Assert.True(restored.EnableGpuCompositing);
     }
 
     [Fact]
     public void Sending_a_StartSsoFlowCommand_does_not_publish_anything_when_auto_add_is_disabled()
     {
         CreateFeature
-            .ConfigureContext(c => SeedSettings(c, new("UA", [], AutoAddSsoDomains: false)))
+            .ConfigureContext(c => SeedSettings(c, new("UA", [], AutoAddSsoDomains: false, EnableGpuCompositing: false)))
             .CaptureContext(out var context)
             .BuildSettingsFeature();
 
@@ -87,7 +90,7 @@ public class SettingsFeatureTests
     public void Sending_a_StartSsoFlowCommand_publishes_a_SettingsSavedEvent_with_the_domain_added_when_auto_add_is_enabled()
     {
         CreateFeature
-            .ConfigureContext(c => SeedSettings(c, new("UA", [], AutoAddSsoDomains: true)))
+            .ConfigureContext(c => SeedSettings(c, new("UA", [], AutoAddSsoDomains: true, EnableGpuCompositing: true)))
             .CaptureContext(out var context)
             .BuildSettingsFeature();
 
@@ -96,13 +99,14 @@ public class SettingsFeatureTests
         var saved = Assert.Single(PubSubMessages.OfType<SettingsSavedEvent>());
         Assert.Equal(["example.com"], saved.Settings.SsoEnabledDomains);
         Assert.True(saved.Settings.AutoAddSsoDomains);
+        Assert.True(saved.Settings.EnableGpuCompositing);
     }
 
     [Fact]
     public void Sending_a_StartSsoFlowCommand_does_not_publish_a_SettingsSavedEvent_when_the_domain_is_already_enabled()
     {
         CreateFeature
-            .ConfigureContext(c => SeedSettings(c, new("UA", ["example.com"], AutoAddSsoDomains: true)))
+            .ConfigureContext(c => SeedSettings(c, new("UA", ["example.com"], AutoAddSsoDomains: true, EnableGpuCompositing: false)))
             .CaptureContext(out var context)
             .BuildSettingsFeature();
 

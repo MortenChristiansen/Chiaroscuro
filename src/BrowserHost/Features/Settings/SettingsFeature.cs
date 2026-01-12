@@ -20,7 +20,7 @@ public class SettingsFeature(PubSub pubSub, SettingsStateManager settingsStateMa
 
         PubSub.Handle<SaveSettingsCommand>(cmd =>
         {
-            var mappedSettings = new SettingsDataV1(cmd.Settings.UserAgent, cmd.Settings.SsoEnabledDomains, cmd.Settings.AutoAddSsoDomains);
+            var mappedSettings = new SettingsDataV1(cmd.Settings.UserAgent, cmd.Settings.SsoEnabledDomains, cmd.Settings.AutoAddSsoDomains, cmd.Settings.EnableGpuCompositing);
             ExecutionSettings = settingsStateManager.SaveSettings(mappedSettings);
             PubSub.Publish(new SettingsSavedEvent(cmd.Settings));
         });
@@ -42,7 +42,8 @@ public class SettingsFeature(PubSub pubSub, SettingsStateManager settingsStateMa
                 PubSub.Send(new SaveSettingsCommand(new SettingUiStateDto(
                     settings.UserAgent,
                     [.. settings.SsoEnabledDomains ?? [], cmd.OriginalDomain],
-                    AutoAddSsoDomains: true
+                    AutoAddSsoDomains: true,
+                    EnableGpuCompositing: settings.EnableGpuCompositing ?? false
                 )));
             }
 

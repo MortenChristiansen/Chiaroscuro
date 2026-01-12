@@ -6,14 +6,14 @@ using System.Linq;
 
 namespace BrowserHost.Features.Settings;
 
-public record SettingUiStateDto(string? UserAgent, string[] SsoEnabledDomains, bool AutoAddSsoDomains);
+public record SettingUiStateDto(string? UserAgent, string[] SsoEnabledDomains, bool AutoAddSsoDomains, bool EnableGpuCompositing);
 
 public class SettingsBackendApi(PubSub pubSub, SettingsFeature settingsFeature) : BackendApi
 {
     public SettingUiStateDto LoadSettingsPage()
     {
         var settings = settingsFeature.ExecutionSettings;
-        return new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? [], settings.AutoAddSsoDomains ?? false);
+        return new SettingUiStateDto(settings.UserAgent, settings.SsoEnabledDomains ?? [], settings.AutoAddSsoDomains ?? false, settings.EnableGpuCompositing ?? false);
     }
 
     public void SaveSettings(IDictionary<string, object?> settings)
@@ -29,7 +29,9 @@ public class SettingsBackendApi(PubSub pubSub, SettingsFeature settingsFeature) 
             : [];
         var autoAddSsoDomains = settings.TryGetValue("autoAddSsoDomains", out var o3) && o3 is bool b ? b : false;
 
-        var dto = new SettingUiStateDto(userAgent, ssoEnabledDomains, autoAddSsoDomains);
+        var enableGpuCompositing = settings.TryGetValue("enableGpuCompositing", out var o4) && o4 is bool b2 ? b2 : false;
+
+        var dto = new SettingUiStateDto(userAgent, ssoEnabledDomains, autoAddSsoDomains, enableGpuCompositing);
         pubSub.Send(new SaveSettingsCommand(dto));
     }
 }

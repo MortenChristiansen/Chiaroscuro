@@ -65,6 +65,14 @@ public partial class App : Application
         //For screen sharing add (see https://bitbucket.org/chromiumembedded/cef/issues/2582/allow-run-time-handling-of-media-access#comment-58677180)
         settings.CefCommandLineArgs.Add("enable-usermedia-screen-capturing");
 
+        // Prevent Chromium from incorrectly throttling/downsizing video when it believes the window is occluded
+        // (common in embedded/overlay-heavy hosts).
+        settings.CefCommandLineArgs.Add("disable-features", "CalculateNativeWinOcclusion");
+
+        // Avoid background throttling that can cause playback stutter / aggressive quality drops.
+        settings.CefCommandLineArgs.Add("disable-background-timer-throttling");
+        settings.CefCommandLineArgs.Add("disable-renderer-backgrounding");
+
         //Example of checking if a call to Cef.Initialize has already been made, we require this for
         //our .Net 5.0 Single File Publish example, you don't typically need to perform this check
         //if you call Cef.Initialze within your WPF App constructor.
