@@ -15,7 +15,7 @@ It also keeps the chrome UI in sync with the active tab’s loading state, and a
 ## Requirements
 
 - The window must be possible to minimize and maximize/restore using the custom chrome controls.
-- The chrome must reflect whether the active tab is currently loading.
+- The chrome must display a visible loading indicator when the active tab is loading (e.g., a spinner icon in the active tab or a progress bar in the title bar) and hide it when loading finishes.
 - Copying the current address must copy the active tab’s address to the clipboard.
 - When copying an address, the copied value should omit common ad-tracking query parameters when present.
 
