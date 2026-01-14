@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BrowserHost.Tab.WebView2;
 
-internal sealed class WebView2FindManager
+internal sealed class WebView2FindManager(PubSub pubSub)
 {
     private CoreWebView2? _core;
     private string? _findTerm;
@@ -116,7 +116,7 @@ internal sealed class WebView2FindManager
             if (int.TryParse(result, out var count))
             {
                 _findCount = count;
-                PubSub.Publish(new FindStatusChangedEvent(count));
+                pubSub.Send(new ChangeFindStatusCommand(count));
                 if (count > 0)
                 {
                     _findIndex = 0;
@@ -155,7 +155,7 @@ internal sealed class WebView2FindManager
             if (int.TryParse(result, out var count) && count != _findCount)
             {
                 _findCount = count;
-                PubSub.Publish(new FindStatusChangedEvent(count));
+                pubSub.Send(new ChangeFindStatusCommand(count));
             }
         }
         catch { }
@@ -185,6 +185,6 @@ internal sealed class WebView2FindManager
         else
             js = js.Replace("CLEAR_SEL_PLACEHOLDER", string.Empty);
         _ = _core.ExecuteScriptAsync(js);
-        PubSub.Publish(new FindStatusChangedEvent(0));
+        pubSub.Send(new ChangeFindStatusCommand(0));
     }
 }

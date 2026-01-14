@@ -1,21 +1,15 @@
 ﻿using BrowserHost.CefInfrastructure;
 using BrowserHost.Utilities;
-using System.Collections.Generic;
 
 namespace BrowserHost.Features.ActionDialog;
 
-public class ActionDialogBrowser : Browser<ActionDialogBrowserApi>
+public class ActionDialogBrowser : Browser<ActionDialogBackendApi>
 {
-    public override ActionDialogBrowserApi Api { get; }
+    public override ActionDialogBackendApi Api { get; }
 
-    public ActionDialogBrowser()
+    public ActionDialogBrowser(PubSub pubSub)
         : base("/action-dialog", disableContextMenu: true)
     {
-        Api = new ActionDialogBrowserApi();
-    }
-
-    public void UpdateSuggestions(List<NavigationSuggestion> suggestions)
-    {
-        CallClientApi("updateSuggestions", suggestions.ToJsonObject());
+        Api = new ActionDialogBackendApi(pubSub);
     }
 }

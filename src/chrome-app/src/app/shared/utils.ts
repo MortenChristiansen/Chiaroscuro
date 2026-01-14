@@ -14,6 +14,15 @@ export function debounce<T extends (...args: any[]) => void>(
   };
 }
 
+/**
+ * Returns true when running under Angular SSR / prerender (i.e. no `window`).
+ *
+ * This is intentionally framework-agnostic so it can be used in any code path.
+ */
+export function isServerSideRendering(): boolean {
+  return typeof window === 'undefined' || typeof document === 'undefined';
+}
+
 type LowercaseFirst<S extends string> = S extends `${infer F}${infer R}`
   ? `${Lowercase<F>}${R}`
   : S;

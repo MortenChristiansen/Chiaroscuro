@@ -16,7 +16,7 @@ This is a C# + Typescript repository for a Windows-only custom browser.
 
 - `MainWindow` wires up the app by constructing a list of `Feature`s and calling `Configure()` and `Start()`.
 - A `Feature` is the primary backend extension point (see `src/BrowserHost/Features/Feature.cs`). Features typically:
-  - Subscribe/publish events via `PubSub`.
+  - Send/handle commands and subscribe/publish events via `PubSub`.
   - Control embedded UI browsers (e.g. show/hide overlays).
   - Hook keyboard/mouse input via `HandleOnPreviewKeyDown` / `HandleOnPreviewMouseWheel`.
 
@@ -62,7 +62,7 @@ There are two directions of communication:
 ### Add/extend a backend feature (C#)
 
 1. Create a new `Feature` under `src/BrowserHost/Features/<YourFeature>/`.
-2. Subscribe/publish events via `PubSub` rather than reaching across features directly.
+2. Send/publish commands and events via `PubSub` rather than reaching across features directly.
 3. Add the feature to the `_features` list in `MainWindow` so `Configure()`/`Start()` run.
 4. If the feature needs a UI surface in Angular:
    - Add or reuse a UI browser (a `Browser<TApi>` subclass) that points at an Angular route, and expose a `BrowserApi` for Angular → C# calls.

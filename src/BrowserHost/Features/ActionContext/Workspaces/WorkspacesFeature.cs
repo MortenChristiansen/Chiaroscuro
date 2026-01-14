@@ -3,6 +3,7 @@ using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Logging;
+using BrowserHost.Tab;
 using BrowserHost.Utilities;
 using System;
 using System.Linq;
@@ -11,7 +12,13 @@ using System.Windows.Media;
 
 namespace BrowserHost.Features.ActionContext.Workspaces;
 
-public class WorkspacesFeature(MainWindow window) : Feature(window)
+public class WorkspacesFeature(
+    PubSub pubSub,
+    IBrowserContext context,
+    WorkspacesBrowserApi workspacesApi,
+    TabsBrowserApi tabsApi,
+    WorkspaceStateManager stateManager
+) : Feature(pubSub)
 {
     private WorkspaceDtoV1[] _workspaces = [];
     private string _currentWorkspaceId = null!;
@@ -21,93 +28,103 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     public override void Configure()
     {
-        var tabsFeature = Window.GetFeature<TabsFeature>();
-        PubSub.Subscribe<TabsChangedEvent>(e =>
-            _workspaces = WorkspaceStateManager.SaveWorkspaceTabs(
+        PubSub.Handle<ChangeTabsCommand>(cmd =>
+        {
+            var tabsFeature = context.GetFeature<TabsFeature>();
+            _workspaces = stateManager.SaveWorkspaceTabs(
                 _currentWorkspaceId,
-                e.Tabs.Select((t, idx) => CreateTabState(t, idx, tabsFeature)),
-                e.EphemeralTabStartIndex,
-                e.Folders.Select(f => new FolderDtoV1(
+                cmd.Tabs.Select(t => CreateTabState(t, tabsFeature)),
+                cmd.EphemeralTabStartIndex,
+                cmd.Folders.Select(f => new FolderDtoV1(
                     f.Id,
                     f.Name,
                     f.StartIndex,
                     f.EndIndex
                 ))
-            )
-        );
-        PubSub.Subscribe<WorkspaceActivatedEvent>(e =>
+            );
+
+            PubSub.Publish(new TabsChangedEvent(cmd.Tabs, cmd.EphemeralTabStartIndex, cmd.Folders));
+        });
+        PubSub.Handle<ActivateWorkspaceCommand>(cmd =>
         {
-            _currentWorkspaceId = e.WorkspaceId;
-            Window.ActionContext.WorkspaceActivated(e.WorkspaceId);
-            Window.WorkspaceColor = GetCurrentWorkspaceColor();
+            _currentWorkspaceId = cmd.WorkspaceId;
+            workspacesApi.WorkspaceActivated(cmd.WorkspaceId);
+            context.WorkspaceColor = GetCurrentWorkspaceColor();
 
             if (!_hasLoggedInitialWorkspaceTime)
             {
                 _hasLoggedInitialWorkspaceTime = true;
                 Measure.Event("Initial workspace loaded");
             }
+
+            PubSub.Publish(new WorkspaceActivatedEvent(cmd.WorkspaceId));
         });
-        PubSub.Subscribe<WorkspaceCreatedEvent>(e =>
+        PubSub.Handle<CreateWorkspaceCommand>(cmd =>
         {
             var newWorkspace = new WorkspaceDtoV1(
-                e.WorkspaceId,
-                e.Name,
-                e.Color,
-                e.Icon,
+                cmd.WorkspaceId,
+                cmd.Name,
+                cmd.Color,
+                cmd.Icon,
                 [],
                 0
             );
-            _workspaces = WorkspaceStateManager.CreateWorkspace(newWorkspace);
+            _workspaces = stateManager.CreateWorkspace(newWorkspace);
             NotifyFrontendOfUpdatedWorkspaces();
 
-            PubSub.Publish(new WorkspaceActivatedEvent(newWorkspace.WorkspaceId));
+            PubSub.Publish(new WorkspaceCreatedEvent(cmd.WorkspaceId, cmd.Name, cmd.Icon, cmd.Color));
+            PubSub.Send(new ActivateWorkspaceCommand(newWorkspace.WorkspaceId));
         });
-        PubSub.Subscribe<WorkspaceUpdatedEvent>(e =>
+        PubSub.Handle<UpdateWorkspaceCommand>(cmd =>
         {
-            var workspace = GetWorkspaceById(e.WorkspaceId);
+            var workspace = GetWorkspaceById(cmd.WorkspaceId);
             workspace = workspace with
             {
-                Name = e.Name,
-                Color = e.Color,
-                Icon = e.Icon
+                Name = cmd.Name,
+                Color = cmd.Color,
+                Icon = cmd.Icon
             };
 
-            _workspaces = WorkspaceStateManager.UpdateWorkspace(workspace);
+            _workspaces = stateManager.UpdateWorkspace(workspace);
 
-            if (e.WorkspaceId == _currentWorkspaceId)
-                Window.WorkspaceColor = GetCurrentWorkspaceColor();
+            if (cmd.WorkspaceId == _currentWorkspaceId)
+                context.WorkspaceColor = GetCurrentWorkspaceColor();
 
             NotifyFrontendOfUpdatedWorkspaces();
+
+            PubSub.Publish(new WorkspaceUpdatedEvent(cmd.WorkspaceId, cmd.Name, cmd.Icon, cmd.Color));
         });
-        PubSub.Subscribe<WorkspaceDeletedEvent>(e =>
+        PubSub.Handle<DeleteWorkspaceCommand>(cmd =>
         {
             if (_workspaces.Length == 1)
                 throw new InvalidOperationException("Cannot delete the last workspace.");
 
-            _workspaces = WorkspaceStateManager.DeleteWorkspace(e.WorkspaceId);
+            _workspaces = stateManager.DeleteWorkspace(cmd.WorkspaceId);
             NotifyFrontendOfUpdatedWorkspaces();
 
-            if (e.WorkspaceId == _currentWorkspaceId)
-                PubSub.Publish(new WorkspaceActivatedEvent(_workspaces[0].WorkspaceId));
+            PubSub.Publish(new WorkspaceDeletedEvent(cmd.WorkspaceId));
+
+            if (cmd.WorkspaceId == _currentWorkspaceId)
+                PubSub.Send(new ActivateWorkspaceCommand(_workspaces[0].WorkspaceId));
         });
     }
 
     public override void Start()
     {
-        _workspaces = WorkspaceStateManager.RestoreWorkspacesFromDisk();
+        _workspaces = stateManager.RestoreWorkspacesFromDisk();
         _currentWorkspaceId = _workspaces[0].WorkspaceId;
         RestoreFrontendWorkspaces();
 
-        Window.WorkspaceColor = GetCurrentWorkspaceColor();
-        PubSub.Publish(new WorkspaceActivatedEvent(_currentWorkspaceId));
+        context.WorkspaceColor = GetCurrentWorkspaceColor();
+        PubSub.Send(new ActivateWorkspaceCommand(_currentWorkspaceId));
 
-        if (App.Options.LaunchUrl != null)
-            PubSub.Publish(new NavigationStartedEvent(App.Options.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+        if (context.AppOptions.LaunchUrl != null)
+            PubSub.Send(new StartNavigationCommand(context.AppOptions.LaunchUrl, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
     }
 
-    private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, int tabIndex, TabsFeature tabsFeature)
+    private WorkspaceTabStateDtoV1 CreateTabState(TabUiStateDto tab, TabsFeature tabsFeature)
     {
-        var customization = TabCustomizationFeature.GetCustomizationsForTab(tab.Id);
+        var customization = context.GetFeature<TabCustomizationFeature>().GetCustomizationsForTab(tab.Id);
         var isBookmarked = IsTabBookmarked(tab.Id);
         var browserTab = tabsFeature.GetTabBrowserById(tab.Id);
         return new WorkspaceTabStateDtoV1(
@@ -125,13 +142,13 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
+        if (e.Key == Key.R && context.CurrentKeyboardModifiers == ModifierKeys.Control)
         {
             RestoreOriginalTabAddress();
             return true;
         }
 
-        if (Keyboard.Modifiers == ModifierKeys.Control || Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+        if (context.CurrentKeyboardModifiers == ModifierKeys.Control || context.CurrentKeyboardModifiers == (ModifierKeys.Control | ModifierKeys.Shift))
         {
             var index = e.Key switch
             {
@@ -150,13 +167,15 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             if (index >= 0 && index < _workspaces.Length && _workspaces[index] != CurrentWorkspace)
             {
                 var targetWorkspace = _workspaces[index];
-                if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+                if (context.CurrentKeyboardModifiers == (ModifierKeys.Control | ModifierKeys.Shift))
                 {
                     MoveCurrentTabToWorkspace(targetWorkspace);
+                    return true;
                 }
                 else
                 {
-                    PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
+                    PubSub.Send(new ActivateWorkspaceCommand(targetWorkspace.WorkspaceId));
+                    return true;
                 }
             }
         }
@@ -165,19 +184,19 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     private void MoveCurrentTabToWorkspace(WorkspaceDtoV1 targetWorkspace)
     {
-        var currentTab = Window.CurrentTab;
+        var currentTab = context.CurrentTab;
         if (currentTab == null)
             return;
 
-        if (Window.GetFeature<PinnedTabsFeature>().IsTabPinned(currentTab.Id))
+        if (context.GetFeature<PinnedTabsFeature>().IsTabPinned(currentTab.Id))
             return;
 
         var tab = GetTabById(currentTab.Id);
-        Window.ActionContext.CloseTab(tab.TabId);
+        tabsApi.CloseTab(tab.TabId);
         RemoveTabFromWorkspace(tab.TabId);
 
-        PubSub.Publish(new WorkspaceActivatedEvent(targetWorkspace.WorkspaceId));
-        Window.ActionContext.AddTab(new(tab.TabId, tab.Title, tab.Favicon, tab.Created));
+        PubSub.Send(new ActivateWorkspaceCommand(targetWorkspace.WorkspaceId));
+        tabsApi.AddTab(new(tab.TabId, tab.Title, tab.Favicon, tab.Created));
     }
 
     private void RemoveTabFromWorkspace(string tabId)
@@ -188,17 +207,17 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
             Tabs = [.. CurrentWorkspace.Tabs.Where(t => t.TabId != tabId)],
             EphemeralTabStartIndex = isPersistentTab ? CurrentWorkspace.EphemeralTabStartIndex - 1 : CurrentWorkspace.EphemeralTabStartIndex,
         };
-        _workspaces = WorkspaceStateManager.UpdateWorkspace(updatedWorkspace);
+        _workspaces = stateManager.UpdateWorkspace(updatedWorkspace);
     }
 
     private void NotifyFrontendOfUpdatedWorkspaces()
     {
-        Window.ActionContext.WorkspacesChanged([.. _workspaces.Select(ws => new WorkspaceDescriptionDto(ws.WorkspaceId, ws.Name, ws.Color, ws.Icon))]);
+        workspacesApi.WorkspacesChanged([.. _workspaces.Select(ws => new WorkspaceDescriptionDto(ws.WorkspaceId, ws.Name, ws.Color, ws.Icon))]);
     }
 
     private void RestoreFrontendWorkspaces()
     {
-        Window.ActionContext.SetWorkspaces(
+        workspacesApi.SetWorkspaces(
             [.. _workspaces.Select(ws => new WorkspaceDto(
                 ws.WorkspaceId,
                 ws.Name,
@@ -214,11 +233,11 @@ public class WorkspacesFeature(MainWindow window) : Feature(window)
 
     private void RestoreOriginalTabAddress()
     {
-        var tab = Window.CurrentTab;
-        if (tab == null) return;
+        if (context.CurrentTab is not ITabBrowser tab)
+            return;
 
-        var isPinned = Window.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id);
-        var isBookmarked = Window.GetFeature<WorkspacesFeature>().IsTabBookmarked(tab.Id);
+        var isPinned = context.GetFeature<PinnedTabsFeature>().IsTabPinned(tab.Id);
+        var isBookmarked = IsTabBookmarked(tab.Id);
 
         if (!isPinned && !isBookmarked)
             return;

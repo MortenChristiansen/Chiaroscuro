@@ -1,0 +1,1 @@
+﻿global using static BrowserHost.Tests.Infrastructure.TestBrowserContext;

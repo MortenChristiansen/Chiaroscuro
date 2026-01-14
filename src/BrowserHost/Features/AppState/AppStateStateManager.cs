@@ -1,8 +1,8 @@
-using BrowserHost.Utilities;
 using BrowserHost.Serialization;
+using BrowserHost.Utilities;
 using System;
 using System.Diagnostics;
-using System.IO;
+using System.IO.Abstractions;
 using System.Text.Json;
 using System.Threading;
 
@@ -10,24 +10,25 @@ namespace BrowserHost.Features.AppState;
 
 public record AppStateDataV1(double ActionContextWidth, double TabPaletteWidth);
 
-public static class AppStateStateManager
+public class AppStateStateManager(IFileSystem fileSystem)
 {
-    private static readonly string _persistedStatePath = AppDataPathManager.GetAppDataFilePath("appState.json");
+    public static string PersistedStatePath { get; } = AppDataPathManager.GetAppDataFilePath("appState.json");
+
     private const int _currentVersion = 1;
-    private static AppStateDataV1? _lastSavedState;
-    private static readonly Lock _lock = new();
+    private AppStateDataV1? _lastSavedState;
+    private readonly Lock _lock = new();
 
     private static AppStateDataV1 Default => new(ActionContextWidth: 300, TabPaletteWidth: 350);
 
-    public static AppStateDataV1 RestoreAppStateFromDisk()
+    public virtual AppStateDataV1 RestoreAppStateFromDisk()
     {
         lock (_lock)
         {
             try
             {
-                if (File.Exists(_persistedStatePath))
+                if (fileSystem.File.Exists(PersistedStatePath))
                 {
-                    var json = File.ReadAllText(_persistedStatePath);
+                    var json = fileSystem.File.ReadAllText(PersistedStatePath);
                     var versioned = JsonSerializer.Deserialize(json, BrowserHostJsonContext.Default.PersistentData);
                     if (versioned?.Version == _currentVersion)
                     {
@@ -46,7 +47,7 @@ public static class AppStateStateManager
         }
     }
 
-    public static AppStateDataV1 GetAppState()
+    public virtual AppStateDataV1 GetAppState()
     {
         lock (_lock)
         {
@@ -54,7 +55,7 @@ public static class AppStateStateManager
         }
     }
 
-    public static AppStateDataV1 SaveActionContextWidth(double width)
+    public virtual AppStateDataV1 SaveActionContextWidth(double width)
     {
         lock (_lock)
         {
@@ -64,7 +65,7 @@ public static class AppStateStateManager
         }
     }
 
-    public static AppStateDataV1 SaveTabPaletteWidth(double width)
+    public virtual AppStateDataV1 SaveTabPaletteWidth(double width)
     {
         lock (_lock)
         {
@@ -74,19 +75,25 @@ public static class AppStateStateManager
         }
     }
 
-    private static AppStateDataV1 SaveIfChanged(AppStateDataV1 current, AppStateDataV1 updated)
+    private AppStateDataV1 SaveIfChanged(AppStateDataV1 current, AppStateDataV1 updated)
     {
         if (current == updated)
             return current;
 
         try
         {
+            var stateDirectoryPath = fileSystem.Path.GetDirectoryName(PersistedStatePath);
+            if (!string.IsNullOrWhiteSpace(stateDirectoryPath))
+            {
+                fileSystem.Directory.CreateDirectory(stateDirectoryPath);
+            }
+
             var versioned = new PersistentData<AppStateDataV1>
             {
                 Version = _currentVersion,
                 Data = updated
             };
-            File.WriteAllText(_persistedStatePath, JsonSerializer.Serialize(versioned, BrowserHostJsonContext.Default.PersistentDataAppStateDataV1));
+            fileSystem.File.WriteAllText(PersistedStatePath, JsonSerializer.Serialize(versioned, BrowserHostJsonContext.Default.PersistentDataAppStateDataV1));
             _lastSavedState = updated;
         }
         catch (Exception e) when (!Debugger.IsAttached)

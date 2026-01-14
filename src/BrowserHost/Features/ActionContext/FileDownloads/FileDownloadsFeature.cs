@@ -5,35 +5,49 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Testably.Abstractions;
+using ITimer = Testably.Abstractions.TimeSystem.ITimer;
 
 namespace BrowserHost.Features.ActionContext.FileDownloads;
 
-public class FileDownloadsFeature(MainWindow window) : Feature(window)
+public class FileDownloadsFeature(
+    PubSub pubSub,
+    DownloadsBrowserApi downloadsApi,
+    ITimeSystem timeSystem
+) : Feature(pubSub)
 {
     private readonly ConcurrentDictionary<int, DownloadInfo> _activeDownloads = new();
-    private Timer? _progressTimer;
+    private ITimer? _progressTimer;
 
     public override void Configure()
     {
-        PubSub.Subscribe<DownloadCancelledEvent>(HandleFileDownloadCancelled);
-        PubSub.Subscribe<BackgroundDownloadStartedEvent>(OnBackgroundDownloadStarted);
+        PubSub.Handle<CancelDownloadCommand>(cmd =>
+        {
+            HandleFileDownloadCancelled(cmd.DownloadId);
+            PubSub.Publish(new DownloadCancelledEvent(cmd.DownloadId));
+        });
+        PubSub.Handle<StartBackgroundDownloadCommand>(async cmd =>
+        {
+            await OnBackgroundDownloadStarted(cmd);
+            // Event published in OnBackgroundDownloadStarted if needed
+        });
     }
 
-    private void HandleFileDownloadCancelled(DownloadCancelledEvent e)
+    private void HandleFileDownloadCancelled(int downloadId)
     {
-        if (_activeDownloads.TryRemove(e.DownloadId, out var downloadInfo) && !downloadInfo.IsCompleted)
+        if (_activeDownloads.TryRemove(downloadId, out var downloadInfo) && !downloadInfo.IsCompleted)
             downloadInfo.Cancel.Invoke();
     }
 
     private int _nextBackgroundDownloadId = 1_000_000;
-    private async Task OnBackgroundDownloadStarted(BackgroundDownloadStartedEvent e)
+    private async Task OnBackgroundDownloadStarted(StartBackgroundDownloadCommand cmd)
     {
         var downloadId = Interlocked.Increment(ref _nextBackgroundDownloadId);
         using var ct = new CancellationTokenSource();
         var downloadInfo = new DownloadInfo
         {
             Id = downloadId,
-            FileName = e.FileName,
+            FileName = cmd.FileName,
             Cancel = ct.Cancel,
             IsCancelled = false,
             IsCompleted = false,
@@ -43,11 +57,13 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
         if (!_activeDownloads.TryAdd(downloadId, downloadInfo))
             return;
 
+        PubSub.Publish(new BackgroundDownloadStartedEvent(cmd.DownloadSource, cmd.FileName));
+
         EnsureDownloadTimerCreated();
         SendProgressUpdate();
 
         var data = await DownloadHelper.DownloadBytesAsync(
-            e.DownloadSource,
+            cmd.DownloadSource,
             progress =>
             {
                 downloadInfo.Progress = progress.PercentCompleted;
@@ -61,9 +77,9 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
 
         RemoveCompletedDownloadAfterDelay(downloadId);
         SendProgressUpdate();
-        
+
         if (data != null)
-            await DownloadHelper.SaveFile(e.FileName, data);
+            await DownloadHelper.SaveFile(cmd.FileName, data);
     }
 
     public void OnDownloadUpdated(int downloadId, DownloadItem downloadItem, IDownloadItemCallback callback)
@@ -95,7 +111,7 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
     private void RemoveCompletedDownloadAfterDelay(int downloadId)
     {
         // Keep completed downloads for 10 seconds
-        var _ = Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ =>
+        var _ = timeSystem.Task.Delay(TimeSpan.FromSeconds(10)).ContinueWith(_ =>
         {
             _activeDownloads.TryRemove(downloadId, out var _);
             if (_activeDownloads.Count == 0)
@@ -109,7 +125,7 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
 
     private void EnsureDownloadTimerCreated()
     {
-        _progressTimer ??= new Timer(SendProgressUpdate, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        _progressTimer ??= timeSystem.Timer.New(SendProgressUpdate, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
     private void SendProgressUpdate(object? state = null)
@@ -123,7 +139,7 @@ public class FileDownloadsFeature(MainWindow window) : Feature(window)
                 d.IsCancelled))
             .ToArray();
 
-        Window.ActionContext.UpdateDownloads(downloads);
+        downloadsApi.UpdateDownloads(downloads);
     }
 
     public bool HasActiveDownloads()

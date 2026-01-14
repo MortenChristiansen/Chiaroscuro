@@ -4,18 +4,30 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.TabPalette;
 
-public record TabPaletteRequestedEvent();
-public record TabPaletteDismissedEvent();
-
-public class TabPaletteFeature(MainWindow window) : Feature(window)
+public class TabPaletteFeature(PubSub pubSub, IBrowserContext browserContext, TabPaletteBrowserApi tabPaletteApi, TabPaletteWindowOperations windowOperations) : Feature(pubSub)
 {
     private bool _tabPaletteIsOpen;
 
     public override void Configure()
     {
-        PubSub.Subscribe<TabPaletteRequestedEvent>((_) => OpenTabPalette());
-        PubSub.Subscribe<TabPaletteDismissedEvent>((_) => CloseTabPalette());
-        PubSub.Subscribe<TabDeactivatedEvent>((_) => CloseTabPalette());
+        PubSub.Handle<RequestTabPaletteCommand>(_ =>
+        {
+            if (_tabPaletteIsOpen)
+                return;
+
+            OpenTabPalette();
+            PubSub.Publish(new TabPaletteRequestedEvent());
+        });
+        PubSub.Handle<DismissTabPaletteCommand>(_ =>
+        {
+            if (!_tabPaletteIsOpen)
+                return;
+
+            CloseTabPalette();
+            PubSub.Publish(new TabPaletteDismissedEvent());
+        });
+
+        PubSub.Subscribe<TabDeactivatedEvent>(_ => PubSub.Send(new DismissTabPaletteCommand()));
     }
 
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
@@ -23,9 +35,9 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
         if (e.Key == Key.F1)
         {
             if (_tabPaletteIsOpen)
-                PubSub.Publish(new TabPaletteDismissedEvent());
+                PubSub.Send(new DismissTabPaletteCommand());
             else
-                PubSub.Publish(new TabPaletteRequestedEvent());
+                PubSub.Send(new RequestTabPaletteCommand());
 
             return true;
         }
@@ -36,8 +48,8 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
     public void OpenTabPalette()
     {
         _tabPaletteIsOpen = true;
-        Window.TabPaletteBrowserControl.Init();
-        Window.ShowTabPalette();
+        tabPaletteApi.Init();
+        windowOperations.ShowTabPalette();
     }
 
     private void CloseTabPalette()
@@ -46,6 +58,6 @@ public class TabPaletteFeature(MainWindow window) : Feature(window)
             return;
 
         _tabPaletteIsOpen = false;
-        Window.HideTabPalette();
+        windowOperations.HideTabPalette();
     }
 }

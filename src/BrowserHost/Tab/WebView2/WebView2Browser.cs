@@ -1,5 +1,4 @@
 ﻿using BrowserHost.CefInfrastructure;
-using BrowserHost.Features.ActionContext;
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.CustomWindowChrome;
@@ -35,7 +34,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private CoreWebView2? _core;
 
     private const int CornerRadiusPx = 8; // Match CefSharp visual
-    private readonly ActionContextBrowser _actionContextBrowser;
+    private readonly TabsBrowserApi _tabsApi;
+    private readonly PubSub _pubSub;
     private readonly Border _hostSurface = new()
     {
         Background = Brushes.Transparent,
@@ -46,7 +46,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private string? _lastAddressSnapshot;
     private double _zoomFactor = 1.0;
     private readonly WebView2SnapshotOverlay _snapshotOverlay = new();
-    private readonly WebView2FindManager _findManager = new();
+    private readonly WebView2FindManager _findManager;
     private readonly WebView2RoundedCornerManager _roundedCornerManager = new(CornerRadiusPx);
 
     // Cache of last applied bounds to avoid redundant work
@@ -59,7 +59,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     public event DependencyPropertyChangedEventHandler? AddressChanged;
     public event EventHandler? PageLoadEnded;
 
-    public WebView2Browser(string id, string address, ActionContextBrowser actionContextBrowser, bool setManualAddress, string? favicon, bool isChildBrowser)
+    public WebView2Browser(string id, string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser)
     {
         _id = id;
         _initialManualAddress = setManualAddress ? address : null;
@@ -67,7 +67,9 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _isChildBrowser = isChildBrowser;
         _manualAddress = _initialManualAddress;
         _pendingNavigateTo = NormalizeAddress(address);
-        _actionContextBrowser = actionContextBrowser;
+        _tabsApi = tabsApi;
+        _pubSub = pubSub;
+        _findManager = new WebView2FindManager(pubSub);
 
         _hostSurface.Child = _snapshotOverlay.Visual;
 
@@ -77,8 +79,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         _hostSurface.SizeChanged += (_, _) => { UpdateControllerBounds(); };
         _hostSurface.LayoutUpdated += (_, _) => { if (_hostSurface.IsVisible) UpdateControllerBounds(); };
 
-        PubSub.Subscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
-        PubSub.Subscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
+        _pubSub.Subscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
+        _pubSub.Subscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
     }
 
     public string Id => _id;
@@ -156,13 +158,13 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     private void Core_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
         _isLoading = true;
-        PubSub.Publish(new TabLoadingStateChangedEvent(_id, true));
+        _pubSub.Publish(new TabLoadingStateChangedEvent(_id, true));
     }
 
     private void Core_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
         _isLoading = false;
-        PubSub.Publish(new TabLoadingStateChangedEvent(_id, false));
+        _pubSub.Publish(new TabLoadingStateChangedEvent(_id, false));
         var newAddress = _core?.Source;
         if (_lastAddressSnapshot != newAddress)
         {
@@ -177,14 +179,14 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     {
         if (_core == null) return;
         _title = _core.DocumentTitle;
-        _actionContextBrowser.UpdateTabTitle(_id, _title);
+        _tabsApi.UpdateTabTitle(_id, _title);
     }
 
     private void Core_FaviconChanged(object? sender, object e)
     {
         if (_core == null) return;
         _favicon = _core.FaviconUri;
-        _actionContextBrowser.UpdateTabFavicon(_id, _favicon);
+        _tabsApi.UpdateTabFavicon(_id, _favicon);
     }
 
     private void Core_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
@@ -198,7 +200,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         {
             // Ctrl+click or middle-click -> open in background tab
             e.Handled = true;
-            PubSub.Publish(new NavigationStartedEvent(uri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
+            _pubSub.Send(new StartNavigationCommand(uri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: false));
             return;
         }
         else
@@ -208,7 +210,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
             {
                 var owner = MainWindow.Instance;
                 var parentTabId = !_isChildBrowser ? _id : (MainWindow.Instance.CurrentTab?.Id ?? _id);
-                var win = new ChildBrowserWindow(uri, parentTabId) { Owner = owner };
+                    var win = new ChildBrowserWindow(uri, parentTabId, _pubSub) { Owner = owner };
                 win.Show();
             });
             return;
@@ -320,7 +322,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
         else return Dispatcher.Invoke(action);
     }
 
-    public void RegisterContentPageApi(BrowserApi api, string name) => throw new InvalidOperationException("The WebView2Browser does not support content pages");
+    public void RegisterContentPageApi(BackendApi api, string name) => throw new InvalidOperationException("The WebView2Browser does not support content pages");
     public void Reload(bool ignoreCache = false) => RunOnUi(() => _core?.Reload());
     public void Back() { if (CanGoBack) RunOnUi(() => _core?.GoBack()); }
     public void Forward() { if (CanGoForward) RunOnUi(() => _core?.GoForward()); }
@@ -349,8 +351,8 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
     {
         try
         {
-            PubSub.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
-            PubSub.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
+            _pubSub.Unsubscribe<ActionDialogShownEvent>(HandleActionDialogShownEvent);
+            _pubSub.Unsubscribe<ActionDialogDismissedEvent>(HandleActionDialogDismissedEvent);
             if (_core != null)
             {
                 _handlers.ForEach(h => h.Dispose());
@@ -417,7 +419,7 @@ public sealed class WebView2Browser : UserControl, ITabWebBrowser, IDisposable
 
             var cursorPos = VisualDpiUtil.GetCursorPositionInDips(owner);
             var offset = VisualDpiUtil.GetDpiAwareOffset(owner, 12, 12); // 12px right and down, scaled for DPI
-            var window = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y);
+            var window = new WebContextMenuWindow(owner, cursorPos.X + offset.X, cursorPos.Y + offset.Y, _pubSub);
             var parameters = new ContextMenuParameters(linkUrlSnapshot, imageUrl);
             window.Prepare(parameters);
             window.Show();

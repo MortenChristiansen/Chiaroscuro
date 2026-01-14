@@ -2,17 +2,14 @@ using BrowserHost.Features.ActionDialog;
 using BrowserHost.Utilities;
 using System;
 using System.Diagnostics;
-using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
-using System.Windows;
 
 namespace BrowserHost.Features.DragDrop;
 
-public record FileDroppedEvent(string[] FilePaths);
-
-public class DragDropFeature(MainWindow window) : Feature(window)
+public class DragDropFeature(PubSub pubSub, IBrowserContext browserContext, IFileSystem fileSystem) : Feature(pubSub)
 {
-    public static bool IsDragging { get; private set; }
+    public bool IsDragging { get; private set; }
 
     private static readonly string[] SupportedExtensions =
     [
@@ -26,37 +23,35 @@ public class DragDropFeature(MainWindow window) : Feature(window)
 
     public override void Configure()
     {
-        Window.AllowDrop = true;
-        Window.DragEnter += (sender, e) => IsDragging = true;
-        Window.DragLeave += (sender, e) => IsDragging = false;
-        Window.Drop += OnDrop;
+        browserContext.DragDropHost.AllowDrop = true;
+        browserContext.DragDropHost.DragEnter += () => IsDragging = true;
+        browserContext.DragDropHost.DragLeave += () => IsDragging = false;
+        browserContext.DragDropHost.FilesDropped += OnFilesDropped;
 
-        PubSub.Subscribe<FileDroppedEvent>(HandleFileDropped);
-    }
-
-    private void OnDrop(object sender, DragEventArgs e)
-    {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        PubSub.Handle<OpenDroppedFilesCommand>(cmd =>
         {
-            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-            var validFiles = files.Where(IsValidFile).ToArray();
-
-            if (validFiles.Length != 0)
-            {
-                PubSub.Publish(new FileDroppedEvent(validFiles));
-            }
-        }
-        e.Handled = true;
+            OpenFileTabs(cmd.FilePaths);
+            PubSub.Publish(new DroppedFilesOpenedEvent(cmd.FilePaths));
+        });
     }
 
-    private static bool IsValidFile(string filePath)
+    private void OnFilesDropped(string[] filePaths)
+    {
+        IsDragging = false;
+        var validFiles = filePaths.Where(IsValidFile).ToArray();
+
+        if (validFiles.Length != 0)
+            PubSub.Send(new OpenDroppedFilesCommand(validFiles));
+    }
+
+    private bool IsValidFile(string filePath)
     {
         try
         {
-            if (!File.Exists(filePath))
+            if (!fileSystem.File.Exists(filePath))
                 return false;
 
-            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var extension = fileSystem.Path.GetExtension(filePath).ToLowerInvariant();
             return SupportedExtensions.Contains(extension);
         }
         catch (Exception) when (!Debugger.IsAttached)
@@ -65,19 +60,22 @@ public class DragDropFeature(MainWindow window) : Feature(window)
         }
     }
 
-    private void HandleFileDropped(FileDroppedEvent e)
+    private void OpenFileTabs(string[] filePaths)
     {
-        foreach (var filePath in e.FilePaths)
+        var hasOpenedFirstTab = false;
+        foreach (var filePath in filePaths)
         {
             try
             {
                 var fileUri = new Uri(filePath).AbsoluteUri;
-                PubSub.Publish(new NavigationStartedEvent(fileUri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+                var shouldActivateTab = !hasOpenedFirstTab;
+                PubSub.Send(new StartNavigationCommand(fileUri, UseCurrentTab: false, SaveInHistory: true, ActivateTab: shouldActivateTab));
+                hasOpenedFirstTab = true;
             }
             catch (Exception ex) when (!Debugger.IsAttached)
             {
                 // Log error and continue with other files
-                System.Diagnostics.Debug.WriteLine($"Failed to process dropped file {filePath}: {ex.Message}");
+                Debug.WriteLine($"Failed to process dropped file {filePath}: {ex.Message}");
             }
         }
     }

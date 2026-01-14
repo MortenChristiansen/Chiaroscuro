@@ -1,13 +1,12 @@
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Tab;
 using BrowserHost.Utilities;
-using CefSharp;
 using System.Diagnostics;
 using System.Windows.Input;
 
 namespace BrowserHost.Features.DevTool;
 
-public class DevToolFeature(MainWindow window) : Feature(window)
+public class DevToolFeature(PubSub pubSub, IBrowserContext browserContext, DevToolWindowOperations windowOperations) : Feature(pubSub)
 {
     public override void Configure()
     {
@@ -32,7 +31,7 @@ public class DevToolFeature(MainWindow window) : Feature(window)
         // For some reason, F10 needs to be handled as SystemKey
         if ((e.Key == Key.F10 || e.SystemKey == Key.F10) && Debugger.IsAttached)
         {
-            ToggleTabPalettetDevTools();
+            ToggleTabPaletteDevTools();
             return true;
         }
 
@@ -41,34 +40,20 @@ public class DevToolFeature(MainWindow window) : Feature(window)
 
     private void ToggleDevTools()
     {
-        var currentTab = Window.CurrentTab;
-        if (currentTab == null) return;
-
-        ToggleDevTools(currentTab);
+        ToggleDevTools(browserContext.CurrentTab);
     }
 
     private void ToggleActionContextDevTools()
     {
-        ToggleDevTools(Window.ActionContext.GetBrowserHost());
+        windowOperations.ToggleActionContextDevTools();
     }
 
-    private void ToggleTabPalettetDevTools()
+    private void ToggleTabPaletteDevTools()
     {
-        ToggleDevTools(Window.TabPaletteBrowserControl.GetBrowserHost());
+        windowOperations.ToggleTabPaletteDevTools();
     }
 
-    private static void ToggleDevTools(IBrowserHost browserHost)
-    {
-        if (browserHost != null)
-        {
-            if (browserHost.HasDevTools)
-                browserHost.CloseDevTools();
-            else
-                browserHost.ShowDevTools();
-        }
-    }
-
-    private static void ToggleDevTools(TabBrowser? browser)
+    private static void ToggleDevTools(ITabBrowser? browser)
     {
         if (browser != null)
         {

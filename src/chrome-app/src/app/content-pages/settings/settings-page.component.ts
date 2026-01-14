@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { exposeApiToBackend, loadBackendApi } from '../../parts/interfaces/api';
+import { loadBackendApi } from '../../parts/interfaces/api';
 import {
   SettingField,
   SettingsApi,
@@ -9,6 +9,10 @@ import {
   PlainSettings,
 } from './settingsApi';
 import { settingsSchema } from './settings-schema';
+import {
+  isServerSideRendering,
+  normalizeBackendModel,
+} from '../../shared/utils';
 
 @Component({
   selector: 'settings-page',
@@ -177,16 +181,15 @@ export default class SettingsPageComponent implements OnInit {
   async ngOnInit() {
     this.api = await loadBackendApi<SettingsApi>('settingsApi');
 
-    this.api.settingsPageLoading();
+    if (isServerSideRendering()) return;
 
-    exposeApiToBackend({
-      settingsLoaded: (plain: PlainSettings) => {
-        const values = this.fromPlain(plain);
-        const normalized = this.withSchemaDefaults(values);
-        this.savedValues.set(normalized);
-        this.currentValues.set({ ...normalized });
-      },
-    });
+    const plainSettings = normalizeBackendModel(
+      await this.api.loadSettingsPage()
+    );
+    const values = this.fromPlain(plainSettings);
+    const normalized = this.withSchemaDefaults(values);
+    this.savedValues.set(normalized);
+    this.currentValues.set({ ...normalized });
   }
 
   asString(v: unknown): string {

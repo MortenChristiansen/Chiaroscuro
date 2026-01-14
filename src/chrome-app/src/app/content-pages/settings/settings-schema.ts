@@ -9,6 +9,14 @@ export const settingsSchema: SettingField[] = [
     placeholder: '',
   },
   {
+    key: 'enableGpuCompositing',
+    type: 'boolean',
+    name: 'Enable GPU Compositing (experimental)',
+    description:
+      'Attempts to enable GPU compositing in CefSharp by removing the disable-gpu-compositing switch. May improve video smoothness, but can cause flicker, black frames, or instability on some GPUs/drivers. Requires restart before taking effect.',
+    defaultValue: false,
+  },
+  {
     key: 'autoAddSsoDomains',
     type: 'boolean',
     name: 'Auto Add SSO Domains',

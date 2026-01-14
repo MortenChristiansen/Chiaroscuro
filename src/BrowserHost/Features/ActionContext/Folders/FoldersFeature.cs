@@ -7,11 +7,11 @@ using System.Windows.Input;
 
 namespace BrowserHost.Features.ActionContext.Folders;
 
-public class FoldersFeature(MainWindow window) : Feature(window)
+public class FoldersFeature(PubSub pubSub, IBrowserContext context, TabsBrowserApi tabsApi) : Feature(pubSub)
 {
     public override bool HandleOnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.G && Keyboard.Modifiers == ModifierKeys.Control)
+        if (e.Key == Key.G && context.CurrentKeyboardModifiers == ModifierKeys.Control)
         {
             ToggleCurrentTabFolder();
             return true;
@@ -22,9 +22,9 @@ public class FoldersFeature(MainWindow window) : Feature(window)
 
     private void ToggleCurrentTabFolder()
     {
-        var workspacesFeature = Window.GetFeature<WorkspacesFeature>();
+        var workspacesFeature = context.GetFeature<WorkspacesFeature>();
         var currentWorkspace = workspacesFeature.CurrentWorkspace;
-        var currentTab = Window.CurrentTab;
+        var currentTab = context.CurrentTab;
         if (currentTab == null) return;
 
         // Only bookmarked (persistent) tabs can be grouped
@@ -102,7 +102,7 @@ public class FoldersFeature(MainWindow window) : Feature(window)
     private void SaveFolders(FolderDtoV1[] folders, WorkspaceDtoV1 currentWorkspace)
     {
         // Persist the updated workspace state
-        PubSub.Publish(new TabsChangedEvent(
+        PubSub.Send(new ChangeTabsCommand(
             [..currentWorkspace.Tabs.Select(t => new TabUiStateDto(
                 t.TabId,
                 t.Title ?? "",
@@ -115,8 +115,8 @@ public class FoldersFeature(MainWindow window) : Feature(window)
         ));
 
         // Notify the frontend
-        var tabsFeature = Window.GetFeature<TabsFeature>();
-        Window.ActionContext.UpdateFolders(
+        var tabsFeature = context.GetFeature<TabsFeature>();
+        tabsApi.UpdateFolders(
             [.. folders.Select(f => new Tabs.FolderDto(f.Id, f.Name, f.StartIndex, f.EndIndex))]
         );
     }

@@ -8,7 +8,9 @@ using NuGet.Versioning;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Abstractions;
 using System.Runtime.Versioning;
+using Testably.Abstractions;
 using Velopack;
 
 namespace BrowserHost;
@@ -20,6 +22,10 @@ namespace BrowserHost;
 /// </summary>
 public class ProgramPublishSingleFile
 {
+    public static PubSub PubSub { get; } = new();
+    public static IFileSystem FileSystem { get; } = new RealFileSystem();
+    public static SettingsFeature SettingsFeature { get; private set; } = null!;
+
     [STAThread]
     [SupportedOSPlatform("windows")]
     public static int Main(string[] args)
@@ -53,7 +59,7 @@ public class ProgramPublishSingleFile
         if (App.Options.ForceAppRegistration)
             WindowsRegistrator.RegisterApplication(new SemanticVersion(0, 0, 0));
 
-        var appSettings = SettingsFeature.ExecutionSettings;
+        SettingsFeature = new SettingsFeature(PubSub, new SettingsStateManager(FileSystem));
 
         var cacheFolder = Debugger.IsAttached ? "CefSharp\\DevCache" : "CefSharp\\Cache";
 
@@ -62,8 +68,16 @@ public class ProgramPublishSingleFile
             //By default CefSharp will use an in-memory cache, you need to specify a Cache Folder to persist data
             CachePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), cacheFolder),
             BrowserSubprocessPath = Process.GetCurrentProcess().MainModule!.FileName,
-            UserAgent = appSettings.UserAgent ?? "",
         };
+
+        // Disabled by default: CefSharp.Wpf commonly injects `disable-gpu-compositing` for windowless rendering.
+        // Allow advanced users to opt in to removing it (may improve video smoothness, may cause rendering instability).
+        if (SettingsFeature.ExecutionSettings.EnableGpuCompositing == true)
+            settings.CefCommandLineArgs.Remove("disable-gpu-compositing");
+
+        var userAgent = SettingsFeature.ExecutionSettings.UserAgent;
+        if (!string.IsNullOrWhiteSpace(userAgent))
+            settings.UserAgent = userAgent;
 
         //Example of setting a command line argument
         //Enables WebRTC
@@ -77,6 +91,14 @@ public class ProgramPublishSingleFile
         //For screen sharing add (see https://bitbucket.org/chromiumembedded/cef/issues/2582/allow-run-time-handling-of-media-access#comment-58677180)
         settings.CefCommandLineArgs.Add("enable-usermedia-screen-capturing");
 
+        // Prevent Chromium from incorrectly throttling/downsizing video when it believes the window is occluded
+        // (common in embedded/overlay-heavy hosts).
+        settings.CefCommandLineArgs.Add("disable-features", "CalculateNativeWinOcclusion");
+
+        // Avoid background throttling that can cause playback stutter / aggressive quality drops.
+        settings.CefCommandLineArgs.Add("disable-background-timer-throttling");
+        settings.CefCommandLineArgs.Add("disable-renderer-backgrounding");
+
         //Don't perform a dependency check
         //By default this example calls Cef.Initialize in the CefSharp.MinimalExample.Wpf.App
         //constructor for purposes of providing a self contained single file example we call it here.
@@ -84,7 +106,7 @@ public class ProgramPublishSingleFile
         //set BrowserSubprocessPath to an absolute path to your main application exe.
         using (Measure.Operation("Performing Cef initialization"))
         {
-            Cef.Initialize(settings, performDependencyCheck: false, new BrowserProcessHandler());
+            Cef.Initialize(settings, performDependencyCheck: false, new BrowserProcessHandler(PubSub));
         }
 
         var app = new App();

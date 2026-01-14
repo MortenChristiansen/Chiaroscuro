@@ -18,11 +18,13 @@ using BrowserHost.Features.TabPalette.TabCustomization;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Logging;
 using BrowserHost.Tab;
+using BrowserHost.Utilities;
 using BrowserHost.XamlUtilities;
 using CefSharp.Wpf;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Abstractions;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -30,6 +32,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Testably.Abstractions;
 using Velopack;
 using Measurement = BrowserHost.Logging.Measure;
 
@@ -40,9 +43,17 @@ public partial class MainWindow : Window
     private readonly List<Feature> _features;
     private bool _tabPaletteHasBeenShown;
     private const int CornerRadiusDip = 8;
+    private readonly AppStateStateManager _appStateStateManager;
+
+    public CustomWindowChromeBrowser ChromeUI { get; }
+    public ActionContextBrowser ActionContext { get; }
+    public TabPaletteBrowser TabPaletteBrowserControl { get; }
+    public ActionDialogBrowser ActionDialog { get; }
 
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
+
+    public ChromiumWebBrowser ActionDialogUi => ActionDialog;
 
     public static MainWindow Instance { get; private set; } = null!; // Initialized in constructor
 
@@ -56,33 +67,92 @@ public partial class MainWindow : Window
         set => SetValue(WorkspaceColorProperty, value);
     }
 
+    public CustomWindowChromeBrowserApi CustomWindowChromeBrowserApi { get; }
+    public ActionDialogBrowserApi ActionDialogBrowserApi { get; }
+    public TabsBrowserApi TabsBrowserApi { get; }
+    public PinnedTabsBrowserApi PinnedTabsBrowserApi { get; }
+    public DownloadsBrowserApi DownloadsBrowserApi { get; }
+    public WorkspacesBrowserApi WorkspacesBrowserApi { get; }
+    public FindTextBrowserApi FindTextBrowserApi { get; }
+    public DomainCustomizationBrowserApi DomainCustomizationBrowserApi { get; }
+    public TabPaletteBrowserApi TabPaletteBrowserApi { get; }
+    public TabCustomizationBrowserApi TabCustomizationBrowserApi { get; }
+
     public MainWindow()
+        : this(App.SettingsFeature, App.PubSub, App.FileSystem, browserContext: null, enableUpdateCheck: true, startContentServer: true)
+    {
+    }
+
+    public MainWindow(SettingsFeature settingsFeature, PubSub pubSub, IFileSystem fileSystem, IBrowserContext? browserContext, bool enableUpdateCheck, bool startContentServer)
     {
         InitializeComponent();
 
-        // Defer update check until the window is fully initialized (owner is non-null).
-        // Queued at ContextIdle to avoid competing with startup work.
-        Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, CheckForUpdates);
+        ChromeUI = new CustomWindowChromeBrowser(pubSub);
+        ActionContext = new ActionContextBrowser(pubSub);
+        TabPaletteBrowserControl = new TabPaletteBrowser(pubSub)
+        {
+            Visibility = Visibility.Collapsed
+        };
+        ActionDialog = new ActionDialogBrowser(pubSub)
+        {
+            Visibility = Visibility.Hidden
+        };
+
+        ChromeUIHost.Content = ChromeUI;
+        ActionContextHost.Content = ActionContext;
+        TabPaletteBrowserHost.Content = TabPaletteBrowserControl;
+        ActionDialogHost.Content = ActionDialog;
+
+        if (enableUpdateCheck)
+        {
+            // Defer update check until the window is fully initialized (owner is non-null).
+            // Queued at ContextIdle to avoid competing with startup work.
+            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, CheckForUpdates);
+        }
+
+        CustomWindowChromeBrowserApi = new CustomWindowChromeBrowserApi(ChromeUI);
+        ActionDialogBrowserApi = new ActionDialogBrowserApi(ActionDialog);
+        TabsBrowserApi = new TabsBrowserApi(ActionContext);
+        PinnedTabsBrowserApi = new PinnedTabsBrowserApi(ActionContext);
+        DownloadsBrowserApi = new DownloadsBrowserApi(ActionContext);
+        WorkspacesBrowserApi = new WorkspacesBrowserApi(ActionContext);
+        FindTextBrowserApi = new FindTextBrowserApi(TabPaletteBrowserControl);
+        DomainCustomizationBrowserApi = new DomainCustomizationBrowserApi(TabPaletteBrowserControl);
+        TabPaletteBrowserApi = new TabPaletteBrowserApi(TabPaletteBrowserControl);
+        TabCustomizationBrowserApi = new TabCustomizationBrowserApi(TabPaletteBrowserControl);
+
+        browserContext ??= new BrowserContext(this);
+
+        var timeSystem = new RealTimeSystem();
+        var shellFileOpener = new ShellFileOpener();
+
+        var customWindowChromeWindowOperations = new CustomWindowChromeWindowOperations(this);
+        var actionDialogWindowOperations = new ActionDialogWindowOperations(this);
+        var actionContextWindowOperations = new ActionContextWindowOperations(this);
+        var tabPaletteWindowOperations = new TabPaletteWindowOperations(this);
+        var devToolWindowOperations = new DevToolWindowOperations(this);
+
+        _appStateStateManager = new AppStateStateManager(fileSystem);
 
         _features =
         [
-            new SettingsFeature(this),
-            new CustomWindowChromeFeature(this),
-            new ActionContextFeature(this),
-            new ActionDialogFeature(this),
-            new TabsFeature(this),
-            new PinnedTabsFeature(this),
-            new DevToolFeature(this),
-            new FileDownloadsFeature(this),
-            new ZoomFeature(this),
-            new DragDropFeature(this),
-            new WorkspacesFeature(this),
-            new FoldersFeature(this),
-            new TabPaletteFeature(this),
-            new FindTextFeature(this),
-            new TabCustomizationFeature(this),
-            new DomainCustomizationFeature(this),
-            new AppStateFeature(this),
+            settingsFeature,
+            new CustomWindowChromeFeature(pubSub, browserContext, CustomWindowChromeBrowserApi, customWindowChromeWindowOperations),
+            new ActionContextFeature(pubSub, browserContext, actionContextWindowOperations),
+            new ActionDialogFeature(pubSub, browserContext, ActionDialogBrowserApi, new NavigationHistoryStateManager(fileSystem), actionDialogWindowOperations),
+            new TabsFeature(pubSub, browserContext, TabsBrowserApi),
+            new PinnedTabsFeature(pubSub, browserContext, TabsBrowserApi, PinnedTabsBrowserApi, new PinnedTabsStateManager(fileSystem)),
+            new DevToolFeature(pubSub, browserContext, devToolWindowOperations),
+            new FileDownloadsFeature(pubSub, DownloadsBrowserApi, timeSystem),
+            new ZoomFeature(pubSub, browserContext),
+            new DragDropFeature(pubSub, browserContext, fileSystem),
+            new WorkspacesFeature(pubSub, browserContext, WorkspacesBrowserApi, TabsBrowserApi, new WorkspaceStateManager(pubSub, fileSystem)),
+            new FoldersFeature(pubSub, browserContext, TabsBrowserApi),
+            new TabPaletteFeature(pubSub, browserContext, TabPaletteBrowserApi, tabPaletteWindowOperations),
+            new FindTextFeature(pubSub, browserContext, FindTextBrowserApi, tabPaletteWindowOperations),
+            new TabCustomizationFeature(pubSub, browserContext, TabCustomizationBrowserApi, TabsBrowserApi, new TabCustomizationStateManager(fileSystem)),
+            new DomainCustomizationFeature(pubSub, browserContext, DomainCustomizationBrowserApi, new DomainCustomizationStateManager(fileSystem, shellFileOpener)),
+            new AppStateFeature(pubSub, actionContextWindowOperations, tabPaletteWindowOperations, _appStateStateManager),
         ];
         _features.ForEach(f =>
         {
@@ -92,10 +162,14 @@ public partial class MainWindow : Window
             }
         });
 
-        using (Measurement.Operation("Starting content server"))
+        if (startContentServer)
         {
-            ContentServer.Run();
+            using (Measurement.Operation("Starting content server"))
+            {
+                ContentServer.Run();
+            }
         }
+
         Instance = this;
     }
 
@@ -229,7 +303,7 @@ public partial class MainWindow : Window
             CurrentTab.AddressChanged -= Tab_AddressChanged;
 
         WebContentBorder.Child = tab;
-        ChromeUI.ChangeAddress(GetAddressForPresentation(tab?.Address));
+        CustomWindowChromeBrowserApi.ChangeAddress(GetAddressForPresentation(tab?.Address));
 
         if (tab != null)
             tab.AddressChanged += Tab_AddressChanged;
@@ -237,7 +311,7 @@ public partial class MainWindow : Window
 
     private void Tab_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        ChromeUI.ChangeAddress(GetAddressForPresentation($"{e.NewValue}"));
+        CustomWindowChromeBrowserApi.ChangeAddress(GetAddressForPresentation($"{e.NewValue}"));
     }
 
     private static string? GetAddressForPresentation(string? address)
@@ -312,7 +386,7 @@ public partial class MainWindow : Window
         if (TabPaletteBrowserControl.Visibility == Visibility.Visible)
             return;
 
-        var savedWidth = AppStateStateManager.GetAppState().TabPaletteWidth;
+        var savedWidth = _appStateStateManager.GetAppState().TabPaletteWidth;
         TabPaletteColumn.Width = new GridLength(savedWidth > 0 ? savedWidth : 350);
 
         if (!_tabPaletteHasBeenShown)

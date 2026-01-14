@@ -274,7 +274,7 @@ import {
 })
 export default class ActionDialogComponent implements OnInit {
   private readonly suggestionDebounceDelay = 300;
-  readonly dialog = viewChild<ElementRef<HTMLInputElement>>('dialog');
+  readonly dialog = viewChild.required<ElementRef<HTMLInputElement>>('dialog');
   readonly inputValue = signal('');
   readonly suggestions = signal<NavigationSuggestion[]>([]);
   readonly activeSuggestionIndex = signal<number>(-1);
@@ -419,7 +419,7 @@ export default class ActionDialogComponent implements OnInit {
         this.suppressInitialSelection.set(true);
         this.actionType.set(null);
         this.actionTypeRequestId++;
-        setTimeout(() => this.dialog()?.nativeElement.focus(), 0);
+        setTimeout(() => this.dialog().nativeElement.focus(), 0);
       },
       updateSuggestions: (suggestions: NavigationSuggestion[]) => {
         this.hasManualNavigation.set(false);
