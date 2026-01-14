@@ -10,7 +10,7 @@ public class SettingsStateManagerTests
     {
         var fileSystem = new MockFileSystem();
         var manager = new SettingsStateManager(fileSystem);
-        var settings = new SettingsDataV1("UA", ["a.com", "b.com"], true);
+        var settings = new SettingsDataV1("UA", ["a.com", "b.com"], true, EnableGpuCompositing: true);
 
         manager.SaveSettings(settings);
 
@@ -18,6 +18,7 @@ public class SettingsStateManagerTests
         Assert.Equal("UA", restored.UserAgent);
         Assert.Equal(new[] { "a.com", "b.com" }, restored.SsoEnabledDomains);
         Assert.True(restored.AutoAddSsoDomains);
+        Assert.True(restored.EnableGpuCompositing);
     }
 
     [Fact]
@@ -26,13 +27,13 @@ public class SettingsStateManagerTests
         var fileSystem = new MockFileSystem();
         var manager = new SettingsStateManager(fileSystem);
         var settingsPath = SettingsStateManager.PersistedStatePath;
-        var settings = new SettingsDataV1("UA", ["a.com"], false);
+        var settings = new SettingsDataV1("UA", ["a.com"], false, false);
         manager.SaveSettings(settings);
         var expectedWriteTime = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         fileSystem.File.SetLastWriteTimeUtc(settingsPath, expectedWriteTime);
         var expectedContents = fileSystem.File.ReadAllText(settingsPath);
 
-        manager.SaveSettings(new SettingsDataV1("UA", ["a.com"], false));
+        manager.SaveSettings(new SettingsDataV1("UA", ["a.com"], false, false));
 
         Assert.Equal(expectedWriteTime, fileSystem.File.GetLastWriteTimeUtc(settingsPath));
         Assert.Equal(expectedContents, fileSystem.File.ReadAllText(settingsPath));

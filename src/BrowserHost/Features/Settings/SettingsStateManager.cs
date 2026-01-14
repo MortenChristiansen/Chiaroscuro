@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace BrowserHost.Features.Settings;
 
-public record SettingsDataV1(string? UserAgent, string[]? SsoEnabledDomains, bool? AutoAddSsoDomains);
+public record SettingsDataV1(string? UserAgent, string[]? SsoEnabledDomains, bool? AutoAddSsoDomains, bool? EnableGpuCompositing);
 
 public class SettingsStateManager(IFileSystem fileSystem)
 {
@@ -77,7 +77,7 @@ public class SettingsStateManager(IFileSystem fileSystem)
             {
                 Debug.WriteLine($"Failed to restore settings state: {e.Message}");
             }
-            return _lastSavedSettingsData ?? new SettingsDataV1(null, [], false);
+            return _lastSavedSettingsData ?? new SettingsDataV1(null, [], false, false);
         }
     }
 
@@ -89,6 +89,8 @@ public class SettingsStateManager(IFileSystem fileSystem)
         if (!DataComparisons.AreArraysEqual(a.SsoEnabledDomains, b.SsoEnabledDomains))
             return false;
         if (a.AutoAddSsoDomains != b.AutoAddSsoDomains)
+            return false;
+        if (a.EnableGpuCompositing != b.EnableGpuCompositing)
             return false;
         return true;
     }
