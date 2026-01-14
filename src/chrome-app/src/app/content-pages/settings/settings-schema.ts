@@ -13,7 +13,7 @@ export const settingsSchema: SettingField[] = [
     type: 'boolean',
     name: 'Enable GPU Compositing (experimental)',
     description:
-      'Attempts to enable GPU compositing in CefSharp by removing the disable-gpu-compositing switch. May improve video smoothness, but can cause flicker, black frames, or instability on some GPUs/drivers.',
+      'Attempts to enable GPU compositing in CefSharp by removing the disable-gpu-compositing switch. May improve video smoothness, but can cause flicker, black frames, or instability on some GPUs/drivers. Requires restart before taking effect.',
     defaultValue: false,
   },
   {
