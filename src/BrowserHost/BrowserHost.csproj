@@ -48,6 +48,7 @@
     <!-- Include our native files in the resulting exe -->
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+	  <BundleCompressionLevel>fastest</BundleCompressionLevel>
     <StartupObject>BrowserHost.ProgramPublishSingleFile</StartupObject>
 	<CefSharpExcludeSubProcessExe>true</CefSharpExcludeSubProcessExe>
   </PropertyGroup>
