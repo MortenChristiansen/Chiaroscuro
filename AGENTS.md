@@ -4,6 +4,8 @@ This is a C# + Typescript repository for a Windows-only custom browser.
 - **Frontend/chrome UI:** Angular app used for the window chrome + overlays (action dialog, context panels, settings UI, etc.).
 - **Integration:** The Angular UI is loaded into embedded Chromium instances and communicates with the host via a small JS bridge.
 
+The .context folder is ignored by git. Use it to store any temporary files you use yo keep track of your work.
+
 ## Repository Structure
 
 - `src/`: Source code for entire application.

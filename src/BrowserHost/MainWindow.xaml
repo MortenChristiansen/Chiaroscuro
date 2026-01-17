@@ -35,15 +35,42 @@
                         ResizeBehavior="PreviousAndNext"
                         ResizeDirection="Columns"
                         ShowsPreview="False"/>
-                    <Border x:Name="WebContentBorder" Grid.Column="2" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#04FFFFFF">
-                        <Border.Clip>
-                            <MultiBinding Converter="{StaticResource BorderClipConverter}">
-                                <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
-                                <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
-                                <Binding Path="CornerRadius" RelativeSource="{RelativeSource Self}"/>
-                            </MultiBinding>
-                        </Border.Clip>
-                    </Border>
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition x:Name="TerminalSplitterRow" Height="0" />
+                            <RowDefinition x:Name="TerminalRow" Height="0" />
+                        </Grid.RowDefinitions>
+                        <Border x:Name="WebContentBorder" Grid.Row="0" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#04FFFFFF">
+                            <Border.Clip>
+                                <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                    <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
+                                    <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
+                                    <Binding Path="CornerRadius" RelativeSource="{RelativeSource Self}"/>
+                                </MultiBinding>
+                            </Border.Clip>
+                        </Border>
+                        <GridSplitter x:Name="TerminalGridSplitter"
+                            Grid.Row="1"
+                            Height="6"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            Background="Transparent"
+                            ResizeBehavior="PreviousAndNext"
+                            ResizeDirection="Rows"
+                            ShowsPreview="False"
+                            Visibility="Collapsed"/>
+                        <Border x:Name="TerminalBorder" Grid.Row="2" CornerRadius="8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <Border.Clip>
+                                <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                    <Binding Path="ActualWidth" RelativeSource="{RelativeSource Self}"/>
+                                    <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
+                                    <Binding Path="CornerRadius" RelativeSource="{RelativeSource Self}"/>
+                                </MultiBinding>
+                            </Border.Clip>
+                            <ContentControl x:Name="TerminalBrowserHost" />
+                        </Border>
+                    </Grid>
                     <GridSplitter x:Name="TabPaletteGridSplitter"
                         Grid.Column="3"
                         Width="8"

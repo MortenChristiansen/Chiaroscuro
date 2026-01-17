@@ -7,6 +7,7 @@ using BrowserHost.Features.ActionDialog;
 using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.ActionContext.Workspaces;
 using BrowserHost.Features.TabPalette.TabCustomization;
+using BrowserHost.Features.TabPalette.LocalWebApp;
 using BrowserHost.Utilities;
 
 namespace BrowserHost.Serialization;
@@ -35,6 +36,9 @@ namespace BrowserHost.Serialization;
 [JsonSerializable(typeof(FolderDtoV1))]
 [JsonSerializable(typeof(PersistentData<TabCustomizationDataV1>))]
 [JsonSerializable(typeof(TabCustomizationDataV1))]
+[JsonSerializable(typeof(PersistentData<LocalWebAppDataV1>))]
+[JsonSerializable(typeof(LocalWebAppDataV1))]
+[JsonSerializable(typeof(LocalWebAppConfigV1))]
 public partial class BrowserHostJsonContext : JsonSerializerContext
 {
 }

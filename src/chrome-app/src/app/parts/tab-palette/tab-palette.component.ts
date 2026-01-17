@@ -4,12 +4,14 @@ import {
   faGlobe,
   faMagnifyingGlass,
   faPalette,
+  faServer,
   faWindowRestore,
 } from '@fortawesome/free-solid-svg-icons';
 import { TabPaletteSectionComponent } from './containers/palette-section.component';
 import { TabTextSearchComponent } from './controls/tab-text-search.component';
 import { TabCustomizationEditorComponent } from './tab-customization-editor.component';
 import { DomainCssEditorComponent } from './controls/domain-css-editor.component';
+import { LocalWebAppEditorComponent } from './local-web-app/local-web-app-editor.component';
 import { exposeApiToBackend } from '../interfaces/api';
 
 @Component({
@@ -45,6 +47,10 @@ import { exposeApiToBackend } from '../interfaces/api';
         >
           <domain-css-editor />
         </tab-palette-section>
+
+        <tab-palette-section [title]="'Local Web App'" [icon]="serverIcon">
+          <local-web-app-editor />
+        </tab-palette-section>
       </div>
     </section>
   `,
@@ -60,6 +66,7 @@ import { exposeApiToBackend } from '../interfaces/api';
     TabTextSearchComponent,
     TabCustomizationEditorComponent,
     DomainCssEditorComponent,
+    LocalWebAppEditorComponent,
   ],
 })
 export default class TabPaletteComponent implements OnInit {
@@ -67,6 +74,7 @@ export default class TabPaletteComponent implements OnInit {
   protected readonly domainIcon = faGlobe;
   protected readonly tabIcon = faWindowRestore;
   protected readonly searchIcon = faMagnifyingGlass;
+  protected readonly serverIcon = faServer;
 
   currentDomain = signal<string | undefined>(undefined);
 

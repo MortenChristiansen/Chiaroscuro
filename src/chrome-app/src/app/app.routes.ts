@@ -30,6 +30,11 @@ export const routes: Routes = [
     title: 'ChromeApp',
   },
   {
+    path: 'terminal',
+    loadComponent: () => import('./parts/terminal/terminal-overlay.component'),
+    title: 'ChromeApp',
+  },
+  {
     path: 'settings',
     loadComponent: () =>
       import('./content-pages/settings/settings-page.component'),

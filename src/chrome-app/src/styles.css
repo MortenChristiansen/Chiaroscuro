@@ -1,6 +1,25 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import "tailwindcss";
+@import "@xterm/xterm/css/xterm.css";
+
+/* Xterm scrollbar styling */
+.xterm-viewport::-webkit-scrollbar {
+  width: 8px;
+}
+
+.xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 4px;
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
 
 html,
 body {
@@ -22,6 +41,16 @@ body {
 
 ::placeholder {
   color: grey;
+}
+
+/* Remove default focus outlines */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid rgba(56, 189, 248, 0.5);
+  outline-offset: 2px;
 }
 
 /* Animation */

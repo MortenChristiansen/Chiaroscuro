@@ -355,3 +355,4 @@ src/BrowserHost/chrome-app/**
 
 # AI
 .claude/settings.local.json
+.context

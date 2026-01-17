@@ -115,6 +115,7 @@ public static class ContentServer
         var chromeAppActionContext = Path.Combine(chromeAppRoot, "action-context");
         var chromeAppTabPalette = Path.Combine(chromeAppRoot, "tab-palette");
         var chromeAppContextMenu = Path.Combine(chromeAppRoot, "context-menu");
+        var chromeAppTerminal = Path.Combine(chromeAppRoot, "terminal");
         var chromeAppSettings = Path.Combine(chromeAppRoot, "settings");
 
         return new WebServer(o => o
@@ -126,6 +127,7 @@ public static class ContentServer
         .WithStaticFolder("/action-context", chromeAppActionContext, true, m => m.WithContentCaching())
         .WithStaticFolder("/tab-palette", chromeAppTabPalette, true, m => m.WithContentCaching())
         .WithStaticFolder("/context-menu", chromeAppContextMenu, true, m => m.WithContentCaching())
+        .WithStaticFolder("/terminal", chromeAppTerminal, true, m => m.WithContentCaching())
         .WithStaticFolder("/settings", chromeAppSettings, true, m => m.WithContentCaching())
         ;
     }
