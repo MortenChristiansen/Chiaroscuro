@@ -49,10 +49,10 @@ public class TerminalFeature : Feature
             return false;
         }
 
-        // Handle backtick/section key (Backquote or IntlBackslash depending on keyboard layout)
-        if (e.Key == Key.Oem5 || e.Key == Key.OemTilde || e.Key == Key.Oem3)
+        // Handle the '½' key
+        if (e.Key == Key.Oem5)
         {
-            // Check for ½ or § key (no modifiers)
+            // Check for ½ key (no modifiers)
             if (Keyboard.Modifiers == ModifierKeys.None)
             {
                 ToggleTerminal();
