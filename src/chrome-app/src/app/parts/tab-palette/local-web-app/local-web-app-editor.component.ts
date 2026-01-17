@@ -26,92 +26,99 @@ import { TabPaletteControlSectionComponent } from '../containers/control-section
   template: `
     <tab-palette-control-section [title]="'Local Web App'" [icon]="serverIcon">
       @if (tabId()) {
-      <div
-        class="rounded-lg border border-slate-800/70 bg-slate-950/40 p-3 shadow-inner"
-      >
-        <div class="flex flex-col gap-3">
-          <!-- Directory input -->
-          <div class="flex flex-col gap-1">
-            <label class="text-xs text-slate-400">Project directory</label>
-            <div class="flex gap-2">
+        <div
+          class="rounded-lg border border-slate-800/70 bg-slate-950/40 p-3 shadow-inner"
+        >
+          <div class="flex flex-col gap-3">
+            <!-- Directory input -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-slate-400">Project directory</label>
+              <div class="flex gap-2">
+                <input
+                  #dirInput
+                  type="text"
+                  class="flex-1 rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-1.5 text-sm text-slate-100 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-500/40"
+                  placeholder="/path/to/project"
+                  [value]="directoryPath()"
+                  (input)="onDirectoryChange(dirInput.value)"
+                  spellcheck="false"
+                />
+                <icon-button
+                  title="Browse for directory"
+                  (click)="browseDirectory()"
+                >
+                  <fa-icon class="text-sky-300" [icon]="folderIcon" />
+                </icon-button>
+              </div>
+            </div>
+
+            <!-- Command input -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-slate-400">Start command</label>
               <input
-                #dirInput
+                #cmdInput
                 type="text"
-                class="flex-1 rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-1.5 text-sm text-slate-100 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-500/40"
-                placeholder="/path/to/project"
-                [value]="directoryPath()"
-                (input)="onDirectoryChange(dirInput.value)"
+                class="w-full rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-1.5 text-sm text-slate-100 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-500/40"
+                placeholder="npm start"
+                [value]="startCommand()"
+                (input)="onCommandChange(cmdInput.value)"
                 spellcheck="false"
               />
-              <icon-button title="Browse for directory" (click)="browseDirectory()">
-                <fa-icon class="text-sky-300" [icon]="folderIcon" />
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-2">
+              <icon-button
+                title="Save configuration"
+                (click)="saveConfig()"
+                [disabled]="!canSave()"
+              >
+                <fa-icon class="text-sky-300" [icon]="saveIcon" />
               </icon-button>
+
+              @if (hasConfig()) {
+                <icon-button
+                  title="Delete configuration"
+                  (click)="deleteConfig()"
+                >
+                  <fa-icon class="text-rose-300" [icon]="deleteIcon" />
+                </icon-button>
+              }
+
+              @if (hasErrors()) {
+                <fa-icon
+                  class="text-amber-400"
+                  [icon]="errorIcon"
+                  title="Process has errors - check terminal"
+                />
+              }
             </div>
           </div>
 
-          <!-- Command input -->
-          <div class="flex flex-col gap-1">
-            <label class="text-xs text-slate-400">Start command</label>
-            <input
-              #cmdInput
-              type="text"
-              class="w-full rounded-md border border-slate-800/80 bg-slate-950/60 px-3 py-1.5 text-sm text-slate-100 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-500/40"
-              placeholder="npm start"
-              [value]="startCommand()"
-              (input)="onCommandChange(cmdInput.value)"
-              spellcheck="false"
-            />
-          </div>
-
-          <!-- Actions -->
-          <div class="flex items-center gap-2">
-            <icon-button
-              title="Save configuration"
-              (click)="saveConfig()"
-              [disabled]="!canSave()"
-            >
-              <fa-icon class="text-sky-300" [icon]="saveIcon" />
-            </icon-button>
-
-            @if (hasConfig()) {
-            <icon-button title="Delete configuration" (click)="deleteConfig()">
-              <fa-icon class="text-rose-300" [icon]="deleteIcon" />
-            </icon-button>
-            }
-
-            @if (hasErrors()) {
-            <fa-icon
-              class="text-amber-400"
-              [icon]="errorIcon"
-              title="Process has errors - check terminal"
-            />
+          <!-- Status -->
+          <div class="mt-3 text-xs">
+            @if (isRunning()) {
+              <span class="text-emerald-400">
+                <fa-icon [icon]="playIcon" class="mr-1" /> Process is running
+              </span>
+            } @else if (hasConfig()) {
+              <span class="text-amber-300">
+                <fa-icon [icon]="stopIcon" class="mr-1" /> Process will start
+                when tab is activated
+              </span>
+            } @else {
+              <span class="text-slate-500">
+                Configure a local dev server to auto-start with this tab.
+              </span>
             }
           </div>
         </div>
-
-        <!-- Status -->
-        <div class="mt-3 text-xs">
-          @if (isRunning()) {
-          <span class="text-emerald-400">
-            <fa-icon [icon]="playIcon" class="mr-1" /> Process is running
-          </span>
-          } @else if (hasConfig()) {
-          <span class="text-amber-300">
-            <fa-icon [icon]="stopIcon" class="mr-1" /> Process will start when tab is activated
-          </span>
-          } @else {
-          <span class="text-slate-500">
-            Configure a local dev server to auto-start with this tab.
-          </span>
-          }
-        </div>
-      </div>
       } @else {
-      <div
-        class="rounded-lg border border-slate-800/70 bg-slate-950/40 p-3 text-xs text-slate-500"
-      >
-        Select a bookmarked or pinned tab to configure local web app settings.
-      </div>
+        <div
+          class="rounded-lg border border-slate-800/70 bg-slate-950/40 p-3 text-xs text-slate-500"
+        >
+          Select a bookmarked or pinned tab to configure local web app settings.
+        </div>
       }
     </tab-palette-control-section>
   `,
@@ -147,7 +154,7 @@ export class LocalWebAppEditorComponent implements OnInit {
         directoryPath: string | null,
         startCommand: string | null,
         isRunning: boolean,
-        hasErrors: boolean
+        hasErrors: boolean,
       ) => {
         this.tabId.set(tabId);
         this.directoryPath.set(directoryPath ?? '');
@@ -159,12 +166,12 @@ export class LocalWebAppEditorComponent implements OnInit {
       updateLocalWebAppConfig: (
         tabId: string,
         directoryPath: string,
-        startCommand: string | null
+        startCommand: string | null,
       ) => {
         if (this.tabId() === tabId) {
           this.directoryPath.set(directoryPath);
           this.startCommand.set(startCommand ?? '');
-          this.hasConfig.set(true);
+          this.hasConfig.set(!!directoryPath);
         }
       },
       clearLocalWebAppConfig: (tabId: string) => {
@@ -184,7 +191,7 @@ export class LocalWebAppEditorComponent implements OnInit {
       updateLocalWebAppProcessStatus: (
         tabId: string,
         isRunning: boolean,
-        hasErrors: boolean
+        hasErrors: boolean,
       ) => {
         if (this.tabId() === tabId) {
           this.isRunning.set(isRunning);

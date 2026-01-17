@@ -40,9 +40,6 @@ public class LocalWebAppProcessManager(PubSub pubSub) : IDisposable
             // Stop existing process if any
             StopProcessInternal(tabId);
 
-            if (string.IsNullOrWhiteSpace(config.StartCommand))
-                return;
-
             if (string.IsNullOrWhiteSpace(config.DirectoryPath) || !Directory.Exists(config.DirectoryPath))
             {
                 _hasErrors[tabId] = true;
@@ -50,12 +47,16 @@ public class LocalWebAppProcessManager(PubSub pubSub) : IDisposable
                 return;
             }
 
+            var startCommand = string.IsNullOrWhiteSpace(config.StartCommand)
+                ? "npm start"
+                : config.StartCommand;
+
             try
             {
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/c {config.StartCommand}",
+                    Arguments = $"/c {startCommand}",
                     WorkingDirectory = config.DirectoryPath,
                     UseShellExecute = false,
                     CreateNoWindow = true,

@@ -36,7 +36,7 @@ public class LocalWebAppFeature : Feature
             _browserApi.UpdateConfig(config.TabId, config.DirectoryPath, config.StartCommand);
 
             // Start process immediately if this is the current tab and has a start command
-            if (_browserContext.CurrentTab?.Id == cmd.TabId && !string.IsNullOrWhiteSpace(cmd.StartCommand))
+            if (_browserContext.CurrentTab?.Id == cmd.TabId && !string.IsNullOrWhiteSpace(cmd.DirectoryPath))
             {
                 _processManager.StartProcess(cmd.TabId, config);
             }
@@ -92,7 +92,7 @@ public class LocalWebAppFeature : Feature
     private void OnTabActivated(string tabId)
     {
         var config = _stateManager.GetConfig(tabId);
-        if (config != null && !string.IsNullOrWhiteSpace(config.StartCommand) && !_processManager.IsRunning(tabId))
+        if (config != null && !_processManager.IsRunning(tabId))
         {
             _processManager.StartProcess(tabId, config);
         }
@@ -101,16 +101,6 @@ public class LocalWebAppFeature : Feature
     private void OnTabClosed(string tabId)
     {
         _processManager.StopProcess(tabId);
-
-        var config = _stateManager.GetConfig(tabId);
-        if (config == null)
-        {
-            return;
-        }
-
-        _stateManager.DeleteConfig(tabId);
-        PubSub.Publish(new LocalWebAppConfigDeletedEvent(tabId));
-        _browserApi.ClearConfig(tabId);
     }
 
     private void InitializePalette()
