@@ -352,3 +352,6 @@ MigrationBackup/
 
 # Angular build output
 src/BrowserHost/chrome-app/**
+
+# AI
+.claude/settings.local.json
