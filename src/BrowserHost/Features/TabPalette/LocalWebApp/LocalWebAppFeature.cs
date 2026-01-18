@@ -1,4 +1,5 @@
 using BrowserHost.Features.ActionContext.Tabs;
+using BrowserHost.Features.AppState;
 using BrowserHost.Utilities;
 using System;
 using System.Threading.Tasks;
@@ -77,6 +78,8 @@ public class LocalWebAppFeature : Feature
         PubSub.Subscribe<LocalWebAppProcessStoppedEvent>(e => UpdateProcessStatus(e.TabId));
         PubSub.Subscribe<LocalWebAppProcessErrorEvent>(e => UpdateProcessStatus(e.TabId));
 
+        PubSub.Subscribe<BrowserHostClosingEvent>(_ => _processManager.StopAllProcesses());
+
         // Init palette with current config
         PubSub.Subscribe<TabPaletteRequestedEvent>(_ => InitializePalette());
 
@@ -133,8 +136,4 @@ public class LocalWebAppFeature : Feature
         var hasErrors = _processManager.HasErrors(tabId);
         _browserApi.UpdateProcessStatus(tabId, isRunning, hasErrors);
     }
-
-    public bool HasErrorsForTab(string tabId) => _processManager.HasErrors(tabId);
-    public bool IsProcessRunning(string tabId) => _processManager.IsRunning(tabId);
-    public LocalWebAppConfigV1? GetConfig(string tabId) => _stateManager.GetConfig(tabId);
 }

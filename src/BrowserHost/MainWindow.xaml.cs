@@ -47,6 +47,7 @@ public partial class MainWindow : Window
     private const int CornerRadiusDip = 8;
     private readonly AppStateStateManager _appStateStateManager;
     private readonly LocalWebAppProcessManager _localWebAppProcessManager;
+    private readonly PubSub _pubSub;
 
     public CustomWindowChromeBrowser ChromeUI { get; }
     public ActionContextBrowser ActionContext { get; }
@@ -144,8 +145,9 @@ public partial class MainWindow : Window
         var actionContextWindowOperations = new ActionContextWindowOperations(this);
         var tabPaletteWindowOperations = new TabPaletteWindowOperations(this);
         var devToolWindowOperations = new DevToolWindowOperations(this);
-        var terminalWindowOperations = new TerminalWindowOperations(this, TerminalRow, TerminalSplitterRow, TerminalBrowserControl, TerminalGridSplitter);
+        var terminalWindowOperations = new TerminalWindowOperations(this);
 
+        _pubSub = pubSub;
         _appStateStateManager = new AppStateStateManager(fileSystem);
         _localWebAppProcessManager = new LocalWebAppProcessManager(pubSub);
 
@@ -309,8 +311,7 @@ public partial class MainWindow : Window
             downloadsFeature.CancelAllActiveDownloads();
         }
 
-        // Stop all local web app processes
-        _localWebAppProcessManager.Dispose();
+        _pubSub.Publish(new BrowserHostClosingEvent());
 
         LoggingService.SafeFlushLogsOnShutdown();
 

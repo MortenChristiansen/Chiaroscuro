@@ -2,7 +2,7 @@
 
 ## Overview
 
-Provides a slide-out terminal that allows you to interact with and get output from processed and tools running for the active tab. The terminal is a feature meant to serve other features by showing their output and exposing their commands.
+Provides a slide-out terminal that allows you to interact with and get output from processes and tools running for the active tab. The terminal is a feature meant to serve other features by showing their output and exposing their commands.
 
 ## Terminology
 
@@ -14,6 +14,7 @@ Provides a slide-out terminal that allows you to interact with and get output fr
 - Terminal must toggle visibility via keyboard shortcut
 - Each tab must have its own isolated terminal buffer
 - Terminal must support displaying standard and error output
+- Terminal must display output sent by backend features through the terminal output command
 - Error output must be displayed in red
 - Terminal buffers must persist while tab exists (scrollback: 5000 lines)
 - Terminal must auto-fit to available space when resized

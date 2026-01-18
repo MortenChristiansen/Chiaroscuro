@@ -1,3 +1,4 @@
+using BrowserHost.Features.Terminal;
 using BrowserHost.Utilities;
 using System;
 using System.Collections.Generic;
@@ -70,7 +71,7 @@ public class LocalWebAppProcessManager(PubSub pubSub) : IDisposable
                 {
                     if (!string.IsNullOrEmpty(e.Data))
                     {
-                        pubSub.Publish(new LocalWebAppProcessOutputEvent(tabId, e.Data, IsError: false));
+                        pubSub.Send(new WriteTerminalOutputCommand(tabId, e.Data, IsError: false));
                     }
                 };
 
@@ -82,7 +83,7 @@ public class LocalWebAppProcessManager(PubSub pubSub) : IDisposable
                         {
                             _hasErrors[tabId] = true;
                         }
-                        pubSub.Publish(new LocalWebAppProcessOutputEvent(tabId, e.Data, IsError: true));
+                        pubSub.Send(new WriteTerminalOutputCommand(tabId, e.Data, IsError: true));
                         pubSub.Publish(new LocalWebAppProcessErrorEvent(tabId));
                     }
                 };

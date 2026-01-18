@@ -1,47 +1,36 @@
+using BrowserHost.XamlUtilities;
 using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
-using BrowserHost.XamlUtilities;
 
 namespace BrowserHost.Features.Terminal;
 
-public interface ITerminalWindowOperations
+public class TerminalWindowOperations
 {
-    void ShowTerminal();
-    void HideTerminal();
-    bool IsTerminalVisible { get; }
-}
+    private RowDefinition _terminalRow = null!;
+    private RowDefinition _terminalSplitterRow = null!;
+    private FrameworkElement _terminalElement = null!;
+    private GridSplitter _terminalSplitter = null!;
 
-public class TerminalWindowOperations : ITerminalWindowOperations
-{
-    private readonly MainWindow _mainWindow;
-    private readonly RowDefinition _terminalRow;
-    private readonly RowDefinition _terminalSplitterRow;
-    private readonly FrameworkElement _terminalElement;
-    private readonly GridSplitter _terminalSplitter;
     private bool _initialized;
-    private bool _isVisible;
+    protected bool IsVisible;
 
-    public bool IsTerminalVisible => _isVisible;
+    protected TerminalWindowOperations() { }
 
-    public TerminalWindowOperations(
-        MainWindow mainWindow,
-        RowDefinition terminalRow,
-        RowDefinition terminalSplitterRow,
-        FrameworkElement terminalElement,
-        GridSplitter terminalSplitter)
+    public TerminalWindowOperations(MainWindow window)
     {
-        _mainWindow = mainWindow;
-        _terminalRow = terminalRow;
-        _terminalSplitterRow = terminalSplitterRow;
-        _terminalElement = terminalElement;
-        _terminalSplitter = terminalSplitter;
+        _terminalRow = window.TerminalRow;
+        _terminalSplitterRow = window.TerminalSplitterRow;
+        _terminalElement = window.TerminalBrowserControl;
+        _terminalSplitter = window.TerminalGridSplitter;
     }
 
-    public void ShowTerminal()
+    public virtual bool IsTerminalVisible => IsVisible;
+
+    public virtual void ShowTerminal()
     {
-        if (_isVisible) return;
+        if (IsVisible) return;
 
         if (!_initialized)
         {
@@ -49,7 +38,7 @@ public class TerminalWindowOperations : ITerminalWindowOperations
             _initialized = true;
         }
 
-        _isVisible = true;
+        IsVisible = true;
         var duration = TimeSpan.FromMilliseconds(200);
         _terminalElement.Visibility = Visibility.Visible;
         _terminalSplitter.Visibility = Visibility.Visible;
@@ -59,11 +48,11 @@ public class TerminalWindowOperations : ITerminalWindowOperations
         GridAnimationBehavior.SetIsExpanded(_terminalSplitterRow, true);
     }
 
-    public void HideTerminal()
+    public virtual void HideTerminal()
     {
-        if (!_isVisible) return;
+        if (!IsVisible) return;
 
-        _isVisible = false;
+        IsVisible = false;
         var duration = TimeSpan.FromMilliseconds(150);
         GridAnimationBehavior.SetDuration(_terminalRow, duration);
         GridAnimationBehavior.SetIsExpanded(_terminalRow, false);

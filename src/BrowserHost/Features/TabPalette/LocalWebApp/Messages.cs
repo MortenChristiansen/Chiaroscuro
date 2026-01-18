@@ -14,5 +14,4 @@ public record LocalWebAppConfigDeletedEvent(string TabId) : IEvent;
 // Process events
 public record LocalWebAppProcessStartedEvent(string TabId) : IEvent;
 public record LocalWebAppProcessStoppedEvent(string TabId) : IEvent;
-public record LocalWebAppProcessOutputEvent(string TabId, string Output, bool IsError) : IEvent;
 public record LocalWebAppProcessErrorEvent(string TabId) : IEvent;

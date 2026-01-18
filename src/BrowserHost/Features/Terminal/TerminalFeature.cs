@@ -1,5 +1,4 @@
 using BrowserHost.Features.ActionContext.Tabs;
-using BrowserHost.Features.TabPalette.LocalWebApp;
 using BrowserHost.Utilities;
 using System;
 using System.Windows.Input;
@@ -10,13 +9,13 @@ public class TerminalFeature : Feature
 {
     private readonly IBrowserContext _browserContext;
     private readonly TerminalBrowserApi _browserApi;
-    private readonly ITerminalWindowOperations _windowOperations;
+    private readonly TerminalWindowOperations _windowOperations;
 
     public TerminalFeature(
         PubSub pubSub,
         IBrowserContext browserContext,
         TerminalBrowserApi browserApi,
-        ITerminalWindowOperations windowOperations) : base(pubSub)
+        TerminalWindowOperations windowOperations) : base(pubSub)
     {
         _browserContext = browserContext ?? throw new ArgumentNullException(nameof(browserContext));
         _browserApi = browserApi ?? throw new ArgumentNullException(nameof(browserApi));
@@ -28,12 +27,7 @@ public class TerminalFeature : Feature
         // Toggle command
         PubSub.Handle<ToggleTerminalCommand>(_ => ToggleTerminal());
         PubSub.Handle<ClearTerminalCommand>(cmd => _browserApi.ClearTerminal(cmd.TabId));
-
-        // Subscribe to process output from LocalWebApp
-        PubSub.Subscribe<LocalWebAppProcessOutputEvent>(e =>
-        {
-            _browserApi.WriteOutput(e.TabId, e.Output, e.IsError);
-        });
+        PubSub.Handle<WriteTerminalOutputCommand>(cmd => _browserApi.WriteOutput(cmd.TabId, cmd.Output, cmd.IsError));
 
         // Initialize terminal for new tabs
         PubSub.Subscribe<TabActivatedEvent>(e =>
@@ -53,7 +47,7 @@ public class TerminalFeature : Feature
         if (e.Key == Key.Oem5)
         {
             // Check for ½ key (no modifiers)
-            if (Keyboard.Modifiers == ModifierKeys.None)
+            if (_browserContext.CurrentKeyboardModifiers == ModifierKeys.None)
             {
                 ToggleTerminal();
                 return true;
