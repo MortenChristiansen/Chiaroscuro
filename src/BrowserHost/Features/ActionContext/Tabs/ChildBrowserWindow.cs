@@ -1,5 +1,4 @@
 using BrowserHost.Features.ActionDialog;
-using BrowserHost.Features.Settings;
 using BrowserHost.Interop;
 using BrowserHost.Tab;
 using BrowserHost.Utilities;
@@ -22,7 +21,6 @@ public class ChildBrowserWindow : OverlayWindow
 {
     private readonly TabBrowser _browser;
     private readonly string _parentTabId;
-    private readonly PubSub _pubSub;
     private const int _cornerRadiusDip = 8;
     private const int _overlayFadeDuration = 300;
     private readonly Border _contentHost;
@@ -39,49 +37,37 @@ public class ChildBrowserWindow : OverlayWindow
     private static readonly Dictionary<string, List<ChildBrowserWindow>> _windowsByTab = [];
     private static readonly Lock _lock = new();
 
-    private static readonly Lock _subscriptionsLock = new();
-    private static bool _subscriptionsInitialized;
-
-    private static void EnsureSubscriptions(PubSub pubSub)
+    static ChildBrowserWindow()
     {
-        if (_subscriptionsInitialized)
-            return;
-
-        lock (_subscriptionsLock)
+        PubSub.Subscribe<TabActivatedEvent>(e =>
         {
-            if (_subscriptionsInitialized)
-                return;
-
-            pubSub.Subscribe<TabActivatedEvent>(e =>
-            {
-                if (!string.IsNullOrEmpty(e.TabId)) ShowWindowsForTab(e.TabId);
-                if (e.PreviousTab != null) HideWindowsForTab(e.PreviousTab.Id);
-            });
-            pubSub.Subscribe<TabDeactivatedEvent>(e =>
-            {
-                if (!string.IsNullOrEmpty(e.TabId)) HideWindowsForTab(e.TabId);
-            });
-            pubSub.Subscribe<TabClosedEvent>(e =>
-            {
-                if (!string.IsNullOrEmpty(e.TabId)) CloseWindowsForTab(e.TabId);
-            });
-
-            _subscriptionsInitialized = true;
-        }
+            if (!string.IsNullOrEmpty(e.TabId)) ShowWindowsForTab(e.TabId);
+            if (e.PreviousTab != null) HideWindowsForTab(e.PreviousTab.Id);
+        });
+        PubSub.Subscribe<TabDeactivatedEvent>(e =>
+        {
+            if (!string.IsNullOrEmpty(e.TabId)) HideWindowsForTab(e.TabId);
+        });
+        PubSub.Subscribe<TabClosedEvent>(e =>
+        {
+            if (!string.IsNullOrEmpty(e.Tab.Id)) CloseWindowsForTab(e.Tab.Id);
+        });
     }
 
-    public ChildBrowserWindow(string address, string parentTabId, PubSub pubSub)
+    public ChildBrowserWindow(string address, string parentTabId)
     {
         Owner = MainWindow.Instance;
 
-        EnsureSubscriptions(pubSub);
-        _pubSub = pubSub;
-
-        _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.TabsBrowserApi, pubSub, setManualAddress: false, favicon: null, isChildBrowser: true, MainWindow.Instance.GetFeature<SettingsFeature>());
+        _browser = new TabBrowser($"{Guid.NewGuid()}", address, MainWindow.Instance.ActionContext, setManualAddress: false, favicon: null, isChildBrowser: true);
         _browser.PageLoadEnded += Browser_PageLoadEnded;
         _browser.Opacity = 0.0; // Keep child browser hidden until first load completes
-        _browser.RenderTransformOrigin = new Point(0.5, 0.5);
-        _browser.RenderTransform = new ScaleTransform(0.5, 0.5); // scale browser content itself, not the host
+        // Note: WebView2 is HWND-hosted and does not compose well with WPF RenderTransform scaling.
+        // We keep the fade but skip scale transforms for WebView2.
+        if (!_browser.IsWebView2)
+        {
+            _browser.RenderTransformOrigin = new Point(0.5, 0.5);
+            _browser.RenderTransform = new ScaleTransform(0.5, 0.5); // scale browser content itself, not the host
+        }
 
         _overlayBrush = new SolidColorBrush(Color.FromArgb(128, 180, 180, 200)) { Opacity = 0.0 };
 
@@ -151,23 +137,26 @@ public class ChildBrowserWindow : OverlayWindow
         convertBtn.Click += (_, __) =>
         {
             var address = _browser.Address;
-            if (_browser.SupportsPromotionToFullTab)
+            if (_browser.IsWebView2)
             {
-                PrepareBrowserForPromotion();
-                // Trigger regular navigation (new tab)
-                contentGrid.Children.Remove(_browser);
-                _browser.PromoteToFullTab();
-                _pubSub.Send(new StartNavigationCommand(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
-                // Close this child window
-                BeginCloseWithFade();
-                AnimateContentOut(animateBrowser: false);
-            }
-            else
-            {
-                _pubSub.Send(new StartNavigationCommand(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+                // WebView2's native controller does not reliably survive reuse/reparenting between hosts.
+                // Open a fresh tab instead (cookies/session still come from the shared user data folder).
+                PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true));
+
                 BeginCloseWithFade();
                 AnimateContentOut();
+                return;
             }
+
+            PrepareBrowserForPromotion();
+            // Trigger regular navigation (new tab) while reusing the existing CefSharp TabBrowser.
+            contentGrid.Children.Remove(_browser);
+            _browser.PromoteToFullTab();
+            PubSub.Publish(new NavigationStartedEvent(address, UseCurrentTab: false, SaveInHistory: true, ActivateTab: true, ReuseTabBrowser: _browser));
+
+            // Close this child window
+            BeginCloseWithFade();
+            AnimateContentOut(animateBrowser: false);
         };
 
         _buttonsPanel.Children.Add(closeBtn);
@@ -411,11 +400,16 @@ public class ChildBrowserWindow : OverlayWindow
 
     private void AnimateContentIn()
     {
-        // Scale the browser content only (keep the host at final size)
-        if (_browser.RenderTransform is not ScaleTransform bScale)
+        ScaleTransform? bScale = null;
+        if (!_browser.IsWebView2)
         {
-            bScale = new ScaleTransform(0.5, 0.5);
-            _browser.RenderTransform = bScale;
+            // Scale the browser content only (keep the host at final size)
+            if (_browser.RenderTransform is not ScaleTransform scale)
+            {
+                scale = new ScaleTransform(0.5, 0.5);
+                _browser.RenderTransform = scale;
+            }
+            bScale = scale;
         }
 
         // Fade the actual browser in (keep host visible for loading background)
@@ -439,21 +433,24 @@ public class ChildBrowserWindow : OverlayWindow
         };
         _buttonsPanel.BeginAnimation(UIElement.OpacityProperty, btnOpacityAnim);
 
-        // Scale: 0.5 -> 1.0 (both axes)
-        var scaleAnim = new DoubleAnimation
+        if (bScale != null)
         {
-            From = 0.5,
-            To = 1.0,
-            Duration = TimeSpan.FromMilliseconds(200),
-            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
-        };
-        bScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
-        bScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+            // Scale: 0.5 -> 1.0 (both axes)
+            var scaleAnim = new DoubleAnimation
+            {
+                From = 0.5,
+                To = 1.0,
+                Duration = TimeSpan.FromMilliseconds(200),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+            bScale.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+            bScale.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+        }
     }
 
     private void AnimateContentOut(bool animateBrowser = true)
     {
-        if (animateBrowser)
+        if (animateBrowser && !_browser.IsWebView2)
         {
             // Scale the browser content only (keep the host at final size)
             var bScale = _browser.RenderTransform as ScaleTransform ?? new ScaleTransform(1.0, 1.0);
@@ -560,8 +557,28 @@ public class ChildBrowserWindow : OverlayWindow
         _reuseBrowserForParentTab = true;
         _browser.BeginAnimation(UIElement.OpacityProperty, null);
         _browser.Opacity = 1.0;
+
+        // Ensure we don't carry any scale animation/transforms into the full tab
+        if (_browser.RenderTransform is ScaleTransform st)
+        {
+            st.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            st.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            st.ScaleX = 1.0;
+            st.ScaleY = 1.0;
+        }
         _browser.RenderTransform = Transform.Identity;
         _browser.RenderTransformOrigin = new Point(0, 0);
+
+        try
+        {
+            var mainHwnd = new WindowInteropHelper(MainWindow.Instance).Handle;
+            if (mainHwnd != IntPtr.Zero)
+                _browser.PrepareForPromotion(mainHwnd);
+        }
+        catch
+        {
+            // Best-effort: if this fails, WebView2 promotion may still recreate/reparent on next load.
+        }
     }
 
     private static bool IsDescendantOf(DependencyObject child, DependencyObject potentialAncestor)

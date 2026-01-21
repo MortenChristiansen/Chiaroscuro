@@ -1,0 +1,102 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #2a2a2a;
+  border-bottom: 1px solid #3a3a3a;
+  -webkit-app-region: drag;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.nav-buttons button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  background: #3a3a3a;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-buttons button:hover {
+  background: #4a4a4a;
+}
+
+.url-form {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.url-input {
+  flex: 1;
+  height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 4px;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+
+.url-input:focus {
+  outline: 2px solid #4a9eff;
+}
+
+.url-form button {
+  height: 32px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 4px;
+  background: #4a9eff;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.url-form button:hover {
+  background: #3a8eef;
+}
+
+.loading-indicator {
+  font-size: 12px;
+  color: #888;
+  -webkit-app-region: no-drag;
+}
+
+.webview {
+  flex: 1;
+  border: none;
+}
