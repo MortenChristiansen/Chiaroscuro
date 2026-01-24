@@ -7,17 +7,19 @@ public class BrowserApi(BaseBrowser browser)
 {
     public virtual void CallClientApi(string api, string? arguments = null)
     {
-        var modifiedScript =
-            $$"""
-               function tryRun_{{api}}() {
-                 if (window.angularApi && window.angularApi.{{api}}) {
-                    window.angularApi.{{api}}.call({{arguments}});
-                 } else {
-                   setTimeout(tryRun_{{api}}, 50);
-                 }
-               }
-               tryRun_{{api}}();
-               """;
+                var modifiedScript =
+                        $$"""
+                             (function () {
+                                 function tryRun() {
+                                     if (window.angularApi && window.angularApi.{{api}}) {
+                                            window.angularApi.{{api}}.call({{arguments}});
+                                     } else {
+                                         setTimeout(tryRun, 50);
+                                     }
+                                 }
+                                 tryRun();
+                             })();
+                             """;
 
         browser.Dispatcher.BeginInvoke(() =>
         {
