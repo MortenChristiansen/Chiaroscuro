@@ -21,7 +21,7 @@ public static class JsonExtensions
     }
 
     public static string ToJsonString(this string? s) =>
-        s == null ? "null" : $"'{s.Replace("'", "\\'")}'";
+        s == null ? "null" : $"'{s.Replace("\\", "\\\\").Replace("'", "\\'")}'";
 
     public static string ToJsonBoolean(this bool? b) =>
         b.HasValue ? b.Value.ToJsonBoolean() : "null";

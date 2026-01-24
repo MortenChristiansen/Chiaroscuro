@@ -11,6 +11,11 @@ $targetDir = "chrome-app"
 if (Test-Path $targetDir) { Remove-Item $targetDir -Recurse -Force }
 Copy-Item $chromeAppDist $targetDir -Recurse
 
+# Create terminal folder for client-side rendered route (uses xterm.js which requires browser)
+$terminalDir = Join-Path $targetDir "terminal"
+New-Item -ItemType Directory -Path $terminalDir -Force | Out-Null
+Copy-Item (Join-Path $targetDir "index.csr.html") (Join-Path $terminalDir "index.html")
+
 # Build and publish .NET app
 Write-Host "Publishing .NET app..."
 dotnet publish BrowserHost.csproj -f net10.0-windows -r win-x64 -p:PublishSingleFile=true --self-contained true -o "../publish" -c Release

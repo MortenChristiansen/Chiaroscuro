@@ -124,6 +124,14 @@ internal class FakeTabBrowser(string? id = null) : ITabBrowser
         OriginalAddressRestored = true;
     }
 
+    public bool ReloadCalled { get; private set; }
+    public bool ReloadIgnoreCache { get; private set; }
+    public void Reload(bool ignoreCache = false)
+    {
+        ReloadCalled = true;
+        ReloadIgnoreCache = ignoreCache;
+    }
+
     public record FindInvocation(string SearchText, bool Forward, bool MatchCase, bool FindNext);
     public record RegisteredContentPageApi(string Name, BackendApi Api);
 }

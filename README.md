@@ -22,6 +22,7 @@ In browser:
 - **Ctrl-F5**: Reload page, ignoring cache.
 - **Ctrl-S**: Toggle action context panel.
 - **F12**: Toggle dev tools.
+- **½**: Toggle tab terminal.
 
 In action dialog:
 

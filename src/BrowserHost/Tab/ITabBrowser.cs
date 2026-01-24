@@ -55,4 +55,8 @@ public interface ITabBrowser
 
     void Find(string searchText, bool forward, bool matchCase, bool findNext);
     void StopFinding(bool clearSelection);
+
+    // Navigation
+
+    void Reload(bool ignoreCache = false);
 }

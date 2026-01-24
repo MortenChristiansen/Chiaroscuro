@@ -1,0 +1,283 @@
+using BrowserHost.Features.Terminal;
+using BrowserHost.Utilities;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Text;
+using System.Threading;
+
+namespace BrowserHost.Features.TabPalette.LocalWebApp;
+
+public class LocalWebAppProcessManager(PubSub pubSub) : IDisposable
+{
+    private readonly Lock _lock = new();
+    private readonly WindowsJobObject _jobObject = new("Chiaroscuro.LocalWebApp");
+    private readonly Dictionary<string, Process> _processes = [];
+    private readonly Dictionary<string, bool> _hasErrors = [];
+    private readonly Dictionary<string, EventHandler> _exitHandlers = [];
+    private bool _disposed;
+
+    public virtual bool IsRunning(string tabId)
+    {
+        lock (_lock)
+        {
+            return _processes.TryGetValue(tabId, out var process) && !process.HasExited;
+        }
+    }
+
+    public virtual bool HasErrors(string tabId)
+    {
+        lock (_lock)
+        {
+            return _hasErrors.TryGetValue(tabId, out var hasErrors) && hasErrors;
+        }
+    }
+
+    public virtual void StartProcess(string tabId, LocalWebAppConfigV1 config)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        // Stop existing process if any
+        StopProcessInternal(tabId);
+
+        if (string.IsNullOrWhiteSpace(config.DirectoryPath) || !Directory.Exists(config.DirectoryPath))
+        {
+            lock (_lock)
+            {
+                _hasErrors[tabId] = true;
+            }
+
+            pubSub.Publish(new LocalWebAppProcessErrorEvent(tabId));
+            return;
+        }
+
+        var startCommand = string.IsNullOrWhiteSpace(config.StartCommand)
+            ? "npm start"
+            : config.StartCommand;
+
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c {startCommand}",
+                WorkingDirectory = config.DirectoryPath,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8
+            };
+
+            var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+
+            process.OutputDataReceived += (_, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    pubSub.Send(new WriteTerminalOutputCommand(tabId, e.Data, IsError: false));
+                }
+            };
+
+            process.ErrorDataReceived += (_, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    lock (_lock)
+                    {
+                        _hasErrors[tabId] = true;
+                    }
+
+                    pubSub.Send(new WriteTerminalOutputCommand(tabId, e.Data, IsError: true));
+                    pubSub.Publish(new LocalWebAppProcessErrorEvent(tabId));
+                }
+            };
+
+            EventHandler exitedHandler = (_, _) => OnProcessExited(tabId);
+            process.Exited += exitedHandler;
+
+            process.Start();
+            _jobObject.TryAddProcess(process);
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            var shouldStop = false;
+            lock (_lock)
+            {
+                if (_disposed)
+                {
+                    shouldStop = true;
+                }
+                else
+                {
+                    _processes[tabId] = process;
+                    _hasErrors[tabId] = false;
+                    _exitHandlers[tabId] = exitedHandler;
+                }
+            }
+
+            if (shouldStop)
+            {
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        KillProcessTree(process);
+                    }
+                }
+                catch (Exception ex) when (!Debugger.IsAttached)
+                {
+                    Debug.WriteLine($"Failed to stop process for tab {tabId}: {ex.Message}");
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+
+                return;
+            }
+
+            pubSub.Publish(new LocalWebAppProcessStartedEvent(tabId));
+        }
+        catch (Exception ex) when (!Debugger.IsAttached)
+        {
+            Debug.WriteLine($"Failed to start process for tab {tabId}: {ex.Message}");
+            lock (_lock)
+            {
+                _hasErrors[tabId] = true;
+            }
+
+            pubSub.Publish(new LocalWebAppProcessErrorEvent(tabId));
+        }
+    }
+
+    public virtual void StopProcess(string tabId)
+    {
+        StopProcessInternal(tabId);
+    }
+
+    private void StopProcessInternal(string tabId)
+    {
+        Process? existingProcess = null;
+        EventHandler? handler = null;
+
+        lock (_lock)
+        {
+            if (_processes.TryGetValue(tabId, out existingProcess))
+            {
+                if (_exitHandlers.TryGetValue(tabId, out handler))
+                {
+                    _exitHandlers.Remove(tabId);
+                }
+
+                _processes.Remove(tabId);
+                _hasErrors.Remove(tabId);
+            }
+        }
+
+        if (existingProcess == null)
+        {
+            return;
+        }
+
+        if (handler != null)
+        {
+            existingProcess.Exited -= handler;
+        }
+
+        try
+        {
+            if (!existingProcess.HasExited)
+            {
+                // Kill the process tree
+                KillProcessTree(existingProcess);
+            }
+        }
+        catch (Exception ex) when (!Debugger.IsAttached)
+        {
+            Debug.WriteLine($"Failed to stop process for tab {tabId}: {ex.Message}");
+        }
+        finally
+        {
+            existingProcess.Dispose();
+            pubSub.Publish(new LocalWebAppProcessStoppedEvent(tabId));
+        }
+    }
+
+    private void OnProcessExited(string tabId)
+    {
+        Process? process = null;
+
+        lock (_lock)
+        {
+            if (_processes.TryGetValue(tabId, out process))
+            {
+                _processes.Remove(tabId);
+                _hasErrors.Remove(tabId);
+                _exitHandlers.Remove(tabId);
+            }
+        }
+
+        if (process == null)
+        {
+            return;
+        }
+
+        try
+        {
+            process.Dispose();
+        }
+        finally
+        {
+            pubSub.Publish(new LocalWebAppProcessStoppedEvent(tabId));
+        }
+    }
+
+    public virtual void StopAllProcesses()
+    {
+        List<string> tabIds;
+        lock (_lock)
+        {
+            tabIds = new List<string>(_processes.Keys);
+        }
+
+        foreach (var tabId in tabIds)
+        {
+            StopProcessInternal(tabId);
+        }
+    }
+
+    private static void KillProcessTree(Process process)
+    {
+        try
+        {
+            // Use taskkill to kill the process tree on Windows
+            using var killer = Process.Start(new ProcessStartInfo
+            {
+                FileName = "taskkill",
+                Arguments = $"/T /F /PID {process.Id}",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+            killer?.WaitForExit(5000);
+        }
+        catch
+        {
+            // Fallback: just kill the main process
+            try { process.Kill(); } catch { }
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        StopAllProcesses();
+        _jobObject.Dispose();
+        GC.SuppressFinalize(this);
+    }
+}

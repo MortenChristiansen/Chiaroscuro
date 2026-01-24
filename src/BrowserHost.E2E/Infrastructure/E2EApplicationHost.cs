@@ -400,10 +400,10 @@ internal sealed class E2EApplicationHost : IDisposable
             _window.SetCurrentTab(tabBrowser);
         }
 
-        public ITabBrowser CreateNewTab(string address, global::BrowserHost.Features.ActionContext.Tabs.TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser) =>
+        public ITabBrowser CreateNewTab(string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser) =>
             CreateExistingTab($"{Guid.NewGuid()}", address, tabsApi, pubSub, setManualAddress, favicon, isChildBrowser);
 
-        public ITabBrowser CreateExistingTab(string tabId, string address, global::BrowserHost.Features.ActionContext.Tabs.TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser) =>
+        public ITabBrowser CreateExistingTab(string tabId, string address, TabsBrowserApi tabsApi, PubSub pubSub, bool setManualAddress, string? favicon, bool isChildBrowser) =>
             new TabBrowser(tabId, address, tabsApi, pubSub, setManualAddress, favicon, isChildBrowser, _settingsFeature);
 
         public bool ActionRequiresDispatch => !_window.Dispatcher.CheckAccess();
@@ -412,7 +412,7 @@ internal sealed class E2EApplicationHost : IDisposable
 
         public TFeature GetFeature<TFeature>() where TFeature : Feature => _window.GetFeature<TFeature>();
 
-        private sealed class NullDragDropHost : global::BrowserHost.Features.DragDrop.IDragDropHost
+        private sealed class NullDragDropHost : IDragDropHost
         {
             public bool AllowDrop { get; set; }
             public event Action? DragEnter;

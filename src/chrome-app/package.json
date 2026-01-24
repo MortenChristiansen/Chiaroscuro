@@ -24,6 +24,8 @@
     "@fortawesome/angular-fontawesome": "^3.0.0",
     "@fortawesome/free-regular-svg-icons": "^7.1.0",
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
     "@tailwindcss/postcss": "^4.1.10",
     "express": "^5.1.0",
     "nxt-sortablejs": "^20.0.0",

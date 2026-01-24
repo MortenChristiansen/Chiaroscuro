@@ -14,7 +14,9 @@ using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
+using BrowserHost.Features.TabPalette.LocalWebApp;
 using BrowserHost.Features.TabPalette.TabCustomization;
+using BrowserHost.Features.Terminal;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Tab;
 using BrowserHost.Tests.Fakes.WindowOperations;
@@ -50,6 +52,8 @@ internal class TestBrowserContext : IBrowserContext
         SettingsStateManager = new SettingsStateManager(FileSystem);
         WorkspaceStateManager = new WorkspaceStateManager(PubSub, FileSystem);
         PinnedTabsStateManager = new PinnedTabsStateManager(FileSystem);
+        LocalWebAppStateManager = new LocalWebAppStateManager(FileSystem);
+        LocalWebAppProcessManager = new FakeLocalWebAppProcessManager(PubSub);
     }
 
     public Options AppOptions { get; set; } = new();
@@ -68,12 +72,15 @@ internal class TestBrowserContext : IBrowserContext
     public FakePinnedTabsBrowserApi PinnedTabsBrowserApi { get; } = new();
     public FakeActionDialogBrowserApi ActionDialogBrowserApi { get; } = new();
     public FakeDownloadsBrowserApi DownloadsBrowserApi { get; } = new();
+    public FakeTerminalBrowserApi TerminalBrowserApi { get; } = new();
+    public FakeLocalWebAppBrowserApi LocalWebAppBrowserApi { get; } = new();
 
     public FakeCustomWindowChromeWindowOperations CustomWindowChromeWindowOperations { get; } = new();
     public FakeActionDialogWindowOperations ActionDialogWindowOperations { get; } = new();
     public FakeActionContextWindowOperations ActionContextWindowOperations { get; } = new();
     public FakeTabPaletteWindowOperations TabPaletteWindowOperations { get; } = new();
     public FakeDevToolWindowOperations DevToolWindowOperations { get; } = new();
+    public FakeTerminalWindowOperations TerminalWindowOperations { get; } = new();
 
     public FakeDragDropHost FakeDragDropHost { get; } = new FakeDragDropHost();
     public IDragDropHost DragDropHost => FakeDragDropHost;
@@ -86,6 +93,8 @@ internal class TestBrowserContext : IBrowserContext
     public SettingsStateManager SettingsStateManager { get; }
     public WorkspaceStateManager WorkspaceStateManager { get; }
     public PinnedTabsStateManager PinnedTabsStateManager { get; }
+    public LocalWebAppStateManager LocalWebAppStateManager { get; }
+    public FakeLocalWebAppProcessManager LocalWebAppProcessManager { get; }
 
     public ITabBrowser? CurrentTab { get; private set; }
     public string? CurrentTabId => CurrentTab?.Id;
@@ -296,5 +305,11 @@ internal class TestBrowserContext : IBrowserContext
 
         public FileDownloadsFeature BuildFileDownloadsFeature() =>
             BuildFeature((context) => new FileDownloadsFeature(context.PubSub, context.DownloadsBrowserApi, context.FileSystem.TimeSystem));
+
+        public TerminalFeature BuildTerminalFeature() =>
+            BuildFeature((context) => new TerminalFeature(context.PubSub, context, context.TerminalBrowserApi, context.TerminalWindowOperations));
+
+        public LocalWebAppFeature BuildLocalWebAppFeature() =>
+            BuildFeature((context) => new LocalWebAppFeature(context.PubSub, context, context.LocalWebAppBrowserApi, context.LocalWebAppStateManager, context.LocalWebAppProcessManager));
     }
 }

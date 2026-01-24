@@ -14,7 +14,9 @@ using BrowserHost.Features.Settings;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
+using BrowserHost.Features.TabPalette.LocalWebApp;
 using BrowserHost.Features.TabPalette.TabCustomization;
+using BrowserHost.Features.Terminal;
 using BrowserHost.Features.Zoom;
 using BrowserHost.Logging;
 using BrowserHost.Tab;
@@ -44,11 +46,14 @@ public partial class MainWindow : Window
     private bool _tabPaletteHasBeenShown;
     private const int CornerRadiusDip = 8;
     private readonly AppStateStateManager _appStateStateManager;
+    private readonly LocalWebAppProcessManager _localWebAppProcessManager;
+    private readonly PubSub _pubSub;
 
     public CustomWindowChromeBrowser ChromeUI { get; }
     public ActionContextBrowser ActionContext { get; }
     public TabPaletteBrowser TabPaletteBrowserControl { get; }
     public ActionDialogBrowser ActionDialog { get; }
+    public TerminalBrowser TerminalBrowserControl { get; }
 
     public ChromiumWebBrowser Chrome => ChromeUI;
     public TabBrowser? CurrentTab => (TabBrowser)WebContentBorder.Child;
@@ -77,6 +82,8 @@ public partial class MainWindow : Window
     public DomainCustomizationBrowserApi DomainCustomizationBrowserApi { get; }
     public TabPaletteBrowserApi TabPaletteBrowserApi { get; }
     public TabCustomizationBrowserApi TabCustomizationBrowserApi { get; }
+    public LocalWebAppBrowserApi LocalWebAppBrowserApi { get; }
+    public TerminalBrowserApi TerminalBrowserApi { get; }
 
     public MainWindow()
         : this(App.SettingsFeature, App.PubSub, App.FileSystem, browserContext: null, enableUpdateCheck: true, startContentServer: true)
@@ -97,11 +104,16 @@ public partial class MainWindow : Window
         {
             Visibility = Visibility.Hidden
         };
+        TerminalBrowserControl = new TerminalBrowser(pubSub)
+        {
+            Visibility = Visibility.Collapsed
+        };
 
         ChromeUIHost.Content = ChromeUI;
         ActionContextHost.Content = ActionContext;
         TabPaletteBrowserHost.Content = TabPaletteBrowserControl;
         ActionDialogHost.Content = ActionDialog;
+        TerminalBrowserHost.Content = TerminalBrowserControl;
 
         if (enableUpdateCheck)
         {
@@ -120,6 +132,8 @@ public partial class MainWindow : Window
         DomainCustomizationBrowserApi = new DomainCustomizationBrowserApi(TabPaletteBrowserControl);
         TabPaletteBrowserApi = new TabPaletteBrowserApi(TabPaletteBrowserControl);
         TabCustomizationBrowserApi = new TabCustomizationBrowserApi(TabPaletteBrowserControl);
+        LocalWebAppBrowserApi = new LocalWebAppBrowserApi(TabPaletteBrowserControl);
+        TerminalBrowserApi = new TerminalBrowserApi(TerminalBrowserControl);
 
         browserContext ??= new BrowserContext(this);
 
@@ -131,8 +145,11 @@ public partial class MainWindow : Window
         var actionContextWindowOperations = new ActionContextWindowOperations(this);
         var tabPaletteWindowOperations = new TabPaletteWindowOperations(this);
         var devToolWindowOperations = new DevToolWindowOperations(this);
+        var terminalWindowOperations = new TerminalWindowOperations(this);
 
+        _pubSub = pubSub;
         _appStateStateManager = new AppStateStateManager(fileSystem);
+        _localWebAppProcessManager = new LocalWebAppProcessManager(pubSub);
 
         _features =
         [
@@ -152,6 +169,8 @@ public partial class MainWindow : Window
             new FindTextFeature(pubSub, browserContext, FindTextBrowserApi, tabPaletteWindowOperations),
             new TabCustomizationFeature(pubSub, browserContext, TabCustomizationBrowserApi, TabsBrowserApi, new TabCustomizationStateManager(fileSystem)),
             new DomainCustomizationFeature(pubSub, browserContext, DomainCustomizationBrowserApi, new DomainCustomizationStateManager(fileSystem, shellFileOpener)),
+            new LocalWebAppFeature(pubSub, browserContext, LocalWebAppBrowserApi, new LocalWebAppStateManager(fileSystem), _localWebAppProcessManager),
+            new TerminalFeature(pubSub, browserContext, TerminalBrowserApi, terminalWindowOperations),
             new AppStateFeature(pubSub, actionContextWindowOperations, tabPaletteWindowOperations, _appStateStateManager),
         ];
         _features.ForEach(f =>
@@ -291,6 +310,8 @@ public partial class MainWindow : Window
             }
             downloadsFeature.CancelAllActiveDownloads();
         }
+
+        _pubSub.Publish(new BrowserHostClosingEvent());
 
         LoggingService.SafeFlushLogsOnShutdown();
 

@@ -7,7 +7,9 @@ using BrowserHost.Features.CustomWindowChrome;
 using BrowserHost.Features.TabPalette;
 using BrowserHost.Features.TabPalette.DomainCustomization;
 using BrowserHost.Features.TabPalette.FindText;
+using BrowserHost.Features.TabPalette.LocalWebApp;
 using BrowserHost.Features.TabPalette.TabCustomization;
+using BrowserHost.Features.Terminal;
 
 namespace BrowserHost.Tests.Fakes;
 
@@ -103,6 +105,22 @@ public class FakeActionDialogBrowserApi() : ActionDialogBrowserApi(null!), IFake
 }
 
 public class FakeDownloadsBrowserApi() : DownloadsBrowserApi(null!), IFakeBrowserApi
+{
+    public List<BrowserApiInvocation> Invocations { get; } = [];
+
+    public override void CallClientApi(string api, string? arguments = null) =>
+        Invocations.Add(new(api, arguments));
+}
+
+public class FakeTerminalBrowserApi() : TerminalBrowserApi(null!), IFakeBrowserApi
+{
+    public List<BrowserApiInvocation> Invocations { get; } = [];
+
+    public override void CallClientApi(string api, string? arguments = null) =>
+        Invocations.Add(new(api, arguments));
+}
+
+public class FakeLocalWebAppBrowserApi() : LocalWebAppBrowserApi(null!), IFakeBrowserApi
 {
     public List<BrowserApiInvocation> Invocations { get; } = [];
 
