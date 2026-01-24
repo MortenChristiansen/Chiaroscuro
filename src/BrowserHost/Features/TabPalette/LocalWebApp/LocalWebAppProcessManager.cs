@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Threading;
 
 namespace BrowserHost.Features.TabPalette.LocalWebApp;
@@ -63,7 +64,9 @@ public class LocalWebAppProcessManager(PubSub pubSub) : IDisposable
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
-                    RedirectStandardError = true
+                    RedirectStandardError = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8
                 };
 
                 var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
