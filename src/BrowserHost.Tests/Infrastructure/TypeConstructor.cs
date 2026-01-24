@@ -7,6 +7,11 @@ namespace BrowserHost.Tests.Infrastructure;
 
 internal static class TypeConstructor
 {
+    public static T CreateUninitialized<T>() where T : class
+    {
+        return (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
+    }
+
     public static MouseWheelEventArgs CreateMouseWheelEventArgs(int delta)
     {
         var win32MouseDeviceType = typeof(MouseDevice).Assembly.GetType("System.Windows.Input.Win32MouseDevice", throwOnError: true)!;

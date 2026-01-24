@@ -260,6 +260,18 @@ public class LocalWebAppFeatureTests
     }
 
     [Fact]
+    public void Publishing_TabPaletteRequestedEvent_does_nothing_when_there_is_no_current_tab()
+    {
+        CreateFeature
+            .CaptureContext(out var context)
+            .BuildLocalWebAppFeature();
+
+        context.PubSub.Publish(new TabPaletteRequestedEvent());
+
+        Assert.Empty(context.LocalWebAppBrowserApi.Invocations);
+    }
+
+    [Fact]
     public void Publishing_LocalWebAppProcessStartedEvent_updates_process_status()
     {
         CreateFeature
@@ -301,6 +313,36 @@ public class LocalWebAppFeatureTests
         context.PubSub.Publish(new LocalWebAppProcessErrorEvent(tab.Id));
 
         Assert.True(context.LocalWebAppBrowserApi.WasCalledWith("updateLocalWebAppProcessStatus", $"'{tab.Id}', false, true"));
+    }
+
+    [Fact]
+    public void Publishing_LocalWebAppProcessErrorEvent_updates_process_status_when_running_and_error()
+    {
+        CreateFeature
+            .WithCurrentTab(out var tab)
+            .CaptureContext(out var context)
+            .BuildLocalWebAppFeature();
+        context.LocalWebAppProcessManager.SimulateProcessRunning(tab.Id);
+        context.LocalWebAppProcessManager.SimulateProcessError(tab.Id);
+        context.LocalWebAppBrowserApi.ClearInvocations();
+
+        context.PubSub.Publish(new LocalWebAppProcessErrorEvent(tab.Id));
+
+        Assert.True(context.LocalWebAppBrowserApi.WasCalledWith("updateLocalWebAppProcessStatus", $"'{tab.Id}', true, true"));
+    }
+
+    [Fact]
+    public void Publishing_LocalWebAppProcessStartedEvent_reloads_the_current_tab_after_a_short_delay()
+    {
+        CreateFeature
+            .WithCurrentTab(out var tab)
+            .CaptureContext(out var context)
+            .BuildLocalWebAppFeature();
+
+        context.PubSub.Publish(new LocalWebAppProcessStartedEvent(tab.Id));
+        context.WaitUntil(() => tab.ReloadCalled);
+
+        Assert.True(tab.ReloadCalled);
     }
 
     [Fact]

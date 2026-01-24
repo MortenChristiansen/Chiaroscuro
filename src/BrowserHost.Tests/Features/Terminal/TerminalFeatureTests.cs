@@ -1,6 +1,12 @@
 using BrowserHost.Features.ActionContext.Tabs;
 using BrowserHost.Features.Terminal;
+using System;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using static BrowserHost.Tests.Infrastructure.TypeConstructor;
 
 namespace BrowserHost.Tests.Features.Terminal;
@@ -139,5 +145,89 @@ public class TerminalFeatureTests
 
         Assert.False(handled);
         Assert.Equal(0, context.TerminalWindowOperations.ShowTerminalCallCount);
+    }
+
+    [Fact]
+    public void Pressing_the_terminal_toggle_key_with_modifiers_does_not_toggle_terminal()
+    {
+        var feature = CreateFeature
+            .WithCurrentTab()
+            .ConfigureContext(ctx => ctx.CurrentKeyboardModifiers = ModifierKeys.Control)
+            .CaptureContext(out var context)
+            .BuildTerminalFeature();
+
+        var handled = feature.HandleOnPreviewKeyDown(CreateKeyEventArgs(Key.Oem5));
+
+        Assert.False(handled);
+        Assert.Equal(0, context.TerminalWindowOperations.ShowTerminalCallCount);
+    }
+
+    [Fact]
+    public void Pressing_the_terminal_toggle_key_in_a_text_box_does_not_toggle_terminal()
+    {
+        var feature = CreateFeature
+            .WithCurrentTab()
+            .CaptureContext(out var context)
+            .BuildTerminalFeature();
+
+        var args = CreateKeyEventArgs(Key.Oem5);
+        SetOriginalSource(args, CreateUninitialized<TextBox>());
+
+        var handled = feature.HandleOnPreviewKeyDown(args);
+
+        Assert.False(handled);
+        Assert.Equal(0, context.TerminalWindowOperations.ShowTerminalCallCount);
+    }
+
+    [Fact]
+    public void Pressing_the_terminal_toggle_key_in_an_embedded_browser_does_not_toggle_terminal()
+    {
+        var feature = CreateFeature
+            .WithCurrentTab()
+            .CaptureContext(out var context)
+            .BuildTerminalFeature();
+
+        var args = CreateKeyEventArgs(Key.Oem5);
+        SetOriginalSource(args, CreateUninitialized<TestHwndHost>());
+
+        var handled = feature.HandleOnPreviewKeyDown(args);
+
+        Assert.False(handled);
+        Assert.Equal(0, context.TerminalWindowOperations.ShowTerminalCallCount);
+    }
+
+    [Fact]
+    public void Toggling_the_terminal_with_no_current_tab_does_not_initialize_the_terminal()
+    {
+        CreateFeature
+            .CaptureContext(out var context)
+            .BuildTerminalFeature();
+
+        context.PubSub.Send(new ToggleTerminalCommand());
+
+        Assert.Equal(1, context.TerminalWindowOperations.ShowTerminalCallCount);
+        Assert.True(context.TerminalBrowserApi.WasCalledWith("setTerminalVisibility", "true"));
+        Assert.False(context.TerminalBrowserApi.Invocations.Any(invocation => invocation.Method == "initTerminal"));
+    }
+
+    private static void SetOriginalSource(KeyEventArgs args, object source)
+    {
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var sourceField = typeof(System.Windows.RoutedEventArgs).GetField("_source", flags)
+            ?? throw new InvalidOperationException("RoutedEventArgs._source field not found - internal structure may have changed");
+        var originalSourceField = typeof(System.Windows.RoutedEventArgs).GetField("_originalSource", flags)
+            ?? throw new InvalidOperationException("RoutedEventArgs._originalSource field not found - internal structure may have changed");
+
+        sourceField.SetValue(args, source);
+        originalSourceField.SetValue(args, source);
+    }
+
+    private sealed class TestHwndHost : HwndHost
+    {
+        protected override HandleRef BuildWindowCore(HandleRef hwndParent) => new(this, IntPtr.Zero);
+
+        protected override void DestroyWindowCore(HandleRef hwnd)
+        {
+        }
     }
 }
