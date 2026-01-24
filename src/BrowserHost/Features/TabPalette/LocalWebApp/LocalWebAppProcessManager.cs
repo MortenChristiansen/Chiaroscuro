@@ -11,6 +11,7 @@ namespace BrowserHost.Features.TabPalette.LocalWebApp;
 public class LocalWebAppProcessManager(PubSub pubSub) : IDisposable
 {
     private readonly Lock _lock = new();
+    private readonly WindowsJobObject _jobObject = new("Chiaroscuro.LocalWebApp");
     private readonly Dictionary<string, Process> _processes = [];
     private readonly Dictionary<string, bool> _hasErrors = [];
     private readonly Dictionary<string, EventHandler> _exitHandlers = [];
@@ -93,6 +94,7 @@ public class LocalWebAppProcessManager(PubSub pubSub) : IDisposable
                 process.Exited += exitedHandler;
 
                 process.Start();
+                _jobObject.TryAddProcess(process);
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
 
@@ -212,6 +214,7 @@ public class LocalWebAppProcessManager(PubSub pubSub) : IDisposable
         if (_disposed) return;
         _disposed = true;
         StopAllProcesses();
+        _jobObject.Dispose();
         GC.SuppressFinalize(this);
     }
 }
