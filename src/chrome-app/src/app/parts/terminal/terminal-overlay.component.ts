@@ -20,6 +20,8 @@ type XtermFitAddon = import('@xterm/addon-fit').FitAddon;
 interface TerminalBuffer {
   terminal: XtermTerminal;
   fitAddon: XtermFitAddon;
+  copyHandlersInstalled?: boolean;
+  contextMenuHandlerInstalled?: boolean;
 }
 
 @Component({
@@ -157,6 +159,7 @@ export default class TerminalOverlayComponent
       terminal.loadAddon(fitAddon);
 
       buffer = { terminal, fitAddon };
+      this.installCopyKeyHandler(buffer);
       this.terminals.set(tabId, buffer);
     }
     return buffer;
@@ -178,6 +181,8 @@ export default class TerminalOverlayComponent
       buffer.terminal.open(this.terminalContainer.nativeElement);
     }
 
+    this.installCopyContextMenuHandler(buffer);
+
     if (buffer.terminal.element) {
       buffer.terminal.element.style.display = '';
     }
@@ -192,6 +197,57 @@ export default class TerminalOverlayComponent
     const prefix = isError ? '\x1b[31m' : ''; // Red for errors
     const suffix = isError ? '\x1b[0m' : '';
     buffer.terminal.writeln(`${prefix}${output}${suffix}`);
+  }
+
+  private installCopyKeyHandler(buffer: TerminalBuffer) {
+    if (buffer.copyHandlersInstalled) return;
+
+    buffer.terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+      const isCopyShortcut =
+        (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c';
+
+      if (isCopyShortcut && buffer.terminal.hasSelection()) {
+        void this.copyTerminalSelection(buffer.terminal);
+        return false;
+      }
+
+      return true;
+    });
+
+    buffer.copyHandlersInstalled = true;
+  }
+
+  private installCopyContextMenuHandler(buffer: TerminalBuffer) {
+    if (buffer.contextMenuHandlerInstalled) return;
+
+    const element = buffer.terminal.element;
+    if (!element) return;
+
+    element.addEventListener('contextmenu', (event) => {
+      if (!buffer.terminal.hasSelection()) return;
+      event.preventDefault();
+      void this.copyTerminalSelection(buffer.terminal);
+    });
+
+    buffer.contextMenuHandlerInstalled = true;
+  }
+
+  private async copyTerminalSelection(terminal: XtermTerminal) {
+    const selection = terminal.getSelection();
+    if (!selection) return;
+
+    try {
+      await navigator.clipboard.writeText(selection);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = selection;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
   }
 
   private clearTerminal(tabId: string) {
